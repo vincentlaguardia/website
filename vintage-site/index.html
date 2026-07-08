@@ -1440,11 +1440,12 @@ function openBrowserWindow(landingUrlOverride) {
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
+  titlebar.tabIndex = 0;
   titlebar.innerHTML = `
     <span class="title-text">Internet Explorer</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
-      <div class="win-btn" data-action="max">&#9633;</div>
+      <div class="win-btn" data-action="max" title="Maximize" aria-label="Maximize">&#9633;</div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -1509,6 +1510,11 @@ function openBrowserWindow(landingUrlOverride) {
   titlebar.querySelector('[data-action="max"]').addEventListener('click', () => toggleMaximize(id));
   titlebar.addEventListener('dblclick', e => {
     if (e.target.closest('.win-btn')) return;
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
     toggleMaximize(id);
   });
   makeDraggable(win, titlebar);
@@ -2058,6 +2064,7 @@ function toggleMaximize(id) {
     w.el.style.left = '0px';
     w.el.style.top = '0px';
     w.el.style.width = window.innerWidth + 'px';
+    // Keep enough room for title/content/status chrome even on tiny viewports.
     w.el.style.height = Math.max(120, window.innerHeight - taskbarHeight) + 'px';
     w.maximized = true;
   } else {

@@ -2867,6 +2867,7 @@ function pvResetView() {
   if (!pvState) return;
   pvState.pictureViewMode = 'fit';
   pvState.pictureZoom = 1;
+  pvState.pictureRotation = 0;
   pvApplyPictureLayout();
   pvSyncViewOptions();
 }
@@ -2880,6 +2881,12 @@ function pvAdjustZoom(delta) {
   pvSyncViewOptions();
 }
 
+function pvRotate() {
+  if (!pvState) return;
+  pvState.pictureRotation = ((pvState.pictureRotation || 0) + 90) % 360;
+  pvApplyPictureLayout();
+}
+
 function pvApplyPictureLayout() {
   if (!pvState) return;
   const pvWin = openWindows['picviewer'];
@@ -2890,10 +2897,13 @@ function pvApplyPictureLayout() {
 
   const mode = pvState.pictureViewMode === 'actual' ? 'actual' : 'fit';
   const zoom = Number.isFinite(pvState.pictureZoom) && pvState.pictureZoom > 0 ? pvState.pictureZoom : 1;
+  const rotation = Number.isFinite(pvState.pictureRotation) ? ((pvState.pictureRotation % 360) + 360) % 360 : 0;
 
   viewer.classList.toggle('actual-size', mode === 'actual');
-  img.style.transform = zoom === 1 ? '' : ('scale(' + zoom + ')');
-
+  const transforms = [];
+  if (rotation !== 0) transforms.push('rotate(' + rotation + 'deg)');
+  if (zoom !== 1) transforms.push('scale(' + zoom + ')');
+  img.style.transform = transforms.join(' ');
   if (mode === 'actual') {
     img.style.maxWidth = 'none';
     img.style.maxHeight = 'none';
@@ -3015,6 +3025,7 @@ function openPictureWindow(childId, parentId, options = {}) {
     quickPreview,
     pictureViewMode: 'fit',
     pictureZoom: 1,
+    pictureRotation: 0,
     audioVizTimePreset: prevState.audioVizTimePreset || 'balanced',
     audioVizFrequencyPreset: prevState.audioVizFrequencyPreset || 'balanced',
     audioVizColorPreset: prevState.audioVizColorPreset || 'lime'
@@ -3057,6 +3068,7 @@ function openPictureWindow(childId, parentId, options = {}) {
       <span class="pv-view-option" data-pv-zoom="in">Zoom In</span>
       <span class="pv-view-option" data-pv-zoom="out">Zoom Out</span>
       <span class="pv-view-option" data-pv-view="reset">Reset</span>
+      <span class="pv-view-option" data-pv-rotate="cw">Rotate</span>
       <span class="pv-zoom-label">100%</span>
     </div>
     <div class="pv-menu-group" data-pv-menu="audio" hidden>
@@ -3097,6 +3109,7 @@ function openPictureWindow(childId, parentId, options = {}) {
   menubar.querySelector('[data-pv-view="reset"]').addEventListener('click', () => pvResetView());
   menubar.querySelector('[data-pv-zoom="in"]').addEventListener('click', () => pvAdjustZoom(0.1));
   menubar.querySelector('[data-pv-zoom="out"]').addEventListener('click', () => pvAdjustZoom(-0.1));
+  menubar.querySelector('[data-pv-rotate="cw"]').addEventListener('click', () => pvRotate());
   menubar.querySelector('[data-pv-audio="time"]').addEventListener('change', e => pvSetAudioPreset('audioVizTimePreset', e.target.value));
   menubar.querySelector('[data-pv-audio="frequency"]').addEventListener('change', e => pvSetAudioPreset('audioVizFrequencyPreset', e.target.value));
   menubar.querySelector('[data-pv-audio="color"]').addEventListener('change', e => pvSetAudioPreset('audioVizColorPreset', e.target.value));
@@ -3128,6 +3141,7 @@ function pvRenderCurrent() {
     statusbar.textContent = (item.size ? formatFileSize(item.size) : '') +
       (pvState.ids.length > 1 ? '   (' + (pvState.index + 1) + ' of ' + pvState.ids.length + ')' : '');
   }
+  pvState.pictureRotation = 0;
   if (!content) return;
   const oldViewer = content.firstElementChild;
   if (oldViewer && typeof oldViewer._pvCleanup === 'function') oldViewer._pvCleanup();
@@ -3485,6 +3499,21 @@ document.addEventListener('keydown', e => {
   if (win.titlebarEl.classList.contains('inactive')) return;
   e.preventDefault();
   pvStep((e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1);
+});
+
+// R key rotates the current image 90° clockwise in the picture viewer.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'r' && e.key !== 'R') return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+  const win = openWindows['picviewer'];
+  if (!win || win.minimized) return;
+  if (win.titlebarEl.classList.contains('inactive')) return;
+  if (!pvState) return;
+  const item = items[pvState.ids[pvState.index]];
+  if (!item || item.type !== 'picture') return;
+  e.preventDefault();
+  pvRotate();
 });
 
 // Pressing Space on a selected picture, video, or audio icon (without

@@ -1361,17 +1361,7 @@ function openTrashWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  const maxBtn = titlebar.querySelector('[data-action="max"]');
-  maxBtn.addEventListener('click', () => toggleMaximize(id));
-  maxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
@@ -1528,19 +1518,9 @@ function openBrowserWindow(landingUrlOverride) {
   }
 
   win.addEventListener('mousedown', () => bringToFront(id));
-  const maxBtn = titlebar.querySelector('[data-action="max"]');
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  maxBtn.addEventListener('click', () => toggleMaximize(id));
-  maxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
@@ -2000,17 +1980,7 @@ function openSettingsWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  const maxBtn = titlebar.querySelector('[data-action="max"]');
-  maxBtn.addEventListener('click', () => toggleMaximize(id));
-  maxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
@@ -2138,6 +2108,21 @@ function addTaskbarEntry(id, name, iconSvg) {
 
 function isWindowControlTarget(target) {
   return !!(target && target.closest('.win-btn'));
+}
+
+function attachMaximizeHandlers(titlebar, id) {
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
+  if (!maxBtn) return;
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
 }
 
 function makeDraggable(win, handle) {
@@ -2924,17 +2909,7 @@ function openPictureWindow(childId, parentId, options = {}) {
     pvState = null;
   });
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  const pvMaxBtn = titlebar.querySelector('[data-action="max"]');
-  pvMaxBtn.addEventListener('click', () => toggleMaximize(id));
-  pvMaxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
 
   menubar.querySelector('[data-pv-view="fit"]').addEventListener('click', () => pvSetViewMode('fit'));
   menubar.querySelector('[data-pv-view="actual"]').addEventListener('click', () => pvSetViewMode('actual'));
@@ -3656,17 +3631,7 @@ function openWindow(id) {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  const maxBtn = titlebar.querySelector('[data-action="max"]');
-  maxBtn.addEventListener('click', () => toggleMaximize(id));
-  maxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
 
   makeDraggable(win, titlebar);
 
@@ -4105,17 +4070,7 @@ function openPaintWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  const maxBtn = titlebar.querySelector('[data-action="max"]');
-  maxBtn.addEventListener('click', () => toggleMaximize(id));
-  maxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
 
   makeDraggable(win, titlebar);
 
@@ -4621,17 +4576,7 @@ function openSolitaireWindow(startInProgress) {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  const maxBtn = titlebar.querySelector('[data-action="max"]');
-  maxBtn.addEventListener('click', () => toggleMaximize(id));
-  maxBtn.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('dblclick', e => {
-    if (isWindowControlTarget(e.target)) return;
-    toggleMaximize(id);
-  });
+  attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);
 
   // Custom resize handle that keeps the board's aspect ratio locked, so the

@@ -3616,6 +3616,8 @@ function openPaintWindow() {
     if (!availW || !availH) return;
     if (!cols) return;
     const availableSquareSize = Math.max(0, Math.min(availW, availH));
+    // Force the shown canvas to a multiple of `cols` so each cell gets
+    // an integer number of CSS pixels (no fractional-cell jitter at 64/128).
     const gridAlignedSize = Math.floor(availableSquareSize / cols) * cols;
     // Tiny windows may not fit one full cell per row/col; in that case,
     // use the largest possible square anyway so Paint still remains usable.
@@ -3668,18 +3670,17 @@ function openPaintWindow() {
   }
 
   function tryLoadImageSource(sources, onDone, lastError) {
-    if (!sources.length) return onDone(false, null, null, lastError);
+    if (!sources.length) return onDone({ success: false, error: lastError });
     const src = sources[0];
     const tryOne = useCrossOrigin => {
       const img = new Image();
       if (useCrossOrigin) img.crossOrigin = 'anonymous';
-      img.onload = () => onDone(true, img, src);
+      img.onload = () => onDone({ success: true, img, src });
       img.onerror = () => {
+        const mode = useCrossOrigin ? 'with anonymous CORS' : 'without CORS';
+        const err = new Error('Load failed for ' + src + ' (' + mode + ')');
         if (useCrossOrigin) tryOne(false);
-        else {
-          const mode = useCrossOrigin ? 'with anonymous CORS' : 'without CORS';
-          tryLoadImageSource(sources.slice(1), onDone, new Error('Load failed for ' + src + ' (' + mode + ')'));
-        }
+        else tryLoadImageSource(sources.slice(1), onDone, err);
       };
       img.src = src;
     };
@@ -3687,9 +3688,9 @@ function openPaintWindow() {
   }
 
   function loadDefaultPaintArt() {
-    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img, src, lastError) => {
-      if (!ok || !img) {
-        console.warn('Default paint artwork could not be loaded from any source; starting with blank canvas.', DEFAULT_PAINT_IMAGE_SOURCES, lastError ? lastError.message : '');
+    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), result => {
+      if (!result.success || !result.img) {
+        console.warn('Default paint artwork could not be loaded from any source; starting with blank canvas.', DEFAULT_PAINT_IMAGE_SOURCES, result.error ? result.error.message : '');
         return;
       }
       try {
@@ -3698,7 +3699,7 @@ function openPaintWindow() {
         tmp.width = n;
         tmp.height = n;
         const tctx = tmp.getContext('2d');
-        tctx.drawImage(img, 0, 0, n, n);
+        tctx.drawImage(result.img, 0, 0, n, n);
         const data = tctx.getImageData(0, 0, n, n).data;
         const art = new Array(n * n);
         for (let i = 0; i < n * n; i++) {
@@ -3708,7 +3709,7 @@ function openPaintWindow() {
         resetGrid(n, n, art);
         sizeSelectEl.value = String(n);
       } catch (e) {
-        console.warn('Failed to parse default paint artwork from ' + src + '; starting with blank canvas. Error: ' + (e && e.message ? e.message : e));
+        console.warn('Failed to parse default paint artwork from ' + result.src + '; starting with blank canvas. Error: ' + (e && e.message ? e.message : e));
       }
     });
   }

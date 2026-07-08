@@ -2103,6 +2103,7 @@ function toAssetUrl(path) {
     .split('/')
     .map(seg => {
       try {
+        // Normalize both raw and pre-encoded segments into one safe form.
         return encodeURIComponent(decodeURIComponent(seg));
       } catch {
         return encodeURIComponent(seg);
@@ -2144,7 +2145,7 @@ async function loadSyncChildren(id) {
         const filePath = item.syncFolder + '/' + e.name;
         items[cid] = {
           type: type, name: e.name, iconType: type,
-          filePath: filePath,
+          filePath,
           file: toAssetUrl(filePath),
           size: e.size, modified: e.modified
         };
@@ -2816,7 +2817,10 @@ function renderTextContent(id) {
         .catch(err => {
           const debugPath = (() => {
             try { return decodeURIComponent(item.filePath || item.file || ''); }
-            catch { return item.filePath || item.file; }
+            catch (decodeErr) {
+              console.warn('Could not decode text file path for logging:', item.filePath || item.file, decodeErr);
+              return item.filePath || item.file;
+            }
           })();
           console.error('Could not load text file for', id, debugPath, err);
           const fallback = '[Could not load this text file.]';
@@ -2961,7 +2965,7 @@ function openWindow(id) {
 
   const statusbar = document.createElement('div');
   statusbar.className = 'win98-statusbar';
-  const textSizeLabel = () => (item.text || '').length + ' bytes';
+  function textSizeLabel() { return (item.text || '').length + ' bytes'; }
   let pdfPageInfoEl = null;
   if (item.type === 'folder') statusbar.textContent = item.children.length + ' object(s)';
   else if (item.type === 'text') statusbar.textContent = item._textLoaded ? textSizeLabel() : 'Loading...';

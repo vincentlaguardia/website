@@ -344,19 +344,19 @@
   .picture-window { resize: both; overflow: hidden; }
 
   /* ---- WMP XP-style audio preview ---- */
-  .pv-audio-viewer { width:100%; height:100%; display:flex; flex-direction:column; background:#001235; font-family:Tahoma,'MS Sans Serif',sans-serif; }
-  .pv-audio-display { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 8px 6px; background:#001235; min-height:0; }
+  .pv-audio-viewer { width:100%; height:100%; display:flex; flex-direction:column; background:#111110; font-family:Tahoma,'MS Sans Serif',sans-serif; }
+  .pv-audio-display { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 6px 4px; background:#111110; min-height:0; }
   .pv-audio-viz { flex:1; width:100%; display:block; min-height:40px; }
-  .pv-audio-title { color:#60a0e0; font-size:13px; text-align:center; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:none; }
-  .pv-audio-time  { color:#3a6ab0; font-size:11px; font-family:monospace; letter-spacing:1px; flex:none; }
-  .pv-audio-statusbar { background:#000; color:#00cc00; font-size:11px; padding:3px 10px; font-family:'Courier New',monospace; border-top:2px solid #002266; flex:none; }
-  .pv-audio-seekrow { background:#000; padding:0 0 2px 0; flex:none; }
-  .pv-audio-seekrow input[type=range] { display:block; width:100%; margin:0; height:12px; accent-color:#00cc00; cursor:pointer; background:transparent; }
-  .pv-audio-transport { display:flex; align-items:center; gap:3px; padding:5px 8px; background:linear-gradient(180deg,#c8d8ec,#b0c4de); border-top:1px solid #7090b8; flex:none; }
-  .pv-audio-btn { background:linear-gradient(180deg,#e8eef8,#c0d0e4); border:1px solid #7090b8; border-radius:2px; min-width:22px; height:20px; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; user-select:none; padding:0 3px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),0 1px 2px rgba(0,0,0,0.15); }
-  .pv-audio-btn:active { background:linear-gradient(180deg,#a8bcd4,#bccce0); box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
-  .pv-audio-btn.pv-playing { background:linear-gradient(180deg,#a8d4f0,#80b8e0); }
-  .pv-audio-vol { flex:1; max-width:80px; accent-color:#00cc00; margin-left:4px; cursor:pointer; }
+  .pv-audio-title { color:#79fa0f; font-size:12px; text-align:center; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:none; letter-spacing:0.5px; }
+  .pv-audio-time  { color:#4a7a20; font-size:10px; font-family:monospace; letter-spacing:1px; flex:none; }
+  .pv-audio-statusbar { background:#0a0a0a; color:#79fa0f; font-size:10px; padding:2px 8px; font-family:'Courier New',monospace; border-top:1px solid #1e1e1e; flex:none; }
+  .pv-audio-seekrow { background:#0a0a0a; padding:0 0 2px 0; flex:none; }
+  .pv-audio-seekrow input[type=range] { display:block; width:100%; margin:0; height:10px; accent-color:#79fa0f; cursor:pointer; background:transparent; }
+  .pv-audio-transport { display:flex; align-items:center; gap:3px; padding:4px 6px; background:#1a1a19; border-top:1px solid #2a2a29; flex:none; }
+  .pv-audio-btn { background:#252524; border:1px solid #3a3a39; border-radius:2px; min-width:22px; height:20px; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; user-select:none; padding:0 3px; color:#79fa0f; }
+  .pv-audio-btn:active { background:#1a1a19; }
+  .pv-audio-btn.pv-playing { background:#1e3010; border-color:#79fa0f; }
+  .pv-audio-vol { flex:1; max-width:80px; accent-color:#79fa0f; margin-left:4px; cursor:pointer; }
   .wmp-playlist.drag-over { background:#1a2a50; outline:2px dashed #5080c0; }
 
   .pdf-viewer { width: 100%; height: 100%; overflow: hidden; min-width: 0; min-height: 0; }
@@ -2746,16 +2746,15 @@ function pvRenderCurrent() {
     let isMuted = false;
     let isSeeking = false;
 
-    // EQ visualizer via Web Audio API
-    let vizCtx = null, vizAnalyser = null, vizData = null;
+    // Spectrum analyzer via Web Audio API
+    let vizCtx = null, vizAnalyser = null;
     function pvVizInit() {
       if (vizCtx) return;
       try {
         vizCtx = new (window.AudioContext || window.webkitAudioContext)();
         vizAnalyser = vizCtx.createAnalyser();
-        vizAnalyser.fftSize = 128;
-        vizAnalyser.smoothingTimeConstant = 0.8;
-        vizData = new Uint8Array(vizAnalyser.frequencyBinCount);
+        vizAnalyser.fftSize = 2048;
+        vizAnalyser.smoothingTimeConstant = 0.75;
         const src = vizCtx.createMediaElementSource(audio);
         src.connect(vizAnalyser);
         vizAnalyser.connect(vizCtx.destination);
@@ -2768,21 +2767,88 @@ function pvRenderCurrent() {
       if (!w || !h) return;
       vizCanvas.width = w; vizCanvas.height = h;
       const c = vizCanvas.getContext('2d');
-      c.fillStyle = '#001235';
+
+      // Dark background
+      c.fillStyle = '#0e0e0d';
       c.fillRect(0, 0, w, h);
-      if (!vizAnalyser || !vizData) return;
-      vizAnalyser.getByteFrequencyData(vizData);
-      const bars = vizData.length, barW = w / bars;
-      const grad = c.createLinearGradient(0, h, 0, 0);
-      grad.addColorStop(0, '#1040a0');
-      grad.addColorStop(0.5, '#00aadd');
-      grad.addColorStop(1, '#00ff88');
-      c.fillStyle = grad;
-      for (let i = 0; i < bars; i++) {
-        const bh = (vizData[i] / 255) * h;
-        if (bh < 1) continue;
-        c.fillRect(Math.round(i * barW) + 1, h - bh, Math.max(Math.round(barW) - 1, 1), bh);
+
+      const MIN_FREQ = 20, MAX_FREQ = 20000;
+      const MIN_DB = -90, MAX_DB = -10;
+      const logRange = Math.log10(MAX_FREQ / MIN_FREQ);
+
+      function freqToX(f) { return w * Math.log10(f / MIN_FREQ) / logRange; }
+      function dbToY(db) { return h * (1 - (db - MIN_DB) / (MAX_DB - MIN_DB)); }
+
+      // Grid lines
+      c.strokeStyle = '#242423';
+      c.lineWidth = 1;
+
+      // Frequency grid
+      const freqGrid = [20,30,40,50,60,70,80,100,200,300,400,500,700,1000,2000,3000,5000,7000,10000,20000];
+      for (const f of freqGrid) {
+        const x = Math.round(freqToX(f)) + 0.5;
+        c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
       }
+
+      // dB grid (every 6 dB)
+      for (let db = MIN_DB; db <= MAX_DB; db += 6) {
+        const y = Math.round(dbToY(db)) + 0.5;
+        c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke();
+      }
+
+      // Frequency labels along bottom (only if canvas is tall enough)
+      if (h >= 60) {
+        c.fillStyle = '#3a3a38';
+        c.font = '9px monospace';
+        c.textAlign = 'center';
+        const labelFreqs = [100, 1000, 10000];
+        const labelText  = { 100: '100', 1000: '1k', 10000: '10k' };
+        for (const f of labelFreqs) {
+          const x = freqToX(f);
+          c.fillText(labelText[f], x, h - 3);
+        }
+      }
+
+      if (!vizAnalyser || !vizCtx) return;
+
+      const binCount = vizAnalyser.frequencyBinCount;
+      const floatData = new Float32Array(binCount);
+      vizAnalyser.getFloatFrequencyData(floatData);
+      const nyquist = vizCtx.sampleRate / 2;
+
+      // Build smooth filled spectrum path on log scale
+      c.beginPath();
+      c.moveTo(0, h);
+
+      for (let px = 0; px <= w; px++) {
+        const freq = MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, px / w);
+        const binF = (freq / nyquist) * binCount;
+        const b0 = Math.floor(binF), b1 = Math.min(b0 + 1, binCount - 1);
+        const t = binF - b0;
+        const db = floatData[b0] * (1 - t) + floatData[b1] * t;
+        const y = dbToY(Math.max(MIN_DB, Math.min(MAX_DB, db)));
+        if (px === 0) c.lineTo(0, y); else c.lineTo(px, y);
+      }
+
+      c.lineTo(w, h);
+      c.closePath();
+      c.fillStyle = 'rgba(121,250,15,0.30)';
+      c.fill();
+
+      // Bright edge line
+      c.beginPath();
+      for (let px = 0; px <= w; px++) {
+        const freq = MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, px / w);
+        const binF = (freq / nyquist) * binCount;
+        const b0 = Math.floor(binF), b1 = Math.min(b0 + 1, binCount - 1);
+        const t = binF - b0;
+        const db = floatData[b0] * (1 - t) + floatData[b1] * t;
+        const y = dbToY(Math.max(MIN_DB, Math.min(MAX_DB, db)));
+        if (px === 0) c.moveTo(0, y); else c.lineTo(px, y);
+      }
+      c.strokeStyle = '#79fa0f';
+      c.lineWidth = 1.5;
+      c.stroke();
     }
     requestAnimationFrame(pvVizDraw);
 

@@ -2189,7 +2189,7 @@ async function loadDesktopRootsFromManifest() {
 }
 
 function folderSlotPosition(slotIndex, seedKey, viewportEl) {
-  const slotW = 150, slotH = 120, margin = 10;
+  const slotW = 150, slotH = 120, margin = 10, jitter = 8;
   const viewportWidth = Math.max(slotW + margin * 2, (viewportEl && viewportEl.clientWidth) || 640);
   const maxCols = Math.max(1, Math.floor((viewportWidth - margin * 2) / slotW));
   const col = slotIndex % maxCols;
@@ -2202,13 +2202,14 @@ function folderSlotPosition(slotIndex, seedKey, viewportEl) {
     const rx = ((Math.abs(hash) % 1000) / 1000) * 2 - 1;
     const hash2 = Math.abs(hash * 2654435761) % 1000000007;
     const ry = ((hash2 % 1000) / 1000) * 2 - 1;
-    left += rx * 8;
-    top += ry * 8;
+    left += rx * jitter;
+    top += ry * jitter;
   }
   return { left: Math.max(4, left), top: Math.max(4, top) };
 }
 
 function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
+  const dragScopeEl = viewportEl || el.parentElement || document.body;
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0, activeTargetEl = null;
   el.addEventListener('dragstart', e => e.preventDefault());
   el.addEventListener('mousedown', e => {
@@ -2216,9 +2217,15 @@ function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTr
     dragging = true; moved = false;
     startX = e.clientX; startY = e.clientY;
     origLeft = el.offsetLeft; origTop = el.offsetTop;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
     e.preventDefault();
     e.stopPropagation();
   });
+  function stopTracking() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
   function clearDragFeedback() {
     if (activeTargetEl) activeTargetEl.classList.remove('drop-target-active');
     activeTargetEl = null;
@@ -2228,14 +2235,14 @@ function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTr
     const dx = e.clientX - startX, dy = e.clientY - startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
     if (!moved) return;
-    const maxLeft = Math.max(0, viewportEl.clientWidth - el.offsetWidth);
-    const maxTop = Math.max(0, viewportEl.clientHeight - el.offsetHeight);
+    const maxLeft = Math.max(0, dragScopeEl.clientWidth - el.offsetWidth);
+    const maxTop = Math.max(0, dragScopeEl.clientHeight - el.offsetHeight);
     el.style.left = Math.min(Math.max(0, origLeft + dx), maxLeft) + 'px';
     el.style.top = Math.min(Math.max(0, origTop + dy), maxTop) + 'px';
 
     const oldDisplay = el.style.display;
     el.style.display = 'none';
-    const folderTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, viewportEl);
+    const folderTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, dragScopeEl);
     el.style.display = oldDisplay;
     if (activeTargetEl && (!folderTarget || folderTarget.el !== activeTargetEl)) {
       activeTargetEl.classList.remove('drop-target-active');
@@ -2256,6 +2263,7 @@ function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTr
           const r = trashEl.getBoundingClientRect();
           if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
             dragging = false;
+            stopTracking();
             onDeleteViaTrash();
             return;
           }
@@ -2263,10 +2271,11 @@ function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTr
       }
       const oldDisplay = el.style.display;
       el.style.display = 'none';
-      const dropTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, viewportEl);
+      const dropTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, dragScopeEl);
       el.style.display = oldDisplay;
       if (dropTarget && moveItemToFolder(itemId, parentId, dropTarget.id)) {
         dragging = false;
+        stopTracking();
         refreshFolderView(parentId);
         refreshFolderView(dropTarget.id);
         if (parentId === 'desktop' || dropTarget.id === 'desktop') buildDesktopIcons();
@@ -2277,9 +2286,8 @@ function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTr
       clearDragFeedback();
     }
     dragging = false;
+    stopTracking();
   }
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
   el.addEventListener('click', () => {
     if (moved) { moved = false; return; }
     document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));

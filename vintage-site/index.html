@@ -911,7 +911,7 @@ const items = {
   // Content-synced root folders are no longer hardcoded here; they are
   // populated at startup by loadDesktopRootsFromManifest() from content/manifest.json.
   desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'desktoppic'], modified: '2026-06-01' },
-  desktoppic:   { type: 'picture', name: 'photo.jpg', file: 'content/desktop-photo.jpg', modified: '2026-07-08' },
+  desktoppic:   { type: 'picture', name: 'avril.jpeg', file: 'content/avril.jpeg', modified: '2026-07-08' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/catscans', children: [], modified: '2026-07-08' },
@@ -2445,7 +2445,35 @@ async function loadDesktopRootsFromManifest() {
         }
         return e.name;
       });
-    items.desktop.children = [...fixed, ...contentIds];
+
+    // Also place top-level files (e.g. images) from content/ directly on the
+    // desktop.  Skip any file already represented by a fixed desktop item (to
+    // avoid duplicates) or currently sitting in the trash (respect the user's
+    // decision to remove it).
+    const fixedFilePaths = new Set(fixed.map(id => items[id] && items[id].file).filter(Boolean));
+    const trashedFilePaths = new Set(trashItems.map(t => items[t.id] && items[t.id].file).filter(Boolean));
+    const fileIds = entries
+      .filter(e => e.type === 'file')
+      .map(e => {
+        const filePath = 'content/' + e.name;
+        if (fixedFilePaths.has(filePath) || trashedFilePaths.has(filePath)) return null;
+        const fileId = 'content__' + slugifyPath(e.name);
+        if (!items[fileId]) {
+          const type = inferTypeFromExt(e.name);
+          items[fileId] = {
+            type,
+            name: e.name,
+            iconType: type,
+            filePath,
+            file: toAssetUrl(filePath),
+            size: e.size,
+            modified: e.modified || new Date().toISOString().slice(0, 10)
+          };
+        }
+        return fileId;
+      }).filter(Boolean);
+
+    items.desktop.children = [...fixed, ...contentIds, ...fileIds];
   } catch (err) {
     console.error('Could not load desktop roots from content/manifest.json; keeping defaults', err);
   }

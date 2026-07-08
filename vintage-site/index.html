@@ -1595,16 +1595,20 @@ function moveItemToFolder(itemId, fromParentId, toFolderId, skipUndo) {
 // (a desktop icon or a folder-window grid item), if any -- used so dragging
 // one item onto another folder icon moves it inside that folder.
 function findFolderDropTarget(clientX, clientY, excludeItemId, scopeEl) {
-  const els = document.elementsFromPoint(clientX, clientY);
-  for (const node of els) {
-    const holder = node.closest && node.closest('.desktop-icon-item[data-item-id], .grid-item[data-item-id]');
-    if (!holder) continue;
-    if (scopeEl && !scopeEl.contains(holder)) continue;
-    const targetId = holder.dataset.itemId;
-    if (!targetId || targetId === excludeItemId) continue;
-    const targetItem = items[targetId];
-    if (targetItem && targetItem.type === 'folder') return { id: targetId, el: holder };
-  }
+  // Use elementFromPoint (topmost element only) so we never accidentally
+  // resolve a drop onto a folder in an underlying/background window.
+  const topEl = document.elementFromPoint(clientX, clientY);
+  if (!topEl) return null;
+  // If a scope is given, the drop point must be inside it; bail out immediately
+  // if the cursor is outside that container (e.g. dropped outside the source window).
+  if (scopeEl && !scopeEl.contains(topEl)) return null;
+  const holder = topEl.closest('.desktop-icon-item[data-item-id], .grid-item[data-item-id]');
+  if (!holder) return null;
+  if (scopeEl && !scopeEl.contains(holder)) return null;
+  const targetId = holder.dataset.itemId;
+  if (!targetId || targetId === excludeItemId) return null;
+  const targetItem = items[targetId];
+  if (targetItem && targetItem.type === 'folder') return { id: targetId, el: holder };
   return null;
 }
 
@@ -1669,7 +1673,10 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
           }
         }
         if (itemId && parentId) {
+          const oldDisplay = el.style.display;
+          el.style.display = 'none'; // don't let elementFromPoint hit the item being dragged
           const dropTarget = findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl);
+          el.style.display = oldDisplay;
           if (dropTarget && moveItemToFolder(itemId, parentId, dropTarget.id)) {
             refreshFolderView(parentId);
             refreshFolderView(dropTarget.id);

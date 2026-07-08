@@ -244,8 +244,16 @@
                             up the .selected highlight box) when the grid
                             is taller than its content, e.g. minHeight:100% */
   }
+  .folder-freeform-layout {
+    position: relative;
+    min-height: 100%;
+  }
   .grid-item {
     width: 140px; text-align: center; cursor: default; padding: 4px 2px; border: 1px dotted transparent;
+  }
+  .folder-freeform-layout .grid-item {
+    position: absolute;
+    margin: 0;
   }
   .grid-item svg { width: 64px; height: 64px; }
   .grid-item .label { font-size: 11px; margin-top: 3px; word-wrap: break-word; }
@@ -930,6 +938,9 @@ Object.keys(childrenOverrides).forEach(pid => {
   if (children) items[pid].children = children.slice();
   if (!Array.isArray(entry) && entry && entry.modified) items[pid].modified = entry.modified;
 });
+const FOLDER_ICON_POS_KEY = 'site-folder-icon-positions';
+let folderIconPositions = {};
+try { folderIconPositions = JSON.parse(localStorage.getItem(FOLDER_ICON_POS_KEY) || '{}'); } catch (e) { folderIconPositions = {}; }
 
 function saveCustomFolders() {
   localStorage.setItem('site-custom-folders', JSON.stringify(customFolders));
@@ -939,6 +950,19 @@ function persistFolderChildren(parentId) {
   items[parentId].modified = Date.now();
   childrenOverrides[parentId] = { children: items[parentId].children.slice(), modified: items[parentId].modified };
   localStorage.setItem('site-children-overrides', JSON.stringify(childrenOverrides));
+}
+function saveFolderIconPositions() {
+  localStorage.setItem(FOLDER_ICON_POS_KEY, JSON.stringify(folderIconPositions));
+}
+function getFolderIconPosition(parentId, itemId) {
+  return folderIconPositions[parentId] && folderIconPositions[parentId][itemId]
+    ? folderIconPositions[parentId][itemId]
+    : null;
+}
+function setFolderIconPosition(parentId, itemId, left, top) {
+  if (!folderIconPositions[parentId]) folderIconPositions[parentId] = {};
+  folderIconPositions[parentId][itemId] = { left, top };
+  saveFolderIconPositions();
 }
 
   (function sanitizeLegacyWatches() {
@@ -2164,13 +2188,138 @@ async function loadDesktopRootsFromManifest() {
   }
 }
 
+const FOLDER_ICON_SLOT_WIDTH = 150;
+const FOLDER_ICON_SLOT_HEIGHT = 120;
+const FOLDER_ICON_SLOT_MARGIN = 10;
+const FOLDER_ICON_JITTER = 8;
+
+function folderSlotPosition(slotIndex, seedKey, viewportEl) {
+  const slotW = FOLDER_ICON_SLOT_WIDTH, slotH = FOLDER_ICON_SLOT_HEIGHT, margin = FOLDER_ICON_SLOT_MARGIN, jitter = FOLDER_ICON_JITTER;
+  const viewportWidth = Math.max(slotW + margin * 2, (viewportEl && viewportEl.clientWidth) || 640);
+  const maxCols = Math.max(1, Math.floor((viewportWidth - margin * 2) / slotW));
+  const col = slotIndex % maxCols;
+  const row = Math.floor(slotIndex / maxCols);
+  let left = margin + col * slotW;
+  let top = margin + row * slotH;
+  if (seedKey) {
+    let hash = 0;
+    for (let i = 0; i < seedKey.length; i++) { hash = (hash * 31 + seedKey.charCodeAt(i)) | 0; }
+    const rx = ((Math.abs(hash) % 1000) / 1000) * 2 - 1;
+    const hash2 = Math.abs(hash * 2654435761) % 1000000007;
+    const ry = ((hash2 % 1000) / 1000) * 2 - 1;
+    left += rx * jitter;
+    top += ry * jitter;
+  }
+  return { left: Math.max(4, left), top: Math.max(4, top) };
+}
+
+function resolveFolderIconPosition(savedPos, defaultPos) {
+  return {
+    left: (savedPos && Number.isFinite(savedPos.left)) ? savedPos.left : defaultPos.left,
+    top: (savedPos && Number.isFinite(savedPos.top)) ? savedPos.top : defaultPos.top
+  };
+}
+
+function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
+  const dragScopeEl = viewportEl || el.parentElement || document.body;
+  let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0, activeTargetEl = null;
+  el.addEventListener('dragstart', e => e.preventDefault());
+  el.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    dragging = true; moved = false;
+    startX = e.clientX; startY = e.clientY;
+    origLeft = el.offsetLeft; origTop = el.offsetTop;
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  function stopTracking() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  function clearDragFeedback() {
+    if (activeTargetEl) activeTargetEl.classList.remove('drop-target-active');
+    activeTargetEl = null;
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+    if (!moved) return;
+    const maxLeft = Math.max(0, dragScopeEl.clientWidth - el.offsetWidth);
+    const maxTop = Math.max(0, dragScopeEl.clientHeight - el.offsetHeight);
+    el.style.left = Math.min(Math.max(0, origLeft + dx), maxLeft) + 'px';
+    el.style.top = Math.min(Math.max(0, origTop + dy), maxTop) + 'px';
+
+    const oldDisplay = el.style.display;
+    el.style.display = 'none';
+    const folderTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, dragScopeEl);
+    el.style.display = oldDisplay;
+    if (activeTargetEl && (!folderTarget || folderTarget.el !== activeTargetEl)) {
+      activeTargetEl.classList.remove('drop-target-active');
+      activeTargetEl = null;
+    }
+    if (folderTarget && folderTarget.el !== activeTargetEl) {
+      if (activeTargetEl) activeTargetEl.classList.remove('drop-target-active');
+      activeTargetEl = folderTarget.el;
+      activeTargetEl.classList.add('drop-target-active');
+    }
+  }
+  function onUp(e) {
+    if (dragging && moved) {
+      clearDragFeedback();
+      if (onDeleteViaTrash) {
+        const trashEl = document.getElementById('trash-can-icon');
+        if (trashEl) {
+          const r = trashEl.getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            dragging = false;
+            stopTracking();
+            onDeleteViaTrash();
+            return;
+          }
+        }
+      }
+      const oldDisplay = el.style.display;
+      el.style.display = 'none';
+      const dropTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, dragScopeEl);
+      el.style.display = oldDisplay;
+      if (dropTarget && moveItemToFolder(itemId, parentId, dropTarget.id)) {
+        dragging = false;
+        stopTracking();
+        refreshFolderView(parentId);
+        refreshFolderView(dropTarget.id);
+        if (parentId === 'desktop' || dropTarget.id === 'desktop') buildDesktopIcons();
+        return;
+      }
+      setFolderIconPosition(parentId, itemId, el.offsetLeft, el.offsetTop);
+    } else {
+      clearDragFeedback();
+    }
+    dragging = false;
+    stopTracking();
+  }
+  el.addEventListener('click', () => {
+    if (moved) { moved = false; return; }
+    document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+  if (onOpen) {
+    el.addEventListener('dblclick', () => {
+      if (moved) return;
+      onOpen();
+    });
+  }
+}
+
 function renderFolderContent(id) {
   if (items[id].viewMode === 'details') return renderDetailsContent(id);
 
   const grid = document.createElement('div');
-  grid.className = 'folder-grid';
+  grid.className = 'folder-freeform-layout';
   grid.style.minHeight = '100%'; // so right-click still works on blank space below a short list of icons
-  items[id].children.forEach(childId => {
+  items[id].children.forEach((childId, index) => {
     const child = items[childId];
     if (!child) return;
     const el = document.createElement('div');
@@ -2198,7 +2347,12 @@ function renderFolderContent(id) {
       if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
-    makeDraggableToTrash(el, () => deleteItem(childId, id), childId, id);
+    const savedPos = getFolderIconPosition(id, childId);
+    const defaultPos = folderSlotPosition(index, childId, grid);
+    const iconPos = resolveFolderIconPosition(savedPos, defaultPos);
+    el.style.left = iconPos.left + 'px';
+    el.style.top = iconPos.top + 'px';
+    makeFolderIconFreeformDraggable(el, id, childId, () => openChildItem(childId, child, id), () => deleteItem(childId, id), grid);
     grid.appendChild(el);
   });
   // right-click on blank grid space (not on an item, which already

@@ -404,11 +404,12 @@
     border: 1px solid #808080; box-shadow: inset 1px 1px 0 #808080; cursor: pointer;
   }
   .paint-palette-row {
-    flex: none; display: flex; align-items: center; gap: 6px; padding: 6px;
-    border-top: 1px solid #808080; background: #c0c0c0; flex-wrap: wrap;
+    flex: none; display: flex; align-items: flex-start; gap: 6px; padding: 6px;
+    height: 51px; box-sizing: border-box; overflow: hidden;
+    border-top: 1px solid #808080; background: #c0c0c0;
   }
   .paint-current-color { width: 26px; height: 26px; flex: none; border: 2px inset #fff; box-shadow: inset 1px 1px 0 #808080; }
-  .paint-swatches { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
+  .paint-swatches { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; min-height: 38px; }
   .paint-swatch-col { display: flex; flex-direction: column; gap: 6px; }
   .paint-swatch-cluster { display: grid; grid-template-columns: repeat(7, 16px); grid-auto-rows: 16px; gap: 2px; }
   .paint-swatch { width: 16px; height: 16px; flex: none; cursor: pointer; outline: 1px solid #808080; outline-offset: -1px; }

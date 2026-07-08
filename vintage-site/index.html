@@ -3369,7 +3369,7 @@ function pvRenderCurrent() {
       vizFrame = requestAnimationFrame(drawViz);
     }
 
-    drawViz();
+    vizFrame = requestAnimationFrame(drawViz);
 
     viewer._pvCleanup = () => {
       if (vizFrame) cancelAnimationFrame(vizFrame);

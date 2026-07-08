@@ -386,8 +386,8 @@
       inset -2px -2px 0 #dfdfdf;
   }
   .paint-canvas-area {
-    flex: none; min-width: 0; min-height: 0; overflow: hidden; background: #fff;
-    display: flex; align-items: center; justify-content: center; padding: 0; align-self: center;
+    flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #fff;
+    display: flex; align-items: center; justify-content: center; padding: 0; align-self: stretch;
   }
   .paint-canvas {
     image-rendering: pixelated; image-rendering: crisp-edges;
@@ -3896,9 +3896,8 @@ function openPaintWindow() {
     isSizingPaintWindow = false;
   }
   function paintFitSquare() {
-    const availW = wrap.clientWidth;
-    const chromeH = (toolbarRowEl ? toolbarRowEl.offsetHeight : 0) + (paletteRowEl ? paletteRowEl.offsetHeight : 0);
-    const availH = Math.max(0, wrap.clientHeight - chromeH);
+    const availW = canvasAreaEl.clientWidth;
+    const availH = canvasAreaEl.clientHeight;
     if (!availW || !availH) return;
     if (!cols) return;
     const availableSquareSize = Math.max(0, Math.min(availW, availH));
@@ -3908,8 +3907,6 @@ function openPaintWindow() {
     const gridAlignedSize = Math.floor(availableSquareSize / cols) * cols;
     const gridSlack = availableSquareSize - gridAlignedSize;
     const finalSize = (gridAlignedSize >= cols && gridSlack <= maxSlack) ? gridAlignedSize : availableSquareSize;
-    canvasAreaEl.style.width = finalSize + 'px';
-    canvasAreaEl.style.height = finalSize + 'px';
     canvas.style.width = finalSize + 'px';
     canvas.style.height = finalSize + 'px';
   }
@@ -3925,7 +3922,6 @@ function openPaintWindow() {
   lockPaintWindowSquare(openSide);
   paintFitSquare();
   const onPaintWindowResize = () => {
-    lockPaintWindowSquare();
     paintFitSquare();
   };
   window.addEventListener('resize', onPaintWindowResize);

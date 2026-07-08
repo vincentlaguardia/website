@@ -3256,6 +3256,9 @@ function pvRenderCurrent() {
       return { ratio, w, h };
     }
 
+    // Peak-hold state: one entry per bar — { y, vel } where y is canvas-pixel top of the peak marker
+    const barPeaks = [];
+
     function drawViz() {
       const ctx = vizCanvas.getContext('2d');
       if (!ctx) return;
@@ -3271,6 +3274,12 @@ function pvRenderCurrent() {
       const bw = Math.max(2, Math.floor(w / bars) - 1);
       const gap = 1;
 
+      // Re-initialise peak array whenever bar count changes
+      if (barPeaks.length !== bars) {
+        barPeaks.length = bars;
+        for (let i = 0; i < bars; i++) barPeaks[i] = { y: h - 2, vel: 0 };
+      }
+
       function barGrad(y, bh) {
         const g = ctx.createLinearGradient(0, y, 0, y + bh);
         g.addColorStop(0, colorPreset.top);
@@ -3278,14 +3287,20 @@ function pvRenderCurrent() {
         return g;
       }
 
+      const barHeights = new Array(bars);
+
       if (audio.paused) {
-        // Idle animation: gentle slow-moving sin-wave bars
+        // Idle animation: gentle slow-moving sin-wave bars; reset peaks to floor
+        for (let i = 0; i < bars; i++) {
+          const norm = performance.now() / 900 + i * 0.45;
+          barHeights[i] = Math.max(2, Math.round((0.06 + Math.abs(Math.sin(norm)) * 0.20) * h));
+          barPeaks[i].y = h - barHeights[i];
+          barPeaks[i].vel = 0;
+        }
         for (let i = 0; i < bars; i++) {
           const x = i * (bw + gap);
-          const norm = performance.now() / 900 + i * 0.45;
-          const bh = Math.max(2, Math.round((0.06 + Math.abs(Math.sin(norm)) * 0.20) * h));
           ctx.fillStyle = colorPreset.idle;
-          ctx.fillRect(x, h - bh, bw, bh);
+          ctx.fillRect(x, h - barHeights[i], bw, barHeights[i]);
         }
       } else if (vizAnalyser && vizData) {
         vizAnalyser.smoothingTimeConstant = timePreset.smoothing;
@@ -3312,19 +3327,42 @@ function pvRenderCurrent() {
           v = Math.max(0, Math.min(1, v));
           v = Math.pow(v, 1.6);
 
-          const bh = Math.max(2, Math.round(v * (h - 8)));
+          barHeights[i] = Math.max(2, Math.round(v * (h - 8)));
+        }
+
+        for (let i = 0; i < bars; i++) {
           const x = i * (bw + gap);
+          const bh = barHeights[i];
           const y = h - bh;
           ctx.fillStyle = barGrad(y, bh);
           ctx.fillRect(x, y, bw, bh);
+
+          // Update floating peak marker
+          const pk = barPeaks[i];
+          if (y < pk.y) {
+            pk.y = y;       // bar rose above peak — snap marker up
+            pk.vel = 0;
+          } else {
+            pk.vel += 0.35; // gravity: accelerate downward
+            pk.y = Math.min(h - 3, pk.y + pk.vel);
+          }
+          ctx.fillStyle = colorPreset.top;
+          ctx.fillRect(x, Math.round(pk.y), bw, 2);
         }
       } else {
         // Playing but no analyser yet: animated sin-wave bars
         for (let i = 0; i < bars; i++) {
           const x = i * (bw + gap);
           const bh = 4 + Math.round(Math.abs(Math.sin(performance.now() / 180 + i * 0.7)) * 20);
-          ctx.fillStyle = barGrad(h - bh, bh);
-          ctx.fillRect(x, h - bh, bw, bh);
+          const y = h - bh;
+          ctx.fillStyle = barGrad(y, bh);
+          ctx.fillRect(x, y, bw, bh);
+
+          const pk = barPeaks[i];
+          if (y < pk.y) { pk.y = y; pk.vel = 0; }
+          else { pk.vel += 0.35; pk.y = Math.min(h - 3, pk.y + pk.vel); }
+          ctx.fillStyle = colorPreset.top;
+          ctx.fillRect(x, Math.round(pk.y), bw, 2);
         }
       }
       if (!vizCanvas.isConnected) return;

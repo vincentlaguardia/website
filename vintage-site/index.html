@@ -2539,7 +2539,10 @@ function openPictureWindow(childId, parentId) {
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
   makeDraggable(win, titlebar);
 
-  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar, cleanup: () => {
+    const media = content.querySelector('video, audio');
+    if (media) { media.pause(); media.src = ''; }
+  }};
   addTaskbarEntry(id, 'Picture Viewer', genericIcon(14));
   bringToFront(id);
   pvRenderCurrent();

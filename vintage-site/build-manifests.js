@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CONTENT_DIR = path.join(__dirname, 'content');
+const SAFE_TXT_NAME_RE = /^[a-z0-9._-]+\.txt$/;
 
 function isHidden(name) {
   return name.startsWith('.');
@@ -47,6 +48,13 @@ function buildManifest(folderPath) {
       buildManifest(fullPath);
       result.push({ type: 'folder', name: entry.name, modified: formatDate(stat.mtime) });
     } else if (entry.isFile()) {
+      const isTxt = path.extname(entry.name).toLowerCase() === '.txt';
+      if (isTxt && !SAFE_TXT_NAME_RE.test(entry.name)) {
+        throw new Error(
+          'Invalid .txt filename "' + entry.name + '" in ' + path.relative(__dirname, folderPath) +
+          '. Use lowercase URL-safe names (a-z, 0-9, ".", "_", "-") ending in .txt.'
+        );
+      }
       result.push({ type: 'file', name: entry.name, size: stat.size, modified: formatDate(stat.mtime) });
     }
   });
@@ -66,6 +74,7 @@ function main() {
     console.log('Created empty content/ folder.');
   }
   buildManifest(CONTENT_DIR);
+  console.log('Validation OK: manifests generated and all .txt filenames are lowercase URL-safe.');
 }
 
 main();

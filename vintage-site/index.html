@@ -2098,6 +2098,13 @@ function slugifyPath(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
+function toAssetUrl(path) {
+  return String(path || '')
+    .split('/')
+    .map(seg => encodeURIComponent(seg))
+    .join('/');
+}
+
 function inferTypeFromExt(name) {
   const ext = (name.split('.').pop() || '').toLowerCase();
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'picture';
@@ -2112,7 +2119,8 @@ async function loadSyncChildren(id) {
   const item = items[id];
   if (!item || !item.syncFolder) return;
   try {
-    const res = await fetch(item.syncFolder + '/manifest.json', { cache: 'no-store' });
+    const manifestUrl = toAssetUrl(item.syncFolder + '/manifest.json');
+    const res = await fetch(manifestUrl, { cache: 'no-store' });
     if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
     const entries = await res.json();
     const childIds = [];
@@ -2127,9 +2135,11 @@ async function loadSyncChildren(id) {
         });
       } else {
         const type = inferTypeFromExt(e.name);
+        const filePath = item.syncFolder + '/' + e.name;
         items[cid] = {
           type: type, name: e.name, iconType: type,
-          file: item.syncFolder + '/' + e.name,
+          filePath: filePath,
+          file: toAssetUrl(filePath),
           size: e.size, modified: e.modified
         };
       }
@@ -2163,7 +2173,7 @@ async function openSyncFolder(id) {
    are kept at the front; manifest-derived content folders are appended after. */
 async function loadDesktopRootsFromManifest() {
   try {
-    const res = await fetch('content/manifest.json', { cache: 'no-store' });
+    const res = await fetch(toAssetUrl('content/manifest.json'), { cache: 'no-store' });
     if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
     const entries = await res.json();
     // Keep any fixed (non-content-synced) items already in desktop.children
@@ -2784,7 +2794,34 @@ function renderTextContent(id) {
   const item = items[id];
   const ta = document.createElement('textarea');
   ta.readOnly = true;
-  ta.value = item.text || '';
+  if (item.file && !item._textLoaded) {
+    ta.value = 'Loading...';
+    if (!item._textLoadPromise) {
+      item._textLoadPromise = fetch(item.file, { cache: 'no-store' })
+        .then(res => {
+          if (!res.ok) throw new Error('text fetch failed: ' + res.status);
+          return res.text();
+        })
+        .then(text => {
+          item.text = text;
+          item._textLoaded = true;
+          return text;
+        })
+        .catch(err => {
+          console.error('Could not load text file for', id, item.filePath || item.file, err);
+          const fallback = '[Could not load this text file.]';
+          item.text = fallback;
+          item._textLoaded = true;
+          return fallback;
+        });
+    }
+    ta._loadPromise = item._textLoadPromise.then(text => {
+      ta.value = text;
+      return text;
+    });
+  } else {
+    ta.value = item.text || '';
+  }
   ta.style.width = '100%';
   ta.style.height = '100%';
   ta.style.boxSizing = 'border-box';
@@ -2916,7 +2953,7 @@ function openWindow(id) {
   statusbar.className = 'win98-statusbar';
   let pdfPageInfoEl = null;
   if (item.type === 'folder') statusbar.textContent = item.children.length + ' object(s)';
-  else if (item.type === 'text') statusbar.textContent = (item.text || '').length + ' bytes';
+  else if (item.type === 'text') statusbar.textContent = item._textLoaded ? (item.text || '').length + ' bytes' : 'Loading...';
   else if (item.type === 'video') statusbar.textContent = formatFileSize(item.size);
   else if (item.type === 'picture') statusbar.textContent = formatFileSize(item.size);
   else if (item.type === 'pdf') {
@@ -2937,6 +2974,12 @@ function openWindow(id) {
     };
   }
   else statusbar.textContent = item.medium;
+
+  if (item.type === 'text' && bodyContent && bodyContent._loadPromise) {
+    bodyContent._loadPromise.then(() => {
+      if (openWindows[id]) statusbar.textContent = (item.text || '').length + ' bytes';
+    });
+  }
 
   let pdfToolbar = null;
   if (item.type === 'pdf') {

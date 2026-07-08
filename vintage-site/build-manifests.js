@@ -117,8 +117,9 @@ function buildBackgroundsManifest() {
     const ext = path.extname(entry.name).toLowerCase();
     if (!IMAGE_EXTS.has(ext)) return;
 
-    const id = entry.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    const name = path.basename(entry.name, path.extname(entry.name));
+    const baseName = path.basename(entry.name, ext);
+    const id = baseName.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const name = baseName;
     const src = 'content/_backgrounds/' + entry.name;
     backgrounds.push({ id, name, src });
   });

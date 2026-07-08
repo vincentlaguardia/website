@@ -352,6 +352,9 @@
   .win98-menubar .pv-view-option:hover { background: #000080; color: #fff; padding: 0 2px; margin: 0 -2px; }
   .win98-menubar .pv-view-option.active { text-decoration: underline; font-weight: bold; }
   .win98-menubar .pv-view-option.disabled { color: #777; pointer-events: none; text-decoration: none; }
+  .win98-menubar .pv-menu-group { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: nowrap; }
+  .win98-menubar .pv-menu-group[hidden] { display: none; }
+  .win98-menubar .pv-menu-static { color: #444; white-space: nowrap; }
   .win98-menubar .pv-zoom-label { margin-left: auto; color: #333; }
   .picture-window { resize: both; overflow: hidden; }
 
@@ -2799,7 +2802,48 @@ function renderArtContent(id) {
   return wrap;
 }
 
-let pvState = null; // { parentId, ids, index, quickPreview, pictureViewMode, pictureZoom } for the picture viewer's slideshow
+const PAINT_PALETTE_CLUSTERS = [
+  ['#e8553a', '#f5944e', '#f9bc58', '#fae94a', '#c42b36', '#dc4848', '#e87878'],
+  ['#a0cc60', '#70c878', '#36aa72', '#40c4b8', '#24ccec', '#4d94cc', '#5f6ebc'],
+  ['#6e70b8', '#9070b8', '#b07bac', '#ee78a8', '#dc7b7a', '#eadc4c', '#c8e05e'],
+  ['#e89870', '#f0b086', '#f8ca90', '#f8ee8a', '#cacc78', '#44e870', '#88f0a0'],
+  ['#7ed8c0', '#90d8f0', '#a0a8e0', '#9898d4', '#9490c8', '#6878cc', '#c0b4f0'],
+  ['#cca8e8', '#f0a8d8', '#f8b8b8', '#7860c4', '#9868c0', '#b898d8', '#e0d0f0'],
+  ['#226870', '#2e8890', '#4c9898', '#50c8c8', '#28e0e0', '#58f0e8', '#b0f8f8'],
+  ['#a07028', '#c09048', '#c8a870', '#d8c898', '#e8dfc0', '#cc60cc', '#e8a8e8'],
+];
+const PAINT_PALETTE = PAINT_PALETTE_CLUSTERS.flat();
+
+const PV_AUDIO_TIME_PRESETS = [
+  { id: 'soft', label: 'Soft', smoothing: 0.95 },
+  { id: 'balanced', label: 'Balanced', smoothing: 0.82 },
+  { id: 'snappy', label: 'Snappy', smoothing: 0.64 },
+];
+const PV_AUDIO_FREQUENCY_PRESETS = [
+  { id: 'smooth', label: 'Smooth', bars: 28, mode: 'average' },
+  { id: 'balanced', label: 'Balanced', bars: 44, mode: 'average' },
+  { id: 'detailed', label: 'Detailed', bars: 68, mode: 'peak' },
+];
+const PV_AUDIO_COLOR_PRESETS = [
+  { id: 'lime', label: 'Lime', top: PAINT_PALETTE_CLUSTERS[3][5], mid: PAINT_PALETTE_CLUSTERS[1][2], idle: '#2a3a2a' },
+  { id: 'sunset', label: 'Sunset', top: PAINT_PALETTE_CLUSTERS[0][1], mid: PAINT_PALETTE_CLUSTERS[0][4], idle: '#3a2620' },
+  { id: 'ocean', label: 'Ocean', top: PAINT_PALETTE_CLUSTERS[6][5], mid: PAINT_PALETTE_CLUSTERS[1][5], idle: '#20303a' },
+  { id: 'orchid', label: 'Orchid', top: PAINT_PALETTE_CLUSTERS[5][0], mid: PAINT_PALETTE_CLUSTERS[7][5], idle: '#32243a' },
+];
+
+let pvState = null; // { parentId, ids, index, quickPreview, pictureViewMode, pictureZoom, audioVizTimePreset, audioVizFrequencyPreset, audioVizColorPreset } for the picture viewer's slideshow
+
+function pvGetPreset(presets, id) {
+  return presets.find(p => p.id === id) || presets[0];
+}
+
+function pvCycleAudioPreset(stateKey, presets) {
+  if (!pvState) return;
+  const current = pvGetPreset(presets, pvState[stateKey]);
+  const index = presets.findIndex(p => p.id === current.id);
+  pvState[stateKey] = presets[(index + 1) % presets.length].id;
+  pvSyncViewOptions();
+}
 
 function pvSetViewMode(mode) {
   if (!pvState) return;
@@ -2911,9 +2955,18 @@ function pvSyncViewOptions() {
   if (!pvWin || !pvState) return;
   const item = items[pvState.ids[pvState.index]];
   const isPicture = !!item && item.type === 'picture';
+  const isAudio = !!item && item.type === 'audio';
+  const isVideo = !!item && item.type === 'video';
 
-  const optionEls = pvWin.el.querySelectorAll('.pv-view-option');
-  optionEls.forEach(el => el.classList.toggle('disabled', !isPicture));
+  const pictureGroup = pvWin.el.querySelector('[data-pv-menu="picture"]');
+  const audioGroup = pvWin.el.querySelector('[data-pv-menu="audio"]');
+  const videoGroup = pvWin.el.querySelector('[data-pv-menu="video"]');
+  if (pictureGroup) pictureGroup.hidden = !isPicture;
+  if (audioGroup) audioGroup.hidden = !isAudio;
+  if (videoGroup) videoGroup.hidden = !isVideo;
+
+  const pictureOptions = pvWin.el.querySelectorAll('[data-pv-menu="picture"] .pv-view-option');
+  pictureOptions.forEach(el => el.classList.toggle('disabled', !isPicture));
 
   const fitEl = pvWin.el.querySelector('[data-pv-view="fit"]');
   const actualEl = pvWin.el.querySelector('[data-pv-view="actual"]');
@@ -2926,6 +2979,15 @@ function pvSyncViewOptions() {
     const zoom = Number.isFinite(pvState.pictureZoom) && pvState.pictureZoom > 0 ? pvState.pictureZoom : 1;
     zoomLabel.textContent = Math.round(zoom * 100) + '%';
   }
+
+  const timeEl = pvWin.el.querySelector('[data-pv-audio="time"]');
+  if (timeEl) timeEl.textContent = 'Time: ' + pvGetPreset(PV_AUDIO_TIME_PRESETS, pvState.audioVizTimePreset).label;
+
+  const frequencyEl = pvWin.el.querySelector('[data-pv-audio="frequency"]');
+  if (frequencyEl) frequencyEl.textContent = 'Detail: ' + pvGetPreset(PV_AUDIO_FREQUENCY_PRESETS, pvState.audioVizFrequencyPreset).label;
+
+  const colorEl = pvWin.el.querySelector('[data-pv-audio="color"]');
+  if (colorEl) colorEl.textContent = 'Color: ' + pvGetPreset(PV_AUDIO_COLOR_PRESETS, pvState.audioVizColorPreset).label;
 }
 
 
@@ -2936,7 +2998,18 @@ function openPictureWindow(childId, parentId, options = {}) {
     .filter(cid => items[cid] && ['picture', 'video', 'audio'].includes(items[cid].type));
   const index = Math.max(0, ids.indexOf(childId));
   const quickPreview = !!options.quickPreview;
-  pvState = { parentId, ids, index, quickPreview, pictureViewMode: 'fit', pictureZoom: 1 };
+  const prevState = pvState || {};
+  pvState = {
+    parentId,
+    ids,
+    index,
+    quickPreview,
+    pictureViewMode: 'fit',
+    pictureZoom: 1,
+    audioVizTimePreset: prevState.audioVizTimePreset || 'balanced',
+    audioVizFrequencyPreset: prevState.audioVizFrequencyPreset || 'balanced',
+    audioVizColorPreset: prevState.audioVizColorPreset || 'lime'
+  };
 
   if (openWindows[id]) {
     if (openWindows[id].minimized) toggleMinimize(id);
@@ -2969,12 +3042,24 @@ function openPictureWindow(childId, parentId, options = {}) {
   const menubar = document.createElement('div');
   menubar.className = 'win98-menubar';
   menubar.innerHTML = `
-    <span class="pv-view-option" data-pv-view="fit">Fit to Screen</span>
-    <span class="pv-view-option" data-pv-view="actual">Actual Size</span>
-    <span class="pv-view-option" data-pv-zoom="in">Zoom In</span>
-    <span class="pv-view-option" data-pv-zoom="out">Zoom Out</span>
-    <span class="pv-view-option" data-pv-view="reset">Reset</span>
-    <span class="pv-zoom-label">100%</span>
+    <div class="pv-menu-group" data-pv-menu="picture">
+      <span class="pv-view-option" data-pv-view="fit">Fit to Screen</span>
+      <span class="pv-view-option" data-pv-view="actual">Actual Size</span>
+      <span class="pv-view-option" data-pv-zoom="in">Zoom In</span>
+      <span class="pv-view-option" data-pv-zoom="out">Zoom Out</span>
+      <span class="pv-view-option" data-pv-view="reset">Reset</span>
+      <span class="pv-zoom-label">100%</span>
+    </div>
+    <div class="pv-menu-group" data-pv-menu="audio" hidden>
+      <span class="pv-menu-static">Drag Window</span>
+      <span class="pv-menu-static">Resize Window</span>
+      <span class="pv-view-option" data-pv-audio="time">Time: Balanced</span>
+      <span class="pv-view-option" data-pv-audio="frequency">Detail: Balanced</span>
+      <span class="pv-view-option" data-pv-audio="color">Color: Lime</span>
+    </div>
+    <div class="pv-menu-group" data-pv-menu="video" hidden>
+      <span class="pv-menu-static">Use video playback controls below</span>
+    </div>
   `;
 
   const content = document.createElement('div');
@@ -3005,10 +3090,15 @@ function openPictureWindow(childId, parentId, options = {}) {
   menubar.querySelector('[data-pv-view="reset"]').addEventListener('click', () => pvResetView());
   menubar.querySelector('[data-pv-zoom="in"]').addEventListener('click', () => pvAdjustZoom(0.1));
   menubar.querySelector('[data-pv-zoom="out"]').addEventListener('click', () => pvAdjustZoom(-0.1));
+  menubar.querySelector('[data-pv-audio="time"]').addEventListener('click', () => pvCycleAudioPreset('audioVizTimePreset', PV_AUDIO_TIME_PRESETS));
+  menubar.querySelector('[data-pv-audio="frequency"]').addEventListener('click', () => pvCycleAudioPreset('audioVizFrequencyPreset', PV_AUDIO_FREQUENCY_PRESETS));
+  menubar.querySelector('[data-pv-audio="color"]').addEventListener('click', () => pvCycleAudioPreset('audioVizColorPreset', PV_AUDIO_COLOR_PRESETS));
 
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar, cleanup: () => {
+    const currentViewer = content.firstElementChild;
+    if (currentViewer && typeof currentViewer._pvCleanup === 'function') currentViewer._pvCleanup();
     const media = content.querySelector('video, audio');
     if (media) { media.pause(); media.src = ''; }
   }};
@@ -3032,6 +3122,8 @@ function pvRenderCurrent() {
       (pvState.ids.length > 1 ? '   (' + (pvState.index + 1) + ' of ' + pvState.ids.length + ')' : '');
   }
   if (!content) return;
+  const oldViewer = content.firstElementChild;
+  if (oldViewer && typeof oldViewer._pvCleanup === 'function') oldViewer._pvCleanup();
   // Stop any currently playing media before switching content
   const oldMedia = content.querySelector('video, audio');
   if (oldMedia) { oldMedia.pause(); oldMedia.src = ''; }
@@ -3128,6 +3220,7 @@ function pvRenderCurrent() {
 
     let isMuted = false;
     let isSeeking = false;
+    let vizFrame = 0;
 
     // Spectrum analyzer via Web Audio API
     let vizCtx = null, vizAnalyser = null, vizData = null;
@@ -3137,7 +3230,7 @@ function pvRenderCurrent() {
         vizCtx = new (window.AudioContext || window.webkitAudioContext)();
         vizAnalyser = vizCtx.createAnalyser();
         vizAnalyser.fftSize = 2048;
-        vizAnalyser.smoothingTimeConstant = 0.925;
+        vizAnalyser.smoothingTimeConstant = pvGetPreset(PV_AUDIO_TIME_PRESETS, pvState && pvState.audioVizTimePreset).smoothing;
         const src = vizCtx.createMediaElementSource(audio);
         src.connect(vizAnalyser);
         vizAnalyser.connect(vizCtx.destination);
@@ -3163,16 +3256,21 @@ function pvRenderCurrent() {
       ctx.setTransform(ratio,0,0,ratio,0,0);
       ctx.clearRect(0,0,w,h);
 
+      const timePreset = pvGetPreset(PV_AUDIO_TIME_PRESETS, pvState && pvState.audioVizTimePreset);
+      const frequencyPreset = pvGetPreset(PV_AUDIO_FREQUENCY_PRESETS, pvState && pvState.audioVizFrequencyPreset);
+      const colorPreset = pvGetPreset(PV_AUDIO_COLOR_PRESETS, pvState && pvState.audioVizColorPreset);
+
       const grad = ctx.createLinearGradient(0,0,0,h);
-      grad.addColorStop(0,'#79fa0f');
-      grad.addColorStop(0.45,'#4a7a20');
+      grad.addColorStop(0, colorPreset.top);
+      grad.addColorStop(0.45, colorPreset.mid);
       grad.addColorStop(1,'#111110');
 
-      const bars = 60;
+      const bars = frequencyPreset.bars;
       const bw = Math.max(2, Math.floor(w / bars) - 1);
       const gap = 1;
 
       if (vizAnalyser && vizData) {
+        vizAnalyser.smoothingTimeConstant = timePreset.smoothing;
         vizAnalyser.getFloatFrequencyData(vizData);
         const hzPerBin = (vizCtx.sampleRate / 2) / vizData.length;
         const minHz = 40, maxHz = 12000;
@@ -3184,9 +3282,14 @@ function pvRenderCurrent() {
           const b0 = Math.max(0, Math.min(vizData.length - 1, Math.floor(f0 / hzPerBin)));
           const b1 = Math.max(b0, Math.min(vizData.length - 1, Math.ceil(f1 / hzPerBin)));
 
-          let sum = 0, cnt = 0;
-          for (let b = b0; b <= b1; b++) { sum += vizData[b]; cnt++; }
-          const db = cnt ? (sum / cnt) : -100;
+          let db = -100;
+          if (frequencyPreset.mode === 'peak') {
+            for (let b = b0; b <= b1; b++) db = Math.max(db, vizData[b]);
+          } else {
+            let sum = 0, cnt = 0;
+            for (let b = b0; b <= b1; b++) { sum += vizData[b]; cnt++; }
+            db = cnt ? (sum / cnt) : -100;
+          }
           let v = (db + 90) / 80;
           v = Math.max(0, Math.min(1, v));
           v = Math.pow(v, 1.6);
@@ -3202,14 +3305,26 @@ function pvRenderCurrent() {
         for (let i = 0; i < bars; i++) {
           const x = i * (bw + gap);
           const bh = (audio.paused ? 2 : (4 + Math.round(Math.sin((performance.now()/180)+i*0.7) * 6 + 8)));
-          ctx.fillStyle = '#2a3a2a';
+          ctx.fillStyle = colorPreset.idle;
           ctx.fillRect(x, h - bh, bw, bh);
         }
       }
-      requestAnimationFrame(drawViz);
+      if (!vizCanvas.isConnected) return;
+      vizFrame = requestAnimationFrame(drawViz);
     }
 
     drawViz();
+
+    viewer._pvCleanup = () => {
+      if (vizFrame) cancelAnimationFrame(vizFrame);
+      vizFrame = 0;
+      if (vizCtx && typeof vizCtx.close === 'function' && vizCtx.state !== 'closed') {
+        vizCtx.close().catch(() => {});
+      }
+      vizCtx = null;
+      vizAnalyser = null;
+      vizData = null;
+    };
 
     function fmt(t) {
       if (!isFinite(t) || t < 0) return '0:00';
@@ -3805,27 +3920,6 @@ function openPaintWindow() {
   // (canvas-less, DOM-div-based) drawing to implement a working Save.
   // Building it ourselves fixes both -- plus a real File > Save that
   // actually exports the artwork as a PNG.
-  // 8 row-clusters of 7 colours each, arranged in 4 visual columns
-  // (2 clusters per column). Sampled from the 8×7 palette swatch image.
-  const PAINT_PALETTE_CLUSTERS = [
-    // row 1 – warm reds / oranges / yellows
-    ['#e8553a', '#f5944e', '#f9bc58', '#fae94a', '#c42b36', '#dc4848', '#e87878'],
-    // row 2 – greens / teals / blues / slate
-    ['#a0cc60', '#70c878', '#36aa72', '#40c4b8', '#24ccec', '#4d94cc', '#5f6ebc'],
-    // row 3 – slate-purple / purple / mauve / hot-pink / coral / yellow / lime
-    ['#6e70b8', '#9070b8', '#b07bac', '#ee78a8', '#dc7b7a', '#eadc4c', '#c8e05e'],
-    // row 4 – warm pastels + bright greens / mint
-    ['#e89870', '#f0b086', '#f8ca90', '#f8ee8a', '#cacc78', '#44e870', '#88f0a0'],
-    // row 5 – seafoam / baby-blue / periwinkles / lavender
-    ['#7ed8c0', '#90d8f0', '#a0a8e0', '#9898d4', '#9490c8', '#6878cc', '#c0b4f0'],
-    // row 6 – light lilac / pinks / deep violet through pale lavender
-    ['#cca8e8', '#f0a8d8', '#f8b8b8', '#7860c4', '#9868c0', '#b898d8', '#e0d0f0'],
-    // row 7 – dark teal through pale cyan
-    ['#226870', '#2e8890', '#4c9898', '#50c8c8', '#28e0e0', '#58f0e8', '#b0f8f8'],
-    // row 8 – browns / tans / orchids
-    ['#a07028', '#c09048', '#c8a870', '#d8c898', '#e8dfc0', '#cc60cc', '#e8a8e8'],
-  ];
-  const PAINT_PALETTE = PAINT_PALETTE_CLUSTERS.flat();
   const BASE_CELL = 22;
 
   let cols = 24, rows = 24;

@@ -3524,12 +3524,64 @@ function openPaintWindow() {
     a.remove();
   }
 
+  // Parse a hex color string into {r,g,b}.
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  // Return the palette color closest to (r,g,b) by squared Euclidean distance.
+  function nearestPaletteColor(r, g, b) {
+    let best = PAINT_PALETTE[0], bestDist = Infinity;
+    for (const hex of PAINT_PALETTE) {
+      const p = hexToRgb(hex);
+      const d = (r - p.r) ** 2 + (g - p.g) ** 2 + (b - p.b) ** 2;
+      if (d < bestDist) { bestDist = d; best = hex; }
+    }
+    return best;
+  }
+
+  function importImageToPaint() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      input.remove();
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        // Draw the image stretched into a cols×rows offscreen canvas.
+        const tmp = document.createElement('canvas');
+        tmp.width = cols;
+        tmp.height = rows;
+        const tctx = tmp.getContext('2d');
+        tctx.drawImage(img, 0, 0, cols, rows);
+        const data = tctx.getImageData(0, 0, cols, rows).data;
+        const art = new Array(rows * cols);
+        for (let i = 0; i < rows * cols; i++) {
+          const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+          art[i] = nearestPaletteColor(r, g, b);
+        }
+        resetGrid(cols, rows, art);
+      };
+      img.onerror = () => URL.revokeObjectURL(url);
+      img.src = url;
+    });
+    input.click();
+  }
+
   const fileMenuItem = menubar.querySelector('.menubar-paint-file');
   fileMenuItem.addEventListener('click', e => {
     e.stopPropagation();
     const rect = fileMenuItem.getBoundingClientRect();
     showContextMenu(rect.left, rect.bottom, [
       { label: 'New', onClick: () => resetGrid(cols, rows) },
+      { label: 'Add…', onClick: () => importImageToPaint() },
       { label: 'Save', onClick: () => savePaintImage() },
       { label: 'Close', onClick: () => closeWindow(id) }
     ]);

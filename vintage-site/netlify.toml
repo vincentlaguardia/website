@@ -3,6 +3,11 @@
   publish = "."
 
 [[redirects]]
+  from = "/doom"
+  to = "/doom.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

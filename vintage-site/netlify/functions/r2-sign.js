@@ -4,6 +4,7 @@ const SERVICE = 's3';
 const REGION = 'auto';
 const DEFAULT_EXPIRES_SECONDS = 300;
 const MAX_EXPIRES_SECONDS = 3600;
+// This default key intentionally matches the uploaded object name exactly.
 const DEFAULT_ALLOWED_KEYS = ['issues/1/i.n.t.e.r.f.a.c.e..pdf'];
 
 function hmac(key, value) {
@@ -51,7 +52,7 @@ function badRequest(statusCode, error) {
 }
 
 exports.handler = async event => {
-  if (event.httpMethod && event.httpMethod !== 'GET') {
+  if (event.httpMethod !== 'GET') {
     return badRequest(405, 'Method not allowed');
   }
 
@@ -63,7 +64,7 @@ exports.handler = async event => {
     return badRequest(500, 'Missing R2 signing environment variables');
   }
 
-  const key = (event.queryStringParameters && event.queryStringParameters.key ? String(event.queryStringParameters.key) : '').trim();
+  const key = String(event.queryStringParameters?.key ?? '').trim();
   if (!key) return badRequest(400, 'Missing key query parameter');
   if (key.includes('..') || key.startsWith('/')) return badRequest(400, 'Invalid key');
 

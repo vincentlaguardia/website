@@ -56,6 +56,6 @@ If you want the **View PDF** button in `INTERFACE > issues 1` to work, add these
 - `R2_ACCESS_KEY_ID` (R2 API token access key)
 - `R2_SECRET_ACCESS_KEY` (matching R2 API token secret)
 - `R2_BUCKET` (optional; defaults to `interface`)
-- `R2_ALLOWED_KEYS` (optional comma-separated allow-list; defaults to `issues/1/i.n.t.e.r.f.a.c.e..pdf`)
+- `R2_ALLOWED_KEYS` (optional comma-separated allow-list; defaults to `issues/1/i.n.t.e.r.f.a.c.e..pdf`, which intentionally matches the current uploaded filename)
 
 The site calls a Netlify function (`/.netlify/functions/r2-sign`) to generate a short-lived signed URL and opens that URL instead of exposing a public bucket.

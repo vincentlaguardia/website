@@ -70,7 +70,7 @@ exports.handler = async event => {
   if (!allowedKeys.length) return errorResponse(500, 'R2_ALLOWED_KEYS is empty');
   if (!allowedKeys.includes(key)) return errorResponse(403, 'Key not allowed');
 
-  const requestedExpires = Number(event.queryStringParameters && event.queryStringParameters.expires);
+  const requestedExpires = Number(event.queryStringParameters?.expires);
   const expires = Number.isFinite(requestedExpires)
     ? Math.max(1, Math.min(MAX_EXPIRES_SECONDS, Math.floor(requestedExpires)))
     : DEFAULT_EXPIRES_SECONDS;

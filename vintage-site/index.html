@@ -262,6 +262,12 @@
     background: #3a5090;
   }
   .grid-item.selected .label { color: #fff; }
+  .grid-item.selected:focus, .details-row.selected:focus {
+    /* When a grid/row item is both selected and focused, the blue .selected
+       background already provides clear visual feedback; suppress the
+       redundant browser focus ring in that state only. */
+    outline: none;
+  }
   .grid-item.drop-target-active {
     border: 1px dotted #0a246a;
     background: #d7e8ff;
@@ -2220,6 +2226,15 @@ function resolveFolderIconPosition(savedPos, defaultPos) {
   };
 }
 
+// Clears the selected highlight from every selectable item type in one shot.
+// Called from folder-icon and detail-row click handlers to prevent stale
+// desktop-icon selections from interfering with the Space-key preview picker.
+const SELECTABLE_ITEMS_SELECTOR = '.grid-item.selected, .details-row.selected, .desktop-icon-item.selected';
+function clearAllSelections() {
+  document.querySelectorAll(SELECTABLE_ITEMS_SELECTOR)
+    .forEach(s => s.classList.remove('selected'));
+}
+
 function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
   const dragScopeEl = viewportEl || el.parentElement || document.body;
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0, activeTargetEl = null;
@@ -2302,8 +2317,9 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
   }
   el.addEventListener('click', () => {
     if (moved) { moved = false; return; }
-    document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));
+    clearAllSelections();
     el.classList.add('selected');
+    el.focus();
   });
   if (onOpen) {
     el.addEventListener('dblclick', () => {
@@ -2326,11 +2342,17 @@ function renderFolderContent(id) {
     el.className = 'grid-item';
     el.dataset.itemId = childId;
     el.dataset.parentId = id;
+    // tabIndex=-1: makes the item programmatically focusable (so el.focus() works
+    // and Space keydown targets it), but keeps it out of the Tab order since
+    // Tab-to-icon navigation would need full arrow-key support to be useful.
+    // TODO (future): add tabIndex=0 + arrow-key handler for full keyboard navigation.
+    el.tabIndex = -1;
     el.innerHTML = getIcon(child, 64) +
       '<div class="label">' + child.name + '</div>';
     el.addEventListener('click', e => {
-      document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));
+      clearAllSelections();
       el.classList.add('selected');
+      el.focus();
       e.stopPropagation();
     });
     el.addEventListener('dblclick', () => openChildItem(childId, child, id));
@@ -2381,14 +2403,16 @@ function renderDetailsContent(id) {
     row.className = 'details-row';
     row.dataset.itemId = childId;
     row.dataset.parentId = id;
+    row.tabIndex = -1; // programmatically focusable; not in Tab order (see grid-item TODO above)
     row.innerHTML =
       '<td class="details-name">' + getIcon(child, 20) + '<span class="label">' + child.name + '</span></td>' +
       '<td class="details-type">' + fileTypeLabel(child) + '</td>' +
       '<td class="details-size">' + formatFileSize(child.size) + '</td>' +
       '<td class="details-date">' + formatDate(child.modified) + '</td>';
     row.addEventListener('click', e => {
-      document.querySelectorAll('.details-row.selected').forEach(s => s.classList.remove('selected'));
+      clearAllSelections();
       row.classList.add('selected');
+      row.focus();
       e.stopPropagation();
     });
     row.addEventListener('dblclick', () => openChildItem(childId, child, id));
@@ -2583,7 +2607,7 @@ document.addEventListener('keydown', e => {
 // Pressing Space on the same selected item while the viewer is minimized
 // un-minimizes it and brings it back to the front.
 document.addEventListener('keydown', e => {
-  if (e.key !== ' ' && e.code !== 'Space') return;
+  if (e.key !== ' ' && e.key !== 'Spacebar' && e.code !== 'Space') return;
   const tag = (e.target && e.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
   // If the media viewer is already open and visible, Space minimizes it
@@ -2593,7 +2617,7 @@ document.addEventListener('keydown', e => {
     toggleMinimize('picviewer');
     return;
   }
-  const selected = document.querySelector('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected');
+  const selected = document.querySelector(SELECTABLE_ITEMS_SELECTOR);
   if (!selected) return;
   const itemId = selected.dataset.itemId;
   const parentId = selected.dataset.parentId;

@@ -3619,6 +3619,8 @@ function openPaintWindow() {
     const gridAlignedSize = Math.floor(availableSquareSize / cols) * cols;
     // Tiny windows may not fit one full cell per row/col; in that case,
     // use the largest possible square anyway so Paint still remains usable.
+    // `gridAlignedSize >= cols` means at least 1 CSS pixel is available per
+    // grid cell (because gridAlignedSize is a multiple of `cols`).
     const finalSize = gridAlignedSize >= cols ? gridAlignedSize : availableSquareSize;
     canvas.style.width = finalSize + 'px';
     canvas.style.height = finalSize + 'px';
@@ -3665,8 +3667,8 @@ function openPaintWindow() {
     return best;
   }
 
-  function tryLoadImageSource(sources, onDone) {
-    if (!sources.length) return onDone(false);
+  function tryLoadImageSource(sources, onDone, lastError) {
+    if (!sources.length) return onDone(false, null, null, lastError);
     const src = sources[0];
     const tryOne = useCrossOrigin => {
       const img = new Image();
@@ -3674,7 +3676,10 @@ function openPaintWindow() {
       img.onload = () => onDone(true, img, src);
       img.onerror = () => {
         if (useCrossOrigin) tryOne(false);
-        else tryLoadImageSource(sources.slice(1), onDone);
+        else {
+          const mode = useCrossOrigin ? 'with anonymous CORS' : 'without CORS';
+          tryLoadImageSource(sources.slice(1), onDone, new Error('Load failed for ' + src + ' (' + mode + ')'));
+        }
       };
       img.src = src;
     };
@@ -3682,9 +3687,9 @@ function openPaintWindow() {
   }
 
   function loadDefaultPaintArt() {
-    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img, src) => {
+    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img, src, lastError) => {
       if (!ok || !img) {
-        console.warn('Default paint artwork could not be loaded from any source; starting with blank canvas.', DEFAULT_PAINT_IMAGE_SOURCES);
+        console.warn('Default paint artwork could not be loaded from any source; starting with blank canvas.', DEFAULT_PAINT_IMAGE_SOURCES, lastError ? lastError.message : '');
         return;
       }
       try {

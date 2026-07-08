@@ -2054,7 +2054,7 @@ function toggleMinimize(id) {
 function toggleMaximize(id) {
   const w = openWindows[id];
   if (!w) return;
-  // px: preserves title bar + usable content + status bar on very small screens.
+  // This pixel value preserves title bar + usable content + status bar on very small screens.
   const MIN_MAXIMIZED_WINDOW_HEIGHT = 120;
   if (!w.maximized) {
     w.restoreBounds = {
@@ -2080,6 +2080,8 @@ function toggleMaximize(id) {
     }
     w.maximized = false;
   }
+  const maxBtn = w.el.querySelector('[data-action="max"]');
+  if (maxBtn) maxBtn.setAttribute('aria-label', w.maximized ? 'Restore' : 'Maximize');
   bringToFront(id);
 }
 

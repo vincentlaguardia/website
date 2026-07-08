@@ -262,7 +262,12 @@
     background: #3a5090;
   }
   .grid-item.selected .label { color: #fff; }
-  .grid-item.selected:focus, .details-row.selected:focus { outline: none; }
+  .grid-item.selected:focus, .details-row.selected:focus {
+    /* When a grid/row item is both selected and focused, the blue .selected
+       background already provides clear visual feedback; suppress the
+       redundant browser focus ring in that state only. */
+    outline: none;
+  }
   .grid-item.drop-target-active {
     border: 1px dotted #0a246a;
     background: #d7e8ff;
@@ -2224,8 +2229,9 @@ function resolveFolderIconPosition(savedPos, defaultPos) {
 // Clears the selected highlight from every selectable item type in one shot.
 // Called from folder-icon and detail-row click handlers to prevent stale
 // desktop-icon selections from interfering with the Space-key preview picker.
+const SELECTABLE_ITEMS_SELECTOR = '.grid-item.selected, .details-row.selected, .desktop-icon-item.selected';
 function clearAllSelections() {
-  document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected')
+  document.querySelectorAll(SELECTABLE_ITEMS_SELECTOR)
     .forEach(s => s.classList.remove('selected'));
 }
 
@@ -2336,6 +2342,9 @@ function renderFolderContent(id) {
     el.className = 'grid-item';
     el.dataset.itemId = childId;
     el.dataset.parentId = id;
+    // tabIndex=-1: makes the item programmatically focusable (so el.focus() works
+    // and Space keydown targets it), but keeps it out of the Tab order since
+    // Tab-to-icon navigation would need full arrow-key support to be useful.
     el.tabIndex = -1;
     el.innerHTML = getIcon(child, 64) +
       '<div class="label">' + child.name + '</div>';
@@ -2393,7 +2402,7 @@ function renderDetailsContent(id) {
     row.className = 'details-row';
     row.dataset.itemId = childId;
     row.dataset.parentId = id;
-    row.tabIndex = -1;
+    row.tabIndex = -1; // programmatically focusable; not in Tab order (see grid-item comment)
     row.innerHTML =
       '<td class="details-name">' + getIcon(child, 20) + '<span class="label">' + child.name + '</span></td>' +
       '<td class="details-type">' + fileTypeLabel(child) + '</td>' +
@@ -2607,7 +2616,7 @@ document.addEventListener('keydown', e => {
     toggleMinimize('picviewer');
     return;
   }
-  const selected = document.querySelector('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected');
+  const selected = document.querySelector(SELECTABLE_ITEMS_SELECTOR);
   if (!selected) return;
   const itemId = selected.dataset.itemId;
   const parentId = selected.dataset.parentId;

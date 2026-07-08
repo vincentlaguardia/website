@@ -871,6 +871,7 @@ function getIcon(item, size) {
   if (item && item.customIcon === 'solitaireshortcut') return imgIcon(SOLITAIRE_SHORTCUT_ICON, size);
   if (item && item.customIcon === 'watchthisbaby') return imgIcon(WATCHTHISBABY_ICON, size);
   if (item && item.customIcon === 'paintshortcut') return imgIcon(PAINT_SHORTCUT_ICON, size);
+  if (item && item.type === 'text') return imgIcon(NOTEPAD_ICON, size);
   if (item && item.type === 'audio') return imgIcon(MP3_ICON, size);
   if (item && item.type === 'video') return imgIcon(MOVIE_ICON, size);
   if (item && item.type === 'picture' && (item.thumb || item.file)) return imgIcon(item.thumb || item.file, size);

@@ -342,6 +342,23 @@
   .picture-viewer { width: 100%; height: 100%; min-width: 0; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; }
   .picture-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
   .picture-window { resize: both; overflow: hidden; }
+
+  /* ---- WMP XP-style audio preview ---- */
+  .pv-audio-viewer { width:100%; height:100%; display:flex; flex-direction:column; background:#001235; font-family:Tahoma,'MS Sans Serif',sans-serif; }
+  .pv-audio-display { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px 16px; background:#001235; }
+  .pv-audio-album { width:80px; height:80px; background:linear-gradient(135deg,#0a2a6a,#1a4aaa); border:2px solid #2060cc; display:flex; align-items:center; justify-content:center; font-size:32px; color:#4080cc; border-radius:2px; }
+  .pv-audio-title { color:#60a0e0; font-size:13px; text-align:center; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pv-audio-time  { color:#3a6ab0; font-size:11px; font-family:monospace; letter-spacing:1px; }
+  .pv-audio-statusbar { background:#000; color:#00cc00; font-size:11px; padding:3px 10px; font-family:'Courier New',monospace; border-top:2px solid #002266; flex:none; }
+  .pv-audio-seekrow { background:#000; padding:0 0 2px 0; flex:none; }
+  .pv-audio-seekrow input[type=range] { display:block; width:100%; margin:0; height:12px; accent-color:#00cc00; cursor:pointer; background:transparent; }
+  .pv-audio-transport { display:flex; align-items:center; gap:3px; padding:5px 8px; background:linear-gradient(180deg,#c8d8ec,#b0c4de); border-top:1px solid #7090b8; flex:none; }
+  .pv-audio-btn { background:linear-gradient(180deg,#e8eef8,#c0d0e4); border:1px solid #7090b8; border-radius:2px; min-width:22px; height:20px; cursor:pointer; font-size:11px; display:flex; align-items:center; justify-content:center; user-select:none; padding:0 3px; box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),0 1px 2px rgba(0,0,0,0.15); }
+  .pv-audio-btn:active { background:linear-gradient(180deg,#a8bcd4,#bccce0); box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }
+  .pv-audio-btn.pv-playing { background:linear-gradient(180deg,#a8d4f0,#80b8e0); }
+  .pv-audio-vol { flex:1; max-width:80px; accent-color:#00cc00; margin-left:4px; cursor:pointer; }
+  .wmp-playlist.drag-over { background:#1a2a50; outline:2px dashed #5080c0; }
+
   .pdf-viewer { width: 100%; height: 100%; overflow: hidden; min-width: 0; min-height: 0; }
   .pdf-viewer iframe { width: 100%; height: 100%; border: none; display: block; transform-origin: center center; }
   .pdf-pages {
@@ -1844,11 +1861,22 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
           return;
         }
       }
+      // 2. Drop onto media player playlist -> add track
+      if (itemId && items[itemId] && items[itemId].type === 'audio') {
+        const playlistEl = document.getElementById('mp-playlist');
+        if (playlistEl) {
+          const r = playlistEl.getBoundingClientRect();
+          if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
+            openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
+            return;
+          }
+        }
+      }
       if (!itemId || !parentId) return;
       // Hide dragged element so elementFromPoint doesn't hit it
       const oldDisplay = el.style.display;
       el.style.display = 'none';
-      // 2. Cross-folder move (dropped onto a different folder icon)
+      // 3. Cross-folder move (dropped onto a different folder icon)
       const folderTarget = findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl);
       if (folderTarget) {
         el.style.display = oldDisplay;
@@ -2336,6 +2364,15 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
       activeTargetEl = folderTarget.el;
       activeTargetEl.classList.add('drop-target-active');
     }
+    // Highlight the playlist pane when hovering an audio item over it
+    if (itemId && items[itemId] && items[itemId].type === 'audio') {
+      const playlistEl = document.getElementById('mp-playlist');
+      if (playlistEl) {
+        const r = playlistEl.getBoundingClientRect();
+        const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+        playlistEl.classList.toggle('drag-over', over);
+      }
+    }
   }
   function onUp(e) {
     if (dragging && moved) {
@@ -2348,6 +2385,19 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
             dragging = false;
             stopTracking();
             onDeleteViaTrash();
+            return;
+          }
+        }
+      }
+      // Drop onto the media player playlist -> add track
+      if (itemId && items[itemId] && items[itemId].type === 'audio') {
+        const playlistEl = document.getElementById('mp-playlist');
+        if (playlistEl) {
+          const r = playlistEl.getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            dragging = false;
+            stopTracking();
+            openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
             return;
           }
         }
@@ -2368,6 +2418,8 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
     } else {
       clearDragFeedback();
     }
+    const playlistEl = document.getElementById('mp-playlist');
+    if (playlistEl) playlistEl.classList.remove('drag-over');
     dragging = false;
     stopTracking();
   }
@@ -2423,6 +2475,7 @@ function renderFolderContent(id) {
         } });
       }
       if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
+      if (child.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(childId)) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
     const savedPos = getFolderIconPosition(id, childId);
@@ -2482,6 +2535,7 @@ function renderDetailsContent(id) {
         } });
       }
       if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
+      if (child.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(childId)) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
     makeDraggableToTrash(row, () => deleteItem(childId, id), childId, id);
@@ -2621,16 +2675,139 @@ function pvRenderCurrent() {
     video.appendChild(source);
     viewer.appendChild(video);
   } else if (item.type === 'audio') {
-    viewer.style.cssText = 'flex-direction:column;gap:12px;';
-    const nameEl = document.createElement('div');
-    nameEl.style.cssText = 'font-size:14px;color:#fff;text-align:center;padding:0 16px;';
-    nameEl.textContent = item.name;
+    viewer.className = 'pv-audio-viewer';
+    viewer.style.cssText = '';
+
+    const display = document.createElement('div');
+    display.className = 'pv-audio-display';
+
+    const albumArt = document.createElement('div');
+    albumArt.className = 'pv-audio-album';
+    albumArt.textContent = '♪';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'pv-audio-title';
+    titleEl.textContent = item.name;
+
+    const timeEl = document.createElement('div');
+    timeEl.className = 'pv-audio-time';
+    timeEl.textContent = '0:00 / 0:00';
+
+    display.appendChild(albumArt);
+    display.appendChild(titleEl);
+    display.appendChild(timeEl);
+
+    const statusBar = document.createElement('div');
+    statusBar.className = 'pv-audio-statusbar';
+    statusBar.textContent = 'Ready';
+
+    const seekRow = document.createElement('div');
+    seekRow.className = 'pv-audio-seekrow';
+    const seek = document.createElement('input');
+    seek.type = 'range';
+    seek.min = '0';
+    seek.max = '1000';
+    seek.value = '0';
+    seekRow.appendChild(seek);
+
+    const transport = document.createElement('div');
+    transport.className = 'pv-audio-transport';
+
+    function makeBtn(label, title) {
+      const b = document.createElement('button');
+      b.className = 'pv-audio-btn';
+      b.title = title || '';
+      b.textContent = label;
+      return b;
+    }
+
+    const prevBtn  = makeBtn('⏮', 'Previous');
+    const playBtn  = makeBtn('▶', 'Play/Pause');
+    const stopBtn  = makeBtn('⏹', 'Stop');
+    const nextBtn  = makeBtn('⏭', 'Next');
+    const muteBtn  = makeBtn('🔈', 'Mute');
+    const volSlider = document.createElement('input');
+    volSlider.type = 'range';
+    volSlider.min = '0';
+    volSlider.max = '100';
+    volSlider.value = '80';
+    volSlider.className = 'pv-audio-vol';
+    volSlider.title = 'Volume';
+
+    transport.appendChild(prevBtn);
+    transport.appendChild(playBtn);
+    transport.appendChild(stopBtn);
+    transport.appendChild(nextBtn);
+    transport.appendChild(muteBtn);
+    transport.appendChild(volSlider);
+
+    viewer.appendChild(display);
+    viewer.appendChild(statusBar);
+    viewer.appendChild(seekRow);
+    viewer.appendChild(transport);
+
     const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.style.width = '80%';
+    audio.preload = 'metadata';
     audio.src = item.file || '';
-    viewer.appendChild(nameEl);
     viewer.appendChild(audio);
+
+    let isMuted = false;
+    let isSeeking = false;
+
+    audio.addEventListener('loadedmetadata', () => {
+      audio.currentTime = 0;
+      timeEl.textContent = '0:00 / ' + mpFormatTime(audio.duration);
+    });
+    audio.addEventListener('timeupdate', () => {
+      if (!audio.duration || isSeeking) return;
+      const pct = audio.currentTime / audio.duration;
+      seek.value = Math.round(pct * 1000);
+      timeEl.textContent = mpFormatTime(audio.currentTime) + ' / ' + mpFormatTime(audio.duration);
+      statusBar.textContent = item.name + '  ' + mpFormatTime(audio.currentTime) + ' / ' + mpFormatTime(audio.duration);
+    });
+    audio.addEventListener('play', () => {
+      playBtn.textContent = '⏸';
+      playBtn.classList.add('pv-playing');
+    });
+    audio.addEventListener('pause', () => {
+      playBtn.textContent = '▶';
+      playBtn.classList.remove('pv-playing');
+    });
+    audio.addEventListener('ended', () => {
+      seek.value = '0';
+      statusBar.textContent = 'Ready';
+    });
+
+    seek.addEventListener('mousedown', () => { isSeeking = true; });
+    seek.addEventListener('input', () => {
+      if (audio.duration) audio.currentTime = (seek.value / 1000) * audio.duration;
+    });
+    seek.addEventListener('change', () => { isSeeking = false; });
+
+    playBtn.addEventListener('click', () => {
+      if (audio.paused) audio.play().catch(() => {});
+      else audio.pause();
+    });
+    stopBtn.addEventListener('click', () => {
+      audio.pause();
+      audio.currentTime = 0;
+      seek.value = '0';
+      statusBar.textContent = 'Ready';
+    });
+    nextBtn.addEventListener('click', () => {
+      if (pvState && pvState.ids.length > 1) pvStep(1);
+    });
+    prevBtn.addEventListener('click', () => {
+      if (pvState && pvState.ids.length > 1) pvStep(-1);
+    });
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      audio.muted = isMuted;
+      muteBtn.textContent = isMuted ? '🔇' : '🔈';
+    });
+    volSlider.addEventListener('input', () => { audio.volume = volSlider.value / 100; });
+    audio.volume = 0.8;
+
     if (item.file) audio.play().catch(() => {});
   } else {
     const img = document.createElement('img');
@@ -3987,19 +4164,26 @@ async function mpBuildAllPlaylist() {
 }
 
 async function mpBuildPlaylistForTrack(trackId) {
-  await mpBuildPlaylist();
+  // On first open (empty playlist), seed with the default audio folder.
+  // On subsequent opens, keep the existing playlist and only add the new track.
+  if (!mpPlaylist.length) {
+    await mpBuildPlaylist();
+  }
   if (!trackId || mpPlaylist.includes(trackId)) return;
-  const parentId = Object.keys(items).find(
-    pid => items[pid].type === 'folder' &&
-           Array.isArray(items[pid].children) &&
-           items[pid].children.includes(trackId)
-  );
-  if (!parentId) {
-    mpPlaylist = [trackId];
+  // Add the clicked track to the top of the existing playlist.
+  mpPlaylist.unshift(trackId);
+}
+
+function mpAddTrackToPlaylist(trackId) {
+  if (!trackId || !items[trackId] || items[trackId].type !== 'audio') return;
+  if (mpPlaylist.includes(trackId)) {
+    // Track already in playlist, just scroll to it in the UI
+    mpRenderPlaylist();
     return;
   }
-  const siblings = await mpDiscoverAudioItems(parentId);
-  mpPlaylist = siblings.length ? siblings : [trackId];
+  mpPlaylist.unshift(trackId);
+  mpRenderPlaylist();
+  mpPreloadDurations();
 }
 
 function mpPreloadDurations() {
@@ -4330,6 +4514,23 @@ async function openMediaPlayerWindow(trackId) {
           nowPlaying.textContent = 'Could not load file';
         }
       });
+
+      // Drag mp3 icons directly onto the playlist panel to add them
+      const playlistPane = document.getElementById('mp-playlist');
+      if (playlistPane) {
+        playlistPane.addEventListener('dragover', e => {
+          const id = e.dataTransfer && e.dataTransfer.getData('text/mp3-item-id');
+          playlistPane.classList.add('drag-over');
+          e.preventDefault();
+        });
+        playlistPane.addEventListener('dragleave', () => playlistPane.classList.remove('drag-over'));
+        playlistPane.addEventListener('drop', e => {
+          e.preventDefault();
+          playlistPane.classList.remove('drag-over');
+          const id = e.dataTransfer && e.dataTransfer.getData('text/mp3-item-id');
+          if (id) mpAddTrackToPlaylist(id);
+        });
+      }
     });
 
     mpSafe('equalizer', () => {
@@ -4360,10 +4561,10 @@ async function openMediaPlayerWindow(trackId) {
     bringToFront(id);
   }
 
-  // Rebuilt on every open (not just the first time the window is created),
-  // so the player always resets back to the default /audio playlist.
-  // Use mpBuildAllPlaylist() if you want a full-site "browse all music"
-  // mode that recursively discovers audio anywhere in the site tree.
+  // On the first open (empty playlist), seeds the default /audio folder
+  // playlist. On subsequent opens, only adds the new trackId to the front
+  // without rebuilding the whole list. Use mpBuildAllPlaylist() for a
+  // full-site "browse all music" mode.
   await (async () => {
     try {
       await mpBuildPlaylistForTrack(trackId);
@@ -4514,6 +4715,7 @@ function buildDesktopIcons() {
         } });
       }
       if (item.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(itemId) });
+      if (item.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
     wrap.appendChild(el);

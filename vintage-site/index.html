@@ -2355,6 +2355,17 @@ async function buildSyncedFileItem(syncFolder, entry, fallbackModified, companio
           modified: entry.modified || fallbackModified
         };
       }
+      if (shortcut.url && /\.pdf(\?|#|$)/i.test(shortcut.url)) {
+        return {
+          type: 'pdf',
+          name: displayName,
+          iconType: 'pdf',
+          filePath,
+          file: shortcut.url,
+          size: entry.size,
+          modified: entry.modified || fallbackModified
+        };
+      }
       if (shortcut.url) {
         return {
           type: 'shortcut',

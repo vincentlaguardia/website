@@ -3269,11 +3269,11 @@ function openPaintWindow() {
   win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
-  // 3 columns x 7 swatches (16px + 2px gaps) = 124px per column, plus
+  // 4 columns x 7 swatches (16px + 2px gaps) = 124px per column, plus
   // 10px gaps between columns and the palette-row/content padding --
   // this is the smallest the window can get without the swatch columns
   // overlapping or wrapping.
-  win.style.minWidth = '440px';
+  win.style.minWidth = '560px';
   win.style.minHeight = '440px';
 
   const titlebar = document.createElement('div');
@@ -3301,15 +3301,25 @@ function openPaintWindow() {
   // (canvas-less, DOM-div-based) drawing to implement a working Save.
   // Building it ourselves fixes both -- plus a real File > Save that
   // actually exports the artwork as a PNG.
-  // Grouped into 6 color-family clusters (reds, nudes, greens, blues,
-  // purples, pinks), sampled from the user's expanded 8x7 palette image.
+  // 8 row-clusters of 7 colours each, arranged in 4 visual columns
+  // (2 clusters per column). Sampled from the 8×7 palette swatch image.
   const PAINT_PALETTE_CLUSTERS = [
-    ['#d9223c', '#ec4949', '#d66c6c', '#f79090', '#b05252', '#853333', '#671717'],
-    ['#ff4800', '#f96429', '#ef794b', '#f68d63', '#ffb091', '#ffcca7', '#ffe9d8', '#885600', '#a36f13', '#c68f2f', '#e5ad4b', '#fecf7d', '#ffdea4', '#fff0d7'],
-    ['#2ec815', '#259512', '#4f8d12', '#5d902b', '#7da754', '#b4e287', '#d6f9b4', '#15c865', '#3fde86', '#3fded1', '#2cbbaf', '#1f948a', '#137870', '#075b54'],
-    ['#b3eaff', '#83c6df', '#60abc6', '#3d88a4', '#29718c', '#17576e', '#07445b'],
-    ['#e0caff', '#b38fe3', '#9569d0', '#7d53b7', '#61389a', '#48207f', '#370c73'],
-    ['#fe1adb', '#e61afe', '#c531d7', '#af3bbd', '#8c2898', '#741b7f', '#590962']
+    // row 1 – warm reds / oranges / yellows
+    ['#e8553a', '#f5944e', '#f9bc58', '#fae94a', '#c42b36', '#dc4848', '#e87878'],
+    // row 2 – greens / teals / blues / slate
+    ['#a0cc60', '#70c878', '#36aa72', '#40c4b8', '#24ccec', '#4d94cc', '#5f6ebc'],
+    // row 3 – slate-purple / purple / mauve / hot-pink / coral / yellow / lime
+    ['#6e70b8', '#9070b8', '#b07bac', '#ee78a8', '#dc7b7a', '#eadc4c', '#c8e05e'],
+    // row 4 – warm pastels + bright greens / mint
+    ['#e89870', '#f0b086', '#f8ca90', '#f8ee8a', '#cacc78', '#44e870', '#88f0a0'],
+    // row 5 – seafoam / baby-blue / periwinkles / lavender
+    ['#7ed8c0', '#90d8f0', '#a0a8e0', '#9898d4', '#9490c8', '#6878cc', '#c0b4f0'],
+    // row 6 – light lilac / pinks / deep violet through pale lavender
+    ['#cca8e8', '#f0a8d8', '#f8b8b8', '#7860c4', '#9868c0', '#b898d8', '#e0d0f0'],
+    // row 7 – dark teal through pale cyan
+    ['#226870', '#2e8890', '#4c9898', '#50c8c8', '#28e0e0', '#58f0e8', '#b0f8f8'],
+    // row 8 – browns / tans / orchids
+    ['#a07028', '#c09048', '#c8a870', '#d8c898', '#e8dfc0', '#cc60cc', '#e8a8e8'],
   ];
   const PAINT_PALETTE = PAINT_PALETTE_CLUSTERS.flat();
   const BASE_CELL = 22;
@@ -3358,10 +3368,8 @@ function openPaintWindow() {
   const swatchesEl = wrap.querySelector('.paint-swatches');
   const sizeSelectEl = wrap.querySelector('.paint-size-select');
 
-  // 3 symmetrical columns: reds+nudes, greens+blues, purples+pinks --
-  // works out to 3, 3, 2 swatch-rows per column (nudes and greens are
-  // each 2 rows of 7, everything else is 1 row of 7).
-  const PAINT_SWATCH_COLUMNS = [[0, 1], [2, 3], [4, 5]];
+  // 4 symmetrical columns of 2 row-clusters each: rows 1-2, 3-4, 5-6, 7-8.
+  const PAINT_SWATCH_COLUMNS = [[0, 1], [2, 3], [4, 5], [6, 7]];
   PAINT_SWATCH_COLUMNS.forEach(clusterIdxs => {
     const colEl = document.createElement('div');
     colEl.className = 'paint-swatch-col';

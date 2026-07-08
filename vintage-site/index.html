@@ -381,8 +381,8 @@
       inset -2px -2px 0 #dfdfdf;
   }
   .paint-canvas-area {
-    flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: #808080;
-    display: flex; align-items: center; justify-content: center; padding: 0;
+    flex: none; min-width: 0; min-height: 0; overflow: hidden; background: #fff;
+    display: flex; align-items: center; justify-content: center; padding: 0; align-self: center;
   }
   .paint-canvas {
     image-rendering: pixelated; image-rendering: crisp-edges;
@@ -3455,6 +3455,7 @@ function openWindow(id) {
 // chrome here is kept minimal (just a draggable titlebar with min/close).
 function openPaintWindow() {
   const id = 'paint';
+  const PAINT_WINDOW_MIN_SIDE = 560;
   const DEFAULT_PAINT_GRID_SIZE = 128;
   const DEFAULT_PAINT_IMAGE_SOURCES = [
     // Requested default "pam nude pixel" artwork variants; we try each.
@@ -3469,18 +3470,17 @@ function openPaintWindow() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out paint-window';
   cascade = (cascade + 1) % 8;
-  const openW = Math.max(560, Math.round(window.innerWidth * 0.70));
-  const openH = Math.max(520, Math.round(window.innerHeight * 0.70));
-  win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
-  win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
-  win.style.width = openW + 'px';
-  win.style.height = openH + 'px';
+  const openSide = Math.max(PAINT_WINDOW_MIN_SIDE, Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.70));
+  win.style.left = (Math.max(0, Math.round((window.innerWidth - openSide) / 2)) + cascade * 20) + 'px';
+  win.style.top = (Math.max(0, Math.round((window.innerHeight - openSide) / 2)) + cascade * 18) + 'px';
+  win.style.width = openSide + 'px';
+  win.style.height = openSide + 'px';
   // 4 columns x 7 swatches (16px + 2px gaps) = 124px per column, plus
   // 10px gaps between columns and the palette-row/content padding --
   // this is the smallest the window can get without the swatch columns
   // overlapping or wrapping.
-  win.style.minWidth = '560px';
-  win.style.minHeight = '440px';
+  win.style.minWidth = PAINT_WINDOW_MIN_SIDE + 'px';
+  win.style.minHeight = PAINT_WINDOW_MIN_SIDE + 'px';
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
@@ -3690,9 +3690,29 @@ function openPaintWindow() {
   // Keep the displayed canvas size divisible by the grid size so dense
   // modes (64/128) get consistent, even cell boundaries.
   const canvasAreaEl = wrap.querySelector('.paint-canvas-area');
+  const toolbarRowEl = wrap.querySelector('.paint-toolbar-row');
+  const paletteRowEl = wrap.querySelector('.paint-palette-row');
+  let isSizingPaintWindow = false;
+  function lockPaintWindowSquare(preferredSide) {
+    if (isSizingPaintWindow) return;
+    const maxSide = Math.floor(Math.min(window.innerWidth, window.innerHeight));
+    let side = preferredSide;
+    if (!side) side = Math.min(win.offsetWidth, win.offsetHeight);
+    if (!side || !isFinite(side)) side = PAINT_WINDOW_MIN_SIDE;
+    side = Math.round(side);
+    side = Math.max(PAINT_WINDOW_MIN_SIDE, side);
+    if (maxSide > 0) side = Math.min(side, maxSide);
+    const next = side + 'px';
+    if (win.style.width === next && win.style.height === next) return;
+    isSizingPaintWindow = true;
+    win.style.width = next;
+    win.style.height = next;
+    isSizingPaintWindow = false;
+  }
   function paintFitSquare() {
-    const availW = canvasAreaEl.clientWidth;
-    const availH = canvasAreaEl.clientHeight;
+    const availW = wrap.clientWidth;
+    const chromeH = (toolbarRowEl ? toolbarRowEl.offsetHeight : 0) + (paletteRowEl ? paletteRowEl.offsetHeight : 0);
+    const availH = Math.max(0, wrap.clientHeight - chromeH);
     if (!availW || !availH) return;
     if (!cols) return;
     const availableSquareSize = Math.max(0, Math.min(availW, availH));
@@ -3704,6 +3724,8 @@ function openPaintWindow() {
     // `gridAlignedSize >= cols` means at least 1 CSS pixel is available per
     // grid cell (because gridAlignedSize is a multiple of `cols`).
     const finalSize = gridAlignedSize >= cols ? gridAlignedSize : availableSquareSize;
+    canvasAreaEl.style.width = finalSize + 'px';
+    canvasAreaEl.style.height = finalSize + 'px';
     canvas.style.width = finalSize + 'px';
     canvas.style.height = finalSize + 'px';
   }
@@ -3716,10 +3738,14 @@ function openPaintWindow() {
   win.appendChild(content);
   document.getElementById('desktop').appendChild(win);
 
+  lockPaintWindowSquare(openSide);
   paintFitSquare();
   let paintResizeObserver = null;
   if (window.ResizeObserver) {
-    paintResizeObserver = new ResizeObserver(() => paintFitSquare());
+    paintResizeObserver = new ResizeObserver(() => {
+      lockPaintWindowSquare();
+      paintFitSquare();
+    });
     paintResizeObserver.observe(win);
   }
 
@@ -5124,9 +5150,8 @@ async function tryLogin() {
     buildDesktopIcons();
     updateClock();
     setInterval(updateClock, 30000);
-    // Open order controls stacking (last opened ends up on top): Paint
-    // furthest back, then browser, Solitaire, and media player on top.
-    openPaintWindow();
+    // Open order controls stacking (last opened ends up on top): browser
+    // furthest back, then Solitaire, and media player on top.
     openBrowserWindow('https://en.wikipedia.org/wiki/Valeriepieris_circle');
     openSolitaireWindow(true);
     openMediaPlayerWindow();

@@ -2139,11 +2139,11 @@ function inferTypeFromExt(name) {
   return 'file';
 }
 
-const MP_CANONICAL_AUDIO_FOLDER_ID = 'audio';
-const MP_AUDIO_PLACEHOLDER_MAX_BYTES = 256;
+const MP_LIBRARY_SOURCE_FOLDER_ID = 'audio';
+const MP_AUDIO_PLACEHOLDER_SIZE_THRESHOLD = 256;
 
-function mpFindCanonicalTrackByName(name) {
-  const folder = items[MP_CANONICAL_AUDIO_FOLDER_ID];
+function mpFindLibraryTrackIdByName(name) {
+  const folder = items[MP_LIBRARY_SOURCE_FOLDER_ID];
   if (!folder || !Array.isArray(folder.children)) return null;
   return folder.children.find(
     cid => items[cid] && items[cid].type === 'audio' && items[cid].name === name
@@ -2151,10 +2151,10 @@ function mpFindCanonicalTrackByName(name) {
 }
 
 function mpResolveSyncedAudioFile(name, size, fallbackFile) {
-  if (!(size <= MP_AUDIO_PLACEHOLDER_MAX_BYTES)) return fallbackFile;
-  const canonicalTrackId = mpFindCanonicalTrackByName(name);
-  const canonicalTrack = canonicalTrackId && items[canonicalTrackId];
-  return canonicalTrack && canonicalTrack.file ? canonicalTrack.file : fallbackFile;
+  if (size > MP_AUDIO_PLACEHOLDER_SIZE_THRESHOLD) return fallbackFile;
+  const libraryTrackId = mpFindLibraryTrackIdByName(name);
+  const libraryTrack = libraryTrackId && items[libraryTrackId];
+  return libraryTrack && libraryTrack.file ? libraryTrack.file : fallbackFile;
 }
 
 async function loadSyncChildren(id) {

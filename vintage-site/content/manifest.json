@@ -1,5 +1,11 @@
 [
   {
+    "type": "file",
+    "name": "avril.jpeg",
+    "size": 93726,
+    "modified": "2026-07-08"
+  },
+  {
     "type": "folder",
     "name": "catscans",
     "modified": "2026-07-08"

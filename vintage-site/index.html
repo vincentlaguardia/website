@@ -1972,6 +1972,146 @@ function applyBackgroundChoice(choice) {
     document.getElementById('desktop').style.backgroundImage = 'url(' + BG_6CATS + ')';
   }
 })();
+/* ---------- custom wallpaper picker ---------- */
+// Allowed image extensions for the backgrounds manifest.
+const WALLPAPER_IMG_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg']);
+
+// Apply a wallpaper from the _backgrounds folder (src is a relative URL like
+// "content/_backgrounds/photo.jpg"). Passing null/empty clears back to default.
+function applyWallpaper(src) {
+  const desktopEl = document.getElementById('desktop');
+  if (src) {
+    desktopEl.style.backgroundImage = 'url(' + toAssetUrl(src) + ')';
+    localStorage.setItem('site-wallpaper-src', src);
+  } else {
+    desktopEl.style.backgroundImage = '';
+    localStorage.removeItem('site-wallpaper-src');
+  }
+}
+
+// Restore persisted wallpaper. Called from tryLogin() after the desktop is shown.
+function initWallpaper() {
+  const saved = localStorage.getItem('site-wallpaper-src');
+  if (saved) applyWallpaper(saved);
+}
+
+async function openBackgroundPickerWindow() {
+  const id = 'bg-picker';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+
+  // Fetch backgrounds manifest
+  let backgrounds = [];
+  try {
+    const res = await fetch(toAssetUrl('content/_backgrounds/backgrounds-manifest.json'), { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      // Filter to valid image entries only (defence in depth)
+      backgrounds = data.filter(b => b && b.src && WALLPAPER_IMG_EXTS.has(
+        ('.' + b.src.split('.').pop()).toLowerCase()
+      ));
+    }
+  } catch (_) { /* network error - show empty state */ }
+
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out';
+  cascade = (cascade + 1) % 8;
+  win.style.left = (140 + cascade * 24) + 'px';
+  win.style.top  = (110 + cascade * 22) + 'px';
+  win.style.width = '380px';
+  win.style.height = '300px';
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">Change Background</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.cssText = 'display:flex;flex-direction:column;flex:1;overflow:hidden;';
+
+  if (backgrounds.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:#808080;padding:16px;text-align:center;';
+    empty.textContent = 'No backgrounds available. Drop images into content/_backgrounds/ and rebuild.';
+    content.appendChild(empty);
+  } else {
+    const grid = document.createElement('div');
+    grid.style.cssText = 'flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:10px;';
+
+    const savedSrc = localStorage.getItem('site-wallpaper-src') || '';
+    backgrounds.forEach(bg => {
+      const thumb = document.createElement('div');
+      thumb.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;';
+      if (bg.src === savedSrc) thumb.style.outline = '2px solid #000080';
+
+      const img = document.createElement('img');
+      img.src = toAssetUrl(bg.src);
+      img.alt = bg.name;
+      img.style.cssText = 'width:88px;height:64px;object-fit:cover;display:block;border:1px solid #808080;';
+
+      const label = document.createElement('div');
+      label.style.cssText = 'font-size:10px;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      label.textContent = bg.name;
+
+      thumb.appendChild(img);
+      thumb.appendChild(label);
+
+      thumb.addEventListener('click', () => {
+        grid.querySelectorAll('div[style*="outline"]').forEach(el => { el.style.outline = ''; });
+        thumb.style.outline = '2px solid #000080';
+        applyWallpaper(bg.src);
+      });
+
+      grid.appendChild(thumb);
+    });
+    content.appendChild(grid);
+  }
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;padding:8px 12px;flex-shrink:0;';
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'win98-button';
+  removeBtn.textContent = 'Remove';
+  removeBtn.title = 'Reset to default background';
+  removeBtn.addEventListener('click', () => {
+    if (backgrounds.length > 0) {
+      content.querySelector('div[style*="outline"]') && (content.querySelector('div[style*="outline"]').style.outline = '');
+    }
+    applyWallpaper(null);
+  });
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'win98-button';
+  closeBtn.textContent = 'Close';
+  closeBtn.addEventListener('click', () => closeWindow(id));
+  btnRow.appendChild(removeBtn);
+  btnRow.appendChild(closeBtn);
+  content.appendChild(btnRow);
+
+  win.appendChild(titlebar);
+  win.appendChild(content);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  attachMaximizeHandlers(titlebar, id);
+  makeDraggable(win, titlebar);
+
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  addTaskbarEntry(id, 'Change Background', genericIcon(14));
+  bringToFront(id);
+}
+
 
 function openSettingsWindow() {
   const id = 'settings';
@@ -5742,6 +5882,7 @@ function buildDesktopIcons() {
           const newEl = wrap.querySelector('.desktop-icon-item[data-item-id="' + newId + '"]');
           if (newEl) startInlineRename(newEl.querySelector('.label'), newId, () => buildDesktopIcons());
         } },
+        { label: 'Change Background', onClick: openBackgroundPickerWindow },
         { label: 'Scheme', onClick: openSchemeWindow }
       ]);
     });
@@ -5822,6 +5963,7 @@ async function tryLogin() {
     document.getElementById('desktop').style.display = 'block';
     await loadDesktopRootsFromManifest();
     buildDesktopIcons();
+    initWallpaper();
     updateClock();
     setInterval(updateClock, 30000);
     // Open order controls stacking (last opened ends up on top): browser

@@ -1,6 +1,12 @@
 [
   {
     "type": "file",
+    "name": "interface_thumb.png",
+    "size": 2748866,
+    "modified": "2026-07-08"
+  },
+  {
+    "type": "file",
     "name": "interface-thumbnail.png",
     "size": 68,
     "modified": "2026-07-08"

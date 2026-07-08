@@ -244,14 +244,14 @@
                             up the .selected highlight box) when the grid
                             is taller than its content, e.g. minHeight:100% */
   }
-  .folder-free-layout {
+  .folder-freeform-layout {
     position: relative;
     min-height: 100%;
   }
   .grid-item {
     width: 140px; text-align: center; cursor: default; padding: 4px 2px; border: 1px dotted transparent;
   }
-  .folder-free-layout .grid-item {
+  .folder-freeform-layout .grid-item {
     position: absolute;
     margin: 0;
   }
@@ -2188,8 +2188,13 @@ async function loadDesktopRootsFromManifest() {
   }
 }
 
+const FOLDER_ICON_SLOT_WIDTH = 150;
+const FOLDER_ICON_SLOT_HEIGHT = 120;
+const FOLDER_ICON_SLOT_MARGIN = 10;
+const FOLDER_ICON_JITTER = 8;
+
 function folderSlotPosition(slotIndex, seedKey, viewportEl) {
-  const slotW = 150, slotH = 120, margin = 10, jitter = 8;
+  const slotW = FOLDER_ICON_SLOT_WIDTH, slotH = FOLDER_ICON_SLOT_HEIGHT, margin = FOLDER_ICON_SLOT_MARGIN, jitter = FOLDER_ICON_JITTER;
   const viewportWidth = Math.max(slotW + margin * 2, (viewportEl && viewportEl.clientWidth) || 640);
   const maxCols = Math.max(1, Math.floor((viewportWidth - margin * 2) / slotW));
   const col = slotIndex % maxCols;
@@ -2208,7 +2213,14 @@ function folderSlotPosition(slotIndex, seedKey, viewportEl) {
   return { left: Math.max(4, left), top: Math.max(4, top) };
 }
 
-function makeFolderIconFreeDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
+function resolveFolderIconPosition(savedPos, defaultPos) {
+  return {
+    left: (savedPos && Number.isFinite(savedPos.left)) ? savedPos.left : defaultPos.left,
+    top: (savedPos && Number.isFinite(savedPos.top)) ? savedPos.top : defaultPos.top
+  };
+}
+
+function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
   const dragScopeEl = viewportEl || el.parentElement || document.body;
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0, activeTargetEl = null;
   el.addEventListener('dragstart', e => e.preventDefault());
@@ -2305,7 +2317,7 @@ function renderFolderContent(id) {
   if (items[id].viewMode === 'details') return renderDetailsContent(id);
 
   const grid = document.createElement('div');
-  grid.className = 'folder-free-layout';
+  grid.className = 'folder-freeform-layout';
   grid.style.minHeight = '100%'; // so right-click still works on blank space below a short list of icons
   items[id].children.forEach((childId, index) => {
     const child = items[childId];
@@ -2337,9 +2349,10 @@ function renderFolderContent(id) {
     });
     const savedPos = getFolderIconPosition(id, childId);
     const defaultPos = folderSlotPosition(index, childId, grid);
-    el.style.left = ((savedPos && Number.isFinite(savedPos.left)) ? savedPos.left : defaultPos.left) + 'px';
-    el.style.top = ((savedPos && Number.isFinite(savedPos.top)) ? savedPos.top : defaultPos.top) + 'px';
-    makeFolderIconFreeDraggable(el, id, childId, () => openChildItem(childId, child, id), () => deleteItem(childId, id), grid);
+    const iconPos = resolveFolderIconPosition(savedPos, defaultPos);
+    el.style.left = iconPos.left + 'px';
+    el.style.top = iconPos.top + 'px';
+    makeFolderIconFreeformDraggable(el, id, childId, () => openChildItem(childId, child, id), () => deleteItem(childId, id), grid);
     grid.appendChild(el);
   });
   // right-click on blank grid space (not on an item, which already

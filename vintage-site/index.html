@@ -1444,9 +1444,8 @@ function openBrowserWindow(landingUrlOverride) {
     <span class="title-text">Internet Explorer</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
-      <div class="win-btn" data-action="max" title="Maximize" role="button" tabindex="0">
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize">
         <span aria-hidden="true">&#9633;</span>
-        <span style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Maximize</span>
       </div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
@@ -1517,7 +1516,7 @@ function openBrowserWindow(landingUrlOverride) {
     toggleMaximize(id);
   });
   titlebar.addEventListener('dblclick', e => {
-    if (e.target.closest('.win-btn')) return;
+    if (isWindowControlTarget(e.target)) return;
     toggleMaximize(id);
   });
   makeDraggable(win, titlebar);
@@ -2055,6 +2054,7 @@ function toggleMinimize(id) {
 function toggleMaximize(id) {
   const w = openWindows[id];
   if (!w) return;
+  // px: preserves title bar + usable content + status bar on very small screens.
   const MIN_MAXIMIZED_WINDOW_HEIGHT = 120;
   if (!w.maximized) {
     w.restoreBounds = {
@@ -2100,10 +2100,14 @@ function addTaskbarEntry(id, name, iconSvg) {
   bar.appendChild(item);
 }
 
+function isWindowControlTarget(target) {
+  return !!(target && target.closest('.win-btn'));
+}
+
 function makeDraggable(win, handle) {
   let dragging = false, offX = 0, offY = 0;
   handle.addEventListener('mousedown', e => {
-    if (e.target.closest('.win-btn')) return;
+    if (isWindowControlTarget(e.target)) return;
     const winState = Object.values(openWindows).find(w => w.el === win);
     if (winState && winState.maximized) return;
     dragging = true;

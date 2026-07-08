@@ -1334,6 +1334,7 @@ function openTrashWindow() {
     <span class="title-text">Recycle Bin</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -1360,6 +1361,17 @@ function openTrashWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
@@ -1956,6 +1968,7 @@ function openSettingsWindow() {
     <span class="title-text">Settings</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -1987,6 +2000,17 @@ function openSettingsWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
@@ -2864,6 +2888,7 @@ function openPictureWindow(childId, parentId, options = {}) {
     <span class="title-text" id="pv-title"></span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -2899,6 +2924,17 @@ function openPictureWindow(childId, parentId, options = {}) {
     pvState = null;
   });
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  const pvMaxBtn = titlebar.querySelector('[data-action="max"]');
+  pvMaxBtn.addEventListener('click', () => toggleMaximize(id));
+  pvMaxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
 
   menubar.querySelector('[data-pv-view="fit"]').addEventListener('click', () => pvSetViewMode('fit'));
   menubar.querySelector('[data-pv-view="actual"]').addEventListener('click', () => pvSetViewMode('actual'));
@@ -3470,6 +3506,7 @@ function openWindow(id) {
     <span class="title-text">${titleText}</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -3619,6 +3656,17 @@ function openWindow(id) {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
 
   makeDraggable(win, titlebar);
 
@@ -3669,6 +3717,7 @@ function openPaintWindow() {
     <span class="title-text">Paint</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -4056,6 +4105,17 @@ function openPaintWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
 
   makeDraggable(win, titlebar);
 
@@ -4526,6 +4586,7 @@ function openSolitaireWindow(startInProgress) {
     <span class="title-text">Solitaire</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -4560,6 +4621,17 @@ function openSolitaireWindow(startInProgress) {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
   makeDraggable(win, titlebar);
 
   // Custom resize handle that keeps the board's aspect ratio locked, so the

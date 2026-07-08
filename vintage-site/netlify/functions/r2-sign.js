@@ -4,7 +4,6 @@ const SERVICE = 's3';
 const REGION = 'auto';
 const DEFAULT_EXPIRES_SECONDS = 300;
 const MAX_EXPIRES_SECONDS = 3600;
-const DEFAULT_ALLOWED_KEYS = [];
 
 function hmac(key, value) {
   return crypto.createHmac('sha256', key).update(value, 'utf8').digest();
@@ -29,14 +28,12 @@ function encodePath(pathValue) {
     .join('/');
 }
 
-function parseAllowedKeys() {
-  const raw = process.env.R2_ALLOWED_KEYS;
-  if (!raw) return DEFAULT_ALLOWED_KEYS;
-  const keys = raw
+function parseAllowedKeys(raw) {
+  const keys = String(raw || '')
     .split(',')
     .map(x => x.trim())
     .filter(Boolean);
-  return keys.length ? keys : DEFAULT_ALLOWED_KEYS;
+  return keys;
 }
 
 function errorResponse(statusCode, error) {
@@ -59,16 +56,18 @@ exports.handler = async event => {
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const bucket = process.env.R2_BUCKET || 'interface';
+  const allowedKeysRaw = process.env.R2_ALLOWED_KEYS;
   if (!accountId || !accessKeyId || !secretAccessKey) {
     return errorResponse(500, 'Missing R2 signing environment variables');
   }
+  if (!allowedKeysRaw) return errorResponse(500, 'Missing R2_ALLOWED_KEYS');
 
   const key = String(event.queryStringParameters?.key ?? '').trim();
   if (!key) return errorResponse(400, 'Missing key query parameter');
   if (key.includes('..') || key.startsWith('/')) return errorResponse(400, 'Invalid key');
 
-  const allowedKeys = parseAllowedKeys();
-  if (!allowedKeys.length) return errorResponse(500, 'No allowed keys configured');
+  const allowedKeys = parseAllowedKeys(allowedKeysRaw);
+  if (!allowedKeys.length) return errorResponse(500, 'R2_ALLOWED_KEYS is empty');
   if (!allowedKeys.includes(key)) return errorResponse(403, 'Key not allowed');
 
   const requestedExpires = Number(event.queryStringParameters && event.queryStringParameters.expires);

@@ -1862,15 +1862,9 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
         }
       }
       // 2. Drop onto media player playlist -> add track
-      if (itemId && items[itemId] && items[itemId].type === 'audio') {
-        const playlistEl = document.getElementById('mp-playlist');
-        if (playlistEl) {
-          const r = playlistEl.getBoundingClientRect();
-          if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-            openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
-            return;
-          }
-        }
+      if (itemId && items[itemId] && items[itemId].type === 'audio' && isOverPlaylistPane(ev.clientX, ev.clientY)) {
+        openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
+        return;
       }
       if (!itemId || !parentId) return;
       // Hide dragged element so elementFromPoint doesn't hit it
@@ -2319,6 +2313,15 @@ function clearAllSelections() {
     .forEach(s => s.classList.remove('selected'));
 }
 
+// Returns true when the given client coordinates are inside the media player
+// playlist pane (used by several drag handlers to detect "drop to playlist").
+function isOverPlaylistPane(x, y) {
+  const playlistEl = document.getElementById('mp-playlist');
+  if (!playlistEl) return false;
+  const r = playlistEl.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
 function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
   const dragScopeEl = viewportEl || el.parentElement || document.body;
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0, activeTargetEl = null;
@@ -2367,11 +2370,7 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
     // Highlight the playlist pane when hovering an audio item over it
     if (itemId && items[itemId] && items[itemId].type === 'audio') {
       const playlistEl = document.getElementById('mp-playlist');
-      if (playlistEl) {
-        const r = playlistEl.getBoundingClientRect();
-        const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-        playlistEl.classList.toggle('drag-over', over);
-      }
+      if (playlistEl) playlistEl.classList.toggle('drag-over', isOverPlaylistPane(e.clientX, e.clientY));
     }
   }
   function onUp(e) {
@@ -2390,17 +2389,11 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
         }
       }
       // Drop onto the media player playlist -> add track
-      if (itemId && items[itemId] && items[itemId].type === 'audio') {
-        const playlistEl = document.getElementById('mp-playlist');
-        if (playlistEl) {
-          const r = playlistEl.getBoundingClientRect();
-          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-            dragging = false;
-            stopTracking();
-            openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
-            return;
-          }
-        }
+      if (itemId && items[itemId] && items[itemId].type === 'audio' && isOverPlaylistPane(e.clientX, e.clientY)) {
+        dragging = false;
+        stopTracking();
+        openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
+        return;
       }
       const oldDisplay = el.style.display;
       el.style.display = 'none';
@@ -2755,6 +2748,9 @@ function pvRenderCurrent() {
     let isSeeking = false;
 
     audio.addEventListener('loadedmetadata', () => {
+      // Reset to 0 explicitly: browsers may restore a previous cached playback
+      // position when the same URL is loaded again, making the seek bar appear
+      // partially filled even before the user has heard anything.
       audio.currentTime = 0;
       timeEl.textContent = '0:00 / ' + mpFormatTime(audio.duration);
     });
@@ -4166,6 +4162,8 @@ async function mpBuildAllPlaylist() {
 async function mpBuildPlaylistForTrack(trackId) {
   // On first open (empty playlist), seed with the default audio folder.
   // On subsequent opens, keep the existing playlist and only add the new track.
+  // Data-only: callers are responsible for calling mpRenderPlaylist() and
+  // mpPreloadDurations() afterwards (openMediaPlayerWindow does this).
   if (!mpPlaylist.length) {
     await mpBuildPlaylist();
   }
@@ -4177,7 +4175,7 @@ async function mpBuildPlaylistForTrack(trackId) {
 function mpAddTrackToPlaylist(trackId) {
   if (!trackId || !items[trackId] || items[trackId].type !== 'audio') return;
   if (mpPlaylist.includes(trackId)) {
-    // Track already in playlist, just scroll to it in the UI
+    // Track already in playlist — re-render to ensure the UI is up to date.
     mpRenderPlaylist();
     return;
   }

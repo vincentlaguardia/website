@@ -262,7 +262,7 @@
     background: #3a5090;
   }
   .grid-item.selected .label { color: #fff; }
-  .grid-item:focus, .details-row:focus { outline: none; }
+  .grid-item.selected:focus, .details-row.selected:focus { outline: none; }
   .grid-item.drop-target-active {
     border: 1px dotted #0a246a;
     background: #d7e8ff;
@@ -2221,6 +2221,14 @@ function resolveFolderIconPosition(savedPos, defaultPos) {
   };
 }
 
+// Clears the selected highlight from every selectable item type in one shot.
+// Called from folder-icon and detail-row click handlers to prevent stale
+// desktop-icon selections from interfering with the Space-key preview picker.
+function clearAllSelections() {
+  document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected')
+    .forEach(s => s.classList.remove('selected'));
+}
+
 function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteViaTrash, viewportEl) {
   const dragScopeEl = viewportEl || el.parentElement || document.body;
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0, activeTargetEl = null;
@@ -2303,7 +2311,7 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
   }
   el.addEventListener('click', () => {
     if (moved) { moved = false; return; }
-    document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+    clearAllSelections();
     el.classList.add('selected');
     el.focus();
   });
@@ -2332,7 +2340,7 @@ function renderFolderContent(id) {
     el.innerHTML = getIcon(child, 64) +
       '<div class="label">' + child.name + '</div>';
     el.addEventListener('click', e => {
-      document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+      clearAllSelections();
       el.classList.add('selected');
       el.focus();
       e.stopPropagation();
@@ -2392,7 +2400,7 @@ function renderDetailsContent(id) {
       '<td class="details-size">' + formatFileSize(child.size) + '</td>' +
       '<td class="details-date">' + formatDate(child.modified) + '</td>';
     row.addEventListener('click', e => {
-      document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+      clearAllSelections();
       row.classList.add('selected');
       row.focus();
       e.stopPropagation();

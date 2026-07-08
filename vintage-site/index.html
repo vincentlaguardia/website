@@ -2286,11 +2286,12 @@ function openPictureWindow(childId, parentId) {
   const id = 'picviewer';
   const parent = items[parentId];
   const ids = (parent && parent.children ? parent.children : [childId])
-    .filter(cid => items[cid] && items[cid].type === 'picture');
+    .filter(cid => items[cid] && ['picture', 'video', 'audio'].includes(items[cid].type));
   const index = Math.max(0, ids.indexOf(childId));
   pvState = { parentId, ids, index };
 
   if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
     bringToFront(id);
     pvRenderCurrent();
     return;
@@ -2323,7 +2324,7 @@ function openPictureWindow(childId, parentId) {
   const content = document.createElement('div');
   content.className = 'win98-content';
   content.style.padding = '0';
-  content.innerHTML = '<div class="picture-viewer"><img id="pv-img" alt=""></div>';
+  content.innerHTML = '';
 
   const statusbar = document.createElement('div');
   statusbar.className = 'win98-statusbar';
@@ -2353,14 +2354,27 @@ function pvRenderCurrent() {
   if (!pvState || !pvState.ids.length) return;
   const item = items[pvState.ids[pvState.index]];
   if (!item) return;
-  const img = document.getElementById('pv-img');
-  const title = document.getElementById('pv-title');
-  const statusbar = document.getElementById('pv-statusbar');
-  if (img) { img.src = item.image || item.file; img.alt = item.name; }
+  const pvWin = openWindows['picviewer'];
+  if (!pvWin) return;
+  const title = pvWin.el.querySelector('#pv-title');
+  const statusbar = pvWin.el.querySelector('#pv-statusbar');
+  const content = pvWin.el.querySelector('.win98-content');
   if (title) title.textContent = item.name;
   if (statusbar) {
-    statusbar.textContent = formatFileSize(item.size) +
+    statusbar.textContent = (item.size ? formatFileSize(item.size) : '') +
       (pvState.ids.length > 1 ? '   (' + (pvState.index + 1) + ' of ' + pvState.ids.length + ')' : '');
+  }
+  if (!content) return;
+  // Stop any currently playing media before switching content
+  const oldMedia = content.querySelector('video, audio');
+  if (oldMedia) { oldMedia.pause(); oldMedia.src = ''; }
+  if (item.type === 'video') {
+    const src = item.videoData || item.file;
+    content.innerHTML = '<div class="picture-viewer" style="background:#000;"><video controls autoplay style="max-width:100%;max-height:100%;display:block;"><source src="' + src + '" type="video/mp4"></video></div>';
+  } else if (item.type === 'audio') {
+    content.innerHTML = '<div class="picture-viewer" style="flex-direction:column;gap:12px;"><div style="font-size:14px;color:#fff;text-align:center;padding:0 16px;">' + item.name + '</div><audio controls autoplay style="width:80%;"><source src="' + (item.file || '') + '"></audio></div>';
+  } else {
+    content.innerHTML = '<div class="picture-viewer"><img src="' + (item.image || item.file) + '" alt="' + item.name + '"></div>';
   }
 }
 
@@ -2381,19 +2395,18 @@ document.addEventListener('keydown', e => {
   pvStep(e.key === 'ArrowRight' ? 1 : -1);
 });
 
-// Pressing Space on a selected picture or video icon (without
-// double-clicking) opens it -- a quick-preview shortcut, similar to
-// Finder's Quick Look. Pressing Space again while it's open closes it.
+// Pressing Space on a selected picture, video, or audio icon (without
+// double-clicking) opens a quick-preview viewer -- similar to Finder's
+// Quick Look. Pressing Space again while it's open minimizes it.
 document.addEventListener('keydown', e => {
   if (e.key !== ' ' && e.code !== 'Space') return;
   const tag = (e.target && e.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
-  // If the picture viewer is already open, Space toggles it closed again
+  // If the media viewer is already open and visible, Space minimizes it
   // (Quick-Look-style toggle).
   if (openWindows['picviewer'] && !openWindows['picviewer'].minimized) {
     e.preventDefault();
-    closeWindow('picviewer');
-    pvState = null;
+    toggleMinimize('picviewer');
     return;
   }
   const selected = document.querySelector('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected');
@@ -2402,21 +2415,11 @@ document.addEventListener('keydown', e => {
   const parentId = selected.dataset.parentId;
   const item = items[itemId];
   if (!item) return;
-  if (item.type === 'video') {
+  if (item.type === 'picture' || item.type === 'video' || item.type === 'audio') {
     e.preventDefault();
-    // Same toggle behavior as pictures: Space again closes the already-open
-    // video window (each video opens under its own item id, not a shared
-    // singleton like the picture viewer).
-    if (openWindows[itemId] && !openWindows[itemId].minimized) {
-      closeWindow(itemId);
-      return;
-    }
-    openWindow(itemId);
+    openPictureWindow(itemId, parentId);
     return;
   }
-  if (item.type !== 'picture') return;
-  e.preventDefault();
-  openPictureWindow(itemId, parentId);
 });
 
 function renderPictureContent(id) {

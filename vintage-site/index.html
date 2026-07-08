@@ -2940,15 +2940,16 @@ function pvStep(delta) {
   pvRenderCurrent();
 }
 
-// Left/Right arrow keys cycle through the pictures in the same folder,
-// but only while the picture viewer is the active (frontmost) window --
-// otherwise arrow keys would hijack typing/navigation in other windows.
+// Arrow keys cycle through the previewable items in the same folder, but only
+// while the picture viewer is the active (frontmost) window -- otherwise they
+// would hijack typing/navigation in other windows.
 document.addEventListener('keydown', e => {
-  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
   const win = openWindows['picviewer'];
   if (!win || win.minimized) return;
   if (win.titlebarEl.classList.contains('inactive')) return;
-  pvStep(e.key === 'ArrowRight' ? 1 : -1);
+  e.preventDefault();
+  pvStep((e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : -1);
 });
 
 // Pressing Space on a selected picture, video, or audio icon (without

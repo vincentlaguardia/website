@@ -3383,6 +3383,7 @@ function openPaintWindow() {
       <div class="paint-tool-btn active" data-tool="pencil" title="Paint"><img src="${PAINT_BRUSH_ICON}" width="18" height="18" draggable="false"></div>
       <div class="paint-tool-btn" data-tool="eraser" title="Eraser"><img src="${PAINT_ERASER_ICON}" width="18" height="18" draggable="false"></div>
       <div class="paint-tool-btn active" data-action="grid" title="Toggle grid lines">#</div>
+      <div class="paint-tool-btn" data-action="randomize" title="Randomize colors" aria-label="Randomize colors">🎲</div>
       <div class="paint-current-color" title="Current color"></div>
       <div class="paint-size-row">
         <span>Grid size</span>
@@ -3501,6 +3502,16 @@ function openPaintWindow() {
   wrap.querySelector('.paint-tool-btn[data-action="grid"]').addEventListener('click', e => {
     showGrid = !showGrid;
     e.currentTarget.classList.toggle('active', showGrid);
+    redraw();
+  });
+  wrap.querySelector('.paint-tool-btn[data-action="randomize"]').addEventListener('click', () => {
+    const uniqueColors = [...new Set(cellColor.filter(c => c !== bgColor))];
+    const shuffled = PAINT_PALETTE.slice().sort(() => Math.random() - 0.5);
+    const colorMap = {};
+    uniqueColors.forEach((c, i) => {
+      colorMap[c] = shuffled[i % shuffled.length];
+    });
+    cellColor = cellColor.map(c => c === bgColor ? c : colorMap[c]);
     redraw();
   });
   sizeSelectEl.addEventListener('change', () => {

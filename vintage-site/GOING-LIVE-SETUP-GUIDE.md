@@ -47,3 +47,15 @@ No editing `index.html` required for any of this.
 Testing the site by double-clicking `index.html` on your own computer will **not** show synced content — browsers block that kind of file-reading for security reasons when a page is opened directly from disk. Synced folders only work once the site is actually live (or run through a local dev server, which I can help set up if you ever want that for testing).
 
 Everything else about the site — Paint, Solitaire, the password gate, existing pictures/PDFs/videos that were embedded directly — works exactly the same as before, live or locally.
+
+## Private R2 PDF (INTERFACE > issues 1)
+
+If you want the **View PDF** button in `INTERFACE > issues 1` to work, add these Netlify environment variables:
+
+- `R2_ACCOUNT_ID` (Cloudflare account ID used in your R2 S3 endpoint)
+- `R2_ACCESS_KEY_ID` (R2 API token access key)
+- `R2_SECRET_ACCESS_KEY` (matching R2 API token secret)
+- `R2_BUCKET` (optional; defaults to `interface`)
+- `R2_ALLOWED_KEYS` (optional comma-separated allow-list; defaults to `issues/1/i.n.t.e.r.f.a.c.e..pdf`)
+
+The site calls a Netlify function (`/.netlify/functions/r2-sign`) to generate a short-lived signed URL and opens that URL instead of exposing a public bucket.

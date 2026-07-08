@@ -253,6 +253,21 @@
     position: relative;
     min-height: 100%;
   }
+  .folder-view-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 100%;
+  }
+  .folder-issue-actions {
+    flex: 0 0 auto;
+    padding: 6px 8px 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .folder-issue-actions .win98-button {
+    min-width: 90px;
+  }
   .grid-item {
     width: 140px; text-align: center; cursor: default; padding: 4px 2px; border: 1px dotted transparent;
   }
@@ -2317,6 +2332,62 @@ function inferTypeFromExt(name) {
 const MP_LIBRARY_SOURCE_FOLDER_ID = 'audio';
 const MP_DEFAULT_PLAYLIST_ROOT_ID = MP_LIBRARY_SOURCE_FOLDER_ID;
 const MP_AUDIO_PLACEHOLDER_SIZE_THRESHOLD = 256;
+const ISSUE_PDF_METADATA_BY_SYNC_FOLDER = {
+  'content/interface/issues 1': {
+    r2Key: 'issues/1/i.n.t.e.r.f.a.c.e..pdf',
+    buttonLabel: 'View PDF'
+  }
+};
+
+function getIssuePdfMetadata(item) {
+  if (!item || item.type !== 'folder' || !item.syncFolder) return null;
+  return ISSUE_PDF_METADATA_BY_SYNC_FOLDER[item.syncFolder] || null;
+}
+
+async function fetchSignedIssuePdfUrl(r2Key) {
+  const res = await fetch('/.netlify/functions/r2-sign?key=' + encodeURIComponent(r2Key), {
+    cache: 'no-store',
+    credentials: 'same-origin'
+  });
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const err = await res.json();
+      if (err && err.error) detail = ': ' + err.error;
+    } catch {}
+    throw new Error('Signed URL request failed (' + res.status + ')' + detail);
+  }
+  const body = await res.json();
+  if (!body || !body.url) throw new Error('Signed URL response missing url');
+  return body.url;
+}
+
+async function openIssuePdfFromFolder(folderId) {
+  const folder = items[folderId];
+  const issuePdf = getIssuePdfMetadata(folder);
+  if (!issuePdf || !issuePdf.r2Key) return;
+  try {
+    const signedUrl = await fetchSignedIssuePdfUrl(issuePdf.r2Key);
+    window.open(signedUrl, '_blank', 'noopener');
+  } catch (err) {
+    console.error('Could not open issue PDF for', folderId, err);
+    alert('Could not open PDF right now. Please try again.');
+  }
+}
+
+function renderIssuePdfActionBar(folderId) {
+  const folder = items[folderId];
+  const issuePdf = getIssuePdfMetadata(folder);
+  if (!issuePdf || !issuePdf.r2Key) return null;
+  const actions = document.createElement('div');
+  actions.className = 'folder-issue-actions';
+  const button = document.createElement('button');
+  button.className = 'win98-button';
+  button.textContent = issuePdf.buttonLabel || 'View PDF';
+  button.addEventListener('click', () => openIssuePdfFromFolder(folderId));
+  actions.appendChild(button);
+  return actions;
+}
 
 function mpFindLibraryTrackIdByName(name) {
   const folder = items[MP_LIBRARY_SOURCE_FOLDER_ID];
@@ -2678,6 +2749,7 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
 function renderFolderContent(id) {
   if (items[id].viewMode === 'details') return renderDetailsContent(id);
 
+  const actions = renderIssuePdfActionBar(id);
   const grid = document.createElement('div');
   grid.className = 'folder-freeform-layout';
   grid.style.minHeight = '100%'; // so right-click still works on blank space below a short list of icons
@@ -2733,11 +2805,21 @@ function renderFolderContent(id) {
       { label: 'New Folder', onClick: () => triggerNewFolder(id) }
     ]);
   });
-  return grid;
+  if (!actions) return grid;
+  const wrap = document.createElement('div');
+  wrap.className = 'folder-view-wrap';
+  wrap.appendChild(actions);
+  wrap.appendChild(grid);
+  return wrap;
 }
 
 function renderDetailsContent(id) {
   const wrap = document.createElement('div');
+  const actions = renderIssuePdfActionBar(id);
+  if (actions) {
+    wrap.className = 'folder-view-wrap';
+    wrap.appendChild(actions);
+  }
   wrap.style.minHeight = '100%'; // so right-click still works on blank space below a short list
   const table = document.createElement('table');
   table.className = 'details-table';

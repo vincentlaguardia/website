@@ -890,6 +890,7 @@ const WINNER_PAGE_URL = 'data:text/html;base64,' + btoa(
 
 
 function getIcon(item, size) {
+  if (item && item.iconSize && item.iconSize > 0) size = item.iconSize;
   if (item && item.customIcon === 'notepad') return imgIcon(NOTEPAD_ICON, size * 2);
   if (item && item.customIcon === 'livvyam') return imgIcon(LIVVYAM_ICON, size);
   if (item && item.customIcon === 'ieshortcut') return imgIcon(IE_SHORTCUT_ICON, size);
@@ -911,7 +912,7 @@ const items = {
   // Content-synced root folders are no longer hardcoded here; they are
   // populated at startup by loadDesktopRootsFromManifest() from content/manifest.json.
   desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'desktoppic'], modified: '2026-06-01' },
-  desktoppic:   { type: 'picture', name: 'avril.jpeg', file: 'content/avril.jpeg', modified: '2026-07-08' },
+  desktoppic:   { type: 'picture', name: 'avril.jpeg', file: 'content/avril.jpeg', modified: '2026-07-08', iconSize: 42 },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/catscans', children: [], modified: '2026-07-08' },
@@ -5418,7 +5419,7 @@ async function tryLogin() {
     setInterval(updateClock, 30000);
     // Open order controls stacking (last opened ends up on top): browser
     // furthest back, then Solitaire, and media player on top.
-    openBrowserWindow('https://en.wikipedia.org/wiki/Valeriepieris_circle');
+    openBrowserWindow('https://en.wikipedia.org/wiki/United_States_involvement_in_regime_change');
     openSolitaireWindow(true);
     openMediaPlayerWindow();
   } else {

@@ -2221,6 +2221,7 @@ function openChildItem(childId, child, parentId) {
   else if (child.type === 'shortcut' && child.action === 'browser') openBrowserWindow();
   else if (child.type === 'shortcut' && child.action === 'solitaire') openSolitaireWindow();
   else if (child.type === 'shortcut' && child.action === 'paint') openPaintWindow();
+  else if (child.type === 'shortcut' && child.action === 'browser-url' && child.url) openBrowserWindow(child.url);
   else if (child.type === 'shortcut' && child.action === 'external' && child.url) window.open(child.url, '_blank', 'noopener');
   else if (child.type === 'picture') openPictureWindow(childId, parentId);
   else if (child.type === 'folder' && child.syncFolder) openSyncFolder(childId);
@@ -2356,12 +2357,13 @@ async function buildSyncedFileItem(syncFolder, entry, fallbackModified, companio
         };
       }
       if (shortcut.url) {
+        const isPdfShortcut = /\.pdf(\?[^#]*)?$/i.test(shortcut.url);
         return {
           type: 'shortcut',
           name: displayName,
           iconType: 'shortcut',
           filePath,
-          action: 'external',
+          action: isPdfShortcut ? 'browser-url' : 'external',
           url: shortcut.url,
           thumb: shortcut.thumbnail || shortcut.thumb || '',
           size: entry.size,
@@ -2713,6 +2715,7 @@ function renderFolderContent(id) {
         } });
       }
       if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
+      if (child.type === 'shortcut' && child.action === 'browser-url' && child.url) menuEntries.unshift({ label: 'Download', onClick: () => downloadUrlItem(child.url, child.name) });
       if (child.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(childId)) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
@@ -2773,6 +2776,7 @@ function renderDetailsContent(id) {
         } });
       }
       if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
+      if (child.type === 'shortcut' && child.action === 'browser-url' && child.url) menuEntries.unshift({ label: 'Download', onClick: () => downloadUrlItem(child.url, child.name) });
       if (child.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(childId)) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
@@ -3570,6 +3574,11 @@ document.addEventListener('keydown', e => {
     openPictureWindow(itemId, parentId, { quickPreview: true });
     return;
   }
+  if (item.type === 'shortcut' && item.action === 'browser-url' && item.url) {
+    e.preventDefault();
+    openBrowserWindow(item.url);
+    return;
+  }
   if (item.type === 'shortcut' && item.action === 'external' && item.url) {
     e.preventDefault();
     window.open(item.url, '_blank', 'noopener');
@@ -3595,6 +3604,17 @@ function downloadItem(id) {
   const a = document.createElement('a');
   a.href = dataUrl;
   a.download = item.name || 'download';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function downloadUrlItem(url, name) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name || 'download';
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -5556,6 +5576,7 @@ function buildDesktopIcons() {
         } });
       }
       if (item.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(itemId) });
+      if (item.type === 'shortcut' && item.action === 'browser-url' && item.url) menuEntries.unshift({ label: 'Download', onClick: () => downloadUrlItem(item.url, item.name) });
       if (item.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });

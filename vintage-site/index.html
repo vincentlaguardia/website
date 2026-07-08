@@ -1444,6 +1444,9 @@ function openBrowserWindow(landingUrlOverride) {
     <span class="title-text">Internet Explorer</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize">
+        <span aria-hidden="true">&#9633;</span>
+      </div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -1503,8 +1506,19 @@ function openBrowserWindow(landingUrlOverride) {
   }
 
   win.addEventListener('mousedown', () => bringToFront(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (isWindowControlTarget(e.target)) return;
+    toggleMaximize(id);
+  });
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
@@ -2037,6 +2051,40 @@ function toggleMinimize(id) {
   }
 }
 
+function toggleMaximize(id) {
+  const w = openWindows[id];
+  if (!w) return;
+  // This pixel value preserves title bar + usable content + status bar on very small screens.
+  const MIN_MAXIMIZED_WINDOW_HEIGHT = 120;
+  if (!w.maximized) {
+    w.restoreBounds = {
+      left: w.el.style.left,
+      top: w.el.style.top,
+      width: w.el.style.width,
+      height: w.el.style.height
+    };
+    const taskbar = document.getElementById('taskbar');
+    const taskbarHeight = taskbar ? taskbar.offsetHeight : 0;
+    w.el.style.left = '0px';
+    w.el.style.top = '0px';
+    w.el.style.width = window.innerWidth + 'px';
+    // Keep enough room for title/content/status chrome even on tiny viewports.
+    w.el.style.height = Math.max(MIN_MAXIMIZED_WINDOW_HEIGHT, window.innerHeight - taskbarHeight) + 'px';
+    w.maximized = true;
+  } else {
+    if (w.restoreBounds) {
+      w.el.style.left = w.restoreBounds.left;
+      w.el.style.top = w.restoreBounds.top;
+      w.el.style.width = w.restoreBounds.width;
+      w.el.style.height = w.restoreBounds.height;
+    }
+    w.maximized = false;
+  }
+  const maxBtn = w.el.querySelector('[data-action="max"]');
+  if (maxBtn) maxBtn.setAttribute('aria-label', w.maximized ? 'Restore' : 'Maximize');
+  bringToFront(id);
+}
+
 function addTaskbarEntry(id, name, iconSvg) {
   const bar = document.getElementById('taskbar-windows');
   const item = document.createElement('div');
@@ -2054,10 +2102,16 @@ function addTaskbarEntry(id, name, iconSvg) {
   bar.appendChild(item);
 }
 
+function isWindowControlTarget(target) {
+  return !!(target && target.closest('.win-btn'));
+}
+
 function makeDraggable(win, handle) {
   let dragging = false, offX = 0, offY = 0;
   handle.addEventListener('mousedown', e => {
-    if (e.target.closest('.win-btn')) return;
+    if (isWindowControlTarget(e.target)) return;
+    const winState = Object.values(openWindows).find(w => w.el === win);
+    if (winState && winState.maximized) return;
     dragging = true;
     offX = e.clientX - win.offsetLeft;
     offY = e.clientY - win.offsetTop;

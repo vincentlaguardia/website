@@ -4,8 +4,7 @@ const SERVICE = 's3';
 const REGION = 'auto';
 const DEFAULT_EXPIRES_SECONDS = 300;
 const MAX_EXPIRES_SECONDS = 3600;
-// This default key intentionally matches the uploaded object name exactly.
-const DEFAULT_ALLOWED_KEYS = ['issues/1/i.n.t.e.r.f.a.c.e..pdf'];
+const DEFAULT_ALLOWED_KEYS = [];
 
 function hmac(key, value) {
   return crypto.createHmac('sha256', key).update(value, 'utf8').digest();
@@ -40,7 +39,7 @@ function parseAllowedKeys() {
   return keys.length ? keys : DEFAULT_ALLOWED_KEYS;
 }
 
-function badRequest(statusCode, error) {
+function errorResponse(statusCode, error) {
   return {
     statusCode,
     headers: {
@@ -53,7 +52,7 @@ function badRequest(statusCode, error) {
 
 exports.handler = async event => {
   if (event.httpMethod !== 'GET') {
-    return badRequest(405, 'Method not allowed');
+    return errorResponse(405, 'Method not allowed');
   }
 
   const accountId = process.env.R2_ACCOUNT_ID;
@@ -61,15 +60,16 @@ exports.handler = async event => {
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   const bucket = process.env.R2_BUCKET || 'interface';
   if (!accountId || !accessKeyId || !secretAccessKey) {
-    return badRequest(500, 'Missing R2 signing environment variables');
+    return errorResponse(500, 'Missing R2 signing environment variables');
   }
 
   const key = String(event.queryStringParameters?.key ?? '').trim();
-  if (!key) return badRequest(400, 'Missing key query parameter');
-  if (key.includes('..') || key.startsWith('/')) return badRequest(400, 'Invalid key');
+  if (!key) return errorResponse(400, 'Missing key query parameter');
+  if (key.includes('..') || key.startsWith('/')) return errorResponse(400, 'Invalid key');
 
   const allowedKeys = parseAllowedKeys();
-  if (!allowedKeys.includes(key)) return badRequest(403, 'Key not allowed');
+  if (!allowedKeys.length) return errorResponse(500, 'No allowed keys configured');
+  if (!allowedKeys.includes(key)) return errorResponse(403, 'Key not allowed');
 
   const requestedExpires = Number(event.queryStringParameters && event.queryStringParameters.expires);
   const expires = Number.isFinite(requestedExpires)

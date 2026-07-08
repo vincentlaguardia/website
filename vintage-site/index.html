@@ -263,6 +263,11 @@
     outline: 2px dashed #0a246a;
     outline-offset: -4px;
   }
+  /* File drag-reorder insertion-point indicators (do not affect layout) */
+  .grid-item.drop-insert-before  { box-shadow: -3px 0 0 0 #0a246a; }
+  .grid-item.drop-insert-after   { box-shadow:  3px 0 0 0 #0a246a; }
+  .details-table tr.details-row.drop-insert-before > td { border-top:    2px solid #0a246a; }
+  .details-table tr.details-row.drop-insert-after  > td { border-bottom: 2px solid #0a246a; }
 
   .inline-rename-input {
     display: block; width: 100%; box-sizing: border-box;
@@ -1612,6 +1617,61 @@ function findFolderDropTarget(clientX, clientY, excludeItemId, scopeEl) {
   return null;
 }
 
+// Given a drop point and a source parent folder, finds any item (file or folder)
+// that belongs to the *same* parent folder and lies under the cursor -- used so
+// a dragged file can be reordered relative to its siblings. Returns
+// { id, el, before } where `before` is true if the cursor is in the first half
+// of the target (insert before it) or false (insert after it), or null.
+function findReorderDropTarget(clientX, clientY, excludeItemId, parentId, scopeEl) {
+  const topEl = document.elementFromPoint(clientX, clientY);
+  if (!topEl) return null;
+  if (scopeEl && !scopeEl.contains(topEl)) return null;
+  const holder = topEl.closest('.grid-item[data-item-id], .details-row[data-item-id]');
+  if (!holder) return null;
+  if (scopeEl && !scopeEl.contains(holder)) return null;
+  const targetId = holder.dataset.itemId;
+  if (!targetId || targetId === excludeItemId) return null;
+  if (holder.dataset.parentId !== parentId) return null;
+  // Determine whether to insert before or after based on cursor position
+  const rect = holder.getBoundingClientRect();
+  const before = holder.classList.contains('grid-item')
+    ? clientX < rect.left + rect.width / 2   // grid: left / right half
+    : clientY < rect.top  + rect.height / 2; // list: top / bottom half
+  return { id: targetId, el: holder, before };
+}
+
+// Reorders itemId within parentId.children by moving it before or after
+// anchorItemId. Persists the new order and pushes an undo entry.
+// Returns false for no-ops (same effective position) or invalid inputs.
+function reorderItemInFolder(itemId, parentId, anchorItemId, insertBefore, skipUndo) {
+  if (!itemId || !parentId || !anchorItemId || itemId === anchorItemId) return false;
+  const parent = items[parentId];
+  if (!parent || !parent.children) return false;
+  const srcIdx = parent.children.indexOf(itemId);
+  const anchorIdx = parent.children.indexOf(anchorItemId);
+  if (srcIdx === -1 || anchorIdx === -1) return false;
+  const originalChildren = parent.children.slice();
+  // Remove item from current position; anchor's index may shift, so recalculate it
+  parent.children.splice(srcIdx, 1);
+  const newAnchorIdx = parent.children.indexOf(anchorItemId);
+  const insertIdx = insertBefore ? newAnchorIdx : newAnchorIdx + 1;
+  // No-op: item would land back in its original slot
+  if (insertIdx === srcIdx) {
+    parent.children.splice(srcIdx, 0, itemId);
+    return false;
+  }
+  parent.children.splice(insertIdx, 0, itemId);
+  persistFolderChildren(parentId);
+  if (!skipUndo) {
+    pushUndo(() => {
+      items[parentId].children = originalChildren.slice();
+      persistFolderChildren(parentId);
+      refreshFolderView(parentId);
+    });
+  }
+  return true;
+}
+
 function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
   el.addEventListener('mousedown', e => {
     if (e.button !== 0) return;
@@ -1622,7 +1682,9 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
     const dropScopeEl = sourceWindow ? (sourceWindow.querySelector('.win98-content') || sourceWindow) : null;
 
     function clearDragFeedback() {
-      if (activeTargetEl) activeTargetEl.classList.remove('drop-target-active');
+      if (activeTargetEl) {
+        activeTargetEl.classList.remove('drop-target-active', 'drop-insert-before', 'drop-insert-after');
+      }
       activeTargetEl = null;
       if (dropScopeEl) dropScopeEl.classList.remove('drop-scope-active');
     }
@@ -1646,14 +1708,28 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
       }
       if (moved && ghost) {
         ghost.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-        const dropTarget = (itemId && parentId) ? findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl) : null;
-        if (activeTargetEl && (!dropTarget || dropTarget.el !== activeTargetEl)) {
-          activeTargetEl.classList.remove('drop-target-active');
+        // Priority: cross-folder drop target first, then in-folder reorder target
+        const folderTarget = (itemId && parentId) ? findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl) : null;
+        const reorderTarget = (!folderTarget && itemId && parentId)
+          ? findReorderDropTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl) : null;
+        const newTargetEl = folderTarget ? folderTarget.el : (reorderTarget ? reorderTarget.el : null);
+        if (activeTargetEl && activeTargetEl !== newTargetEl) {
+          activeTargetEl.classList.remove('drop-target-active', 'drop-insert-before', 'drop-insert-after');
           activeTargetEl = null;
         }
-        if (dropTarget && dropTarget.el !== activeTargetEl) {
-          activeTargetEl = dropTarget.el;
-          activeTargetEl.classList.add('drop-target-active');
+        if (newTargetEl) {
+          if (newTargetEl !== activeTargetEl) {
+            activeTargetEl = newTargetEl;
+            if (folderTarget) {
+              activeTargetEl.classList.add('drop-target-active');
+            } else {
+              activeTargetEl.classList.add(reorderTarget.before ? 'drop-insert-before' : 'drop-insert-after');
+            }
+          } else if (reorderTarget) {
+            // Cursor crossed item midpoint -- update before/after indicator
+            activeTargetEl.classList.toggle('drop-insert-before', reorderTarget.before);
+            activeTargetEl.classList.toggle('drop-insert-after', !reorderTarget.before);
+          }
         }
       }
     }
@@ -1663,26 +1739,36 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
       document.removeEventListener('mouseup', onUp, true);
       if (ghost) ghost.remove();
       clearDragFeedback();
-      if (moved) {
-        const trashEl = document.getElementById('trash-can-icon');
-        if (trashEl) {
-          const r = trashEl.getBoundingClientRect();
-          if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
-            onDropInTrash();
-            return;
-          }
+      if (!moved) return;
+      // 1. Trash drop
+      const trashEl = document.getElementById('trash-can-icon');
+      if (trashEl) {
+        const r = trashEl.getBoundingClientRect();
+        if (ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) {
+          onDropInTrash();
+          return;
         }
-        if (itemId && parentId) {
-          const oldDisplay = el.style.display;
-          el.style.display = 'none'; // don't let elementFromPoint hit the item being dragged
-          const dropTarget = findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl);
-          el.style.display = oldDisplay;
-          if (dropTarget && moveItemToFolder(itemId, parentId, dropTarget.id)) {
-            refreshFolderView(parentId);
-            refreshFolderView(dropTarget.id);
-            if (parentId === 'desktop') buildDesktopIcons();
-          }
+      }
+      if (!itemId || !parentId) return;
+      // Hide dragged element so elementFromPoint doesn't hit it
+      const oldDisplay = el.style.display;
+      el.style.display = 'none';
+      // 2. Cross-folder move (dropped onto a different folder icon)
+      const folderTarget = findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl);
+      if (folderTarget) {
+        el.style.display = oldDisplay;
+        if (moveItemToFolder(itemId, parentId, folderTarget.id)) {
+          refreshFolderView(parentId);
+          refreshFolderView(folderTarget.id);
+          if (parentId === 'desktop') buildDesktopIcons();
         }
+        return;
+      }
+      // 3. Same-folder reorder (dropped onto a sibling item)
+      const reorderTarget = findReorderDropTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl);
+      el.style.display = oldDisplay;
+      if (reorderTarget && reorderItemInFolder(itemId, parentId, reorderTarget.id, reorderTarget.before)) {
+        refreshFolderView(parentId);
       }
     }
     document.addEventListener('mousemove', onMove, true);

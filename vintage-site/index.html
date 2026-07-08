@@ -346,6 +346,7 @@
   .video-viewer { width: 100%; height: 100%; background: #000; }
   .picture-viewer { width: 100%; height: 100%; min-width: 0; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; overflow: auto; }
   .picture-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; transform-origin: center center; }
+  .picture-viewer video { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
   .picture-viewer.actual-size { display: flex; align-items: flex-start; justify-content: flex-start; text-align: left; }
   .picture-viewer.actual-size img { max-width: none; max-height: none; object-fit: none; }
   .win98-menubar .pv-view-option { cursor: pointer; }
@@ -2920,8 +2921,12 @@ function pvApplyQuickPreviewLayout(win, item) {
   const desktop = document.getElementById('desktop');
   const taskbar = document.getElementById('taskbar');
   const content = win.querySelector('.win98-content');
-  const img = content ? content.querySelector('.picture-viewer img') : null;
-  if (!img || !img.naturalWidth || !img.naturalHeight) return;
+  const media = content ? content.querySelector('.picture-viewer img, .picture-viewer video') : null;
+  if (!media) return;
+
+  const naturalWidth = media.tagName === 'VIDEO' ? media.videoWidth : media.naturalWidth;
+  const naturalHeight = media.tagName === 'VIDEO' ? media.videoHeight : media.naturalHeight;
+  if (!naturalWidth || !naturalHeight) return;
 
   const desktopRect = desktop ? desktop.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
   const taskbarHeight = taskbar ? taskbar.offsetHeight : 0;
@@ -2939,8 +2944,6 @@ function pvApplyQuickPreviewLayout(win, item) {
   const maxContentWidth = Math.max(120, maxWindowWidth - chromeWidth);
   const maxContentHeight = Math.max(120, maxWindowHeight - chromeHeight);
 
-  const naturalWidth = img.naturalWidth;
-  const naturalHeight = img.naturalHeight;
   const fitsOnScreen = naturalWidth <= maxContentWidth && naturalHeight <= maxContentHeight;
 
   let targetContentWidth = naturalWidth;
@@ -3156,13 +3159,19 @@ function pvRenderCurrent() {
     const video = document.createElement('video');
     video.controls = true;
     video.autoplay = true;
-    video.style.cssText = 'max-width:100%;max-height:100%;display:block;';
+    video.preload = 'metadata';
+    video.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;';
     const source = document.createElement('source');
     // videoData holds base64-encoded video; file is used for synced content/ items
     source.setAttribute('src', item.videoData || item.file || '');
     source.setAttribute('type', 'video/mp4');
     video.appendChild(source);
     viewer.appendChild(video);
+    video.addEventListener('loadedmetadata', () => {
+      if (!pvState) return;
+      if (pvState.quickPreview) pvApplyQuickPreviewLayout(pvWin.el, item);
+      pvSyncViewOptions();
+    });
   } else if (item.type === 'audio') {
     viewer.className = 'pv-audio-viewer';
     viewer.style.cssText = '';

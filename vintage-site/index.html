@@ -2754,7 +2754,7 @@ function pvRenderCurrent() {
         vizCtx = new (window.AudioContext || window.webkitAudioContext)();
         vizAnalyser = vizCtx.createAnalyser();
         vizAnalyser.fftSize = 2048;
-        vizAnalyser.smoothingTimeConstant = 0.75;
+        vizAnalyser.smoothingTimeConstant = 0.925;
         const src = vizCtx.createMediaElementSource(audio);
         src.connect(vizAnalyser);
         vizAnalyser.connect(vizCtx.destination);
@@ -2827,10 +2827,29 @@ function pvRenderCurrent() {
         pts[px] = dbToY(Math.max(MIN_DB, Math.min(MAX_DB, db)));
       }
 
+      // Smooth the curve with a gaussian-style pass to round band edges
+      const GAUSS_R = 8;
+      const kernel = [];
+      let kernelSum = 0;
+      for (let i = -GAUSS_R; i <= GAUSS_R; i++) {
+        const w_k = Math.exp(-(i * i) / (2 * GAUSS_R * GAUSS_R * 0.5));
+        kernel.push(w_k);
+        kernelSum += w_k;
+      }
+      const smoothed = new Float32Array(w + 1);
+      for (let px = 0; px <= w; px++) {
+        let val = 0;
+        for (let k = 0; k < kernel.length; k++) {
+          const src = Math.max(0, Math.min(w, px + k - GAUSS_R));
+          val += pts[src] * kernel[k];
+        }
+        smoothed[px] = val / kernelSum;
+      }
+
       // Filled area
       c.beginPath();
       c.moveTo(0, h);
-      for (let px = 0; px <= w; px++) { c.lineTo(px, pts[px]); }
+      for (let px = 0; px <= w; px++) { c.lineTo(px, smoothed[px]); }
       c.lineTo(w, h);
       c.closePath();
       c.fillStyle = 'rgba(121,250,15,0.30)';
@@ -2838,8 +2857,8 @@ function pvRenderCurrent() {
 
       // Bright edge line
       c.beginPath();
-      c.moveTo(0, pts[0]);
-      for (let px = 1; px <= w; px++) { c.lineTo(px, pts[px]); }
+      c.moveTo(0, smoothed[0]);
+      for (let px = 1; px <= w; px++) { c.lineTo(px, smoothed[px]); }
       c.strokeStyle = '#79fa0f';
       c.lineWidth = 1.5;
       c.stroke();

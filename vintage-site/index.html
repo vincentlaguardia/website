@@ -3783,18 +3783,22 @@ function openPaintWindow() {
   let isSizingPaintWindow = false;
   function lockPaintWindowSquare(preferredSide) {
     if (isSizingPaintWindow) return;
-    const maxSide = Math.floor(Math.min(window.innerWidth, window.innerHeight));
     let side = preferredSide;
-    if (!side) side = Math.min(win.offsetWidth, win.offsetHeight);
+    if (!side) side = win.offsetWidth;
     if (!side || !isFinite(side)) side = PAINT_WINDOW_MIN_SIDE;
-    side = Math.round(side);
-    side = Math.max(PAINT_WINDOW_MIN_SIDE, side);
-    if (maxSide > 0) side = Math.min(side, maxSide);
-    const next = side + 'px';
-    if (win.style.width === next && win.style.height === next) return;
+    side = Math.max(PAINT_WINDOW_MIN_SIDE, Math.round(side));
+    if (window.innerWidth > 0) side = Math.min(side, Math.floor(window.innerWidth));
+
     isSizingPaintWindow = true;
-    win.style.width = next;
-    win.style.height = next;
+    win.style.width = side + 'px';
+
+    const availW = wrap.clientWidth;
+    const chromeH = (toolbarRowEl ? toolbarRowEl.offsetHeight : 0) + (paletteRowEl ? paletteRowEl.offsetHeight : 0);
+    const availH = Math.max(0, wrap.clientHeight - chromeH);
+    const targetHeight = Math.max(PAINT_WINDOW_MIN_SIDE, Math.round(win.offsetHeight + (availW - availH)));
+    const maxHeight = window.innerHeight > 0 ? Math.floor(window.innerHeight) : targetHeight;
+    win.style.height = Math.min(targetHeight, maxHeight) + 'px';
+
     isSizingPaintWindow = false;
   }
   function paintFitSquare() {
@@ -3804,14 +3808,12 @@ function openPaintWindow() {
     if (!availW || !availH) return;
     if (!cols) return;
     const availableSquareSize = Math.max(0, Math.min(availW, availH));
-    // Force the shown canvas to a multiple of `cols` so each cell gets
-    // an integer number of CSS pixels (no fractional-cell jitter at 64/128).
+    const swatchEl = wrap.querySelector('.paint-swatch');
+    const swatchSize = (swatchEl && swatchEl.offsetHeight) || 16;
+    const maxSlack = swatchSize * 0.5;
     const gridAlignedSize = Math.floor(availableSquareSize / cols) * cols;
-    // Tiny windows may not fit one full cell per row/col; in that case,
-    // use the largest possible square anyway so Paint still remains usable.
-    // `gridAlignedSize >= cols` means at least 1 CSS pixel is available per
-    // grid cell (because gridAlignedSize is a multiple of `cols`).
-    const finalSize = gridAlignedSize >= cols ? gridAlignedSize : availableSquareSize;
+    const gridSlack = availableSquareSize - gridAlignedSize;
+    const finalSize = (gridAlignedSize >= cols && gridSlack <= maxSlack) ? gridAlignedSize : availableSquareSize;
     canvasAreaEl.style.width = finalSize + 'px';
     canvasAreaEl.style.height = finalSize + 'px';
     canvas.style.width = finalSize + 'px';
@@ -3828,12 +3830,14 @@ function openPaintWindow() {
 
   lockPaintWindowSquare(openSide);
   paintFitSquare();
+  const onPaintWindowResize = () => {
+    lockPaintWindowSquare();
+    paintFitSquare();
+  };
+  window.addEventListener('resize', onPaintWindowResize);
   let paintResizeObserver = null;
   if (window.ResizeObserver) {
-    paintResizeObserver = new ResizeObserver(() => {
-      lockPaintWindowSquare();
-      paintFitSquare();
-    });
+    paintResizeObserver = new ResizeObserver(onPaintWindowResize);
     paintResizeObserver.observe(win);
   }
 
@@ -3969,6 +3973,7 @@ function openPaintWindow() {
     cleanup: () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('resize', onPaintWindowResize);
     }
   };
   addTaskbarEntry(id, 'Paint', imgIcon(PAINT_SHORTCUT_ICON, 14));

@@ -112,8 +112,13 @@
     position: absolute;
     width: 190px; text-align: center; cursor: default; padding: 4px 2px;
   }
-  .desktop-icon-item svg { width: 64px; height: 64px; }
-  .desktop-icon-item img { width: 64px; height: 64px; }
+  .desktop-icon-item svg,
+  .desktop-icon-item img {
+    width: 64px; height: 64px;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
   .desktop-icon-item .label {
     display: block; width: fit-content; max-width: 100%;
     margin: 2px auto 0;
@@ -905,6 +910,13 @@ function getIcon(item, size) {
   if (item && item.type === 'picture' && (item.thumb || item.file)) return imgIcon(item.thumb || item.file, size);
   if (item && item.type === 'pdf') return imgIcon(PDF_ICON, size);
   return genericIcon(size);
+}
+
+function getDesktopIconSize(item) {
+  if (!item) return 128;
+  if (item.type === 'picture') return 96;
+  if ((item.type === 'video' || item.type === 'shortcut') && item.thumb) return 96;
+  return 128;
 }
 
 /* ---------- site map ---------- */
@@ -5219,8 +5231,13 @@ function desktopSlotPosition(slotIndex, seedKey) {
 
 function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, itemId, parentId) {
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
-  el.addEventListener('dragstart', e => e.preventDefault());
+  el.setAttribute('draggable', 'false');
+  el.addEventListener('dragstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
   el.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
     dragging = true; moved = false;
     startX = e.clientX; startY = e.clientY;
     origLeft = el.offsetLeft; origTop = el.offsetTop;
@@ -5314,7 +5331,7 @@ function buildDesktopIcons() {
     el.className = 'desktop-icon-item';
     el.dataset.itemId = itemId;
     el.dataset.parentId = 'desktop';
-    el.innerHTML = getIcon(item, 128) + '<div class="label">' + item.name + '</div>';
+    el.innerHTML = getIcon(item, getDesktopIconSize(item)) + '<div class="label">' + item.name + '</div>';
     const savedPos = JSON.parse(localStorage.getItem('desktop-icon-pos-' + itemId) || 'null');
     const defaultPos = desktopSlotPosition(index + 1, itemId);
     el.style.left = (savedPos ? savedPos.left : defaultPos.left) + 'px';

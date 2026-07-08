@@ -2609,7 +2609,7 @@ function pvRenderCurrent() {
     audio.src = item.file || '';
     viewer.appendChild(nameEl);
     viewer.appendChild(audio);
-    audio.play().catch(() => {});
+    if (item.file) audio.play().catch(() => {});
   } else {
     const img = document.createElement('img');
     img.setAttribute('src', item.image || item.file || '');
@@ -4343,7 +4343,8 @@ async function openMediaPlayerWindow(trackId) {
         );
         if (parentId) {
           const siblings = await mpDiscoverAudioItems(parentId);
-          siblings.forEach(id => { if (!mpPlaylist.includes(id)) mpPlaylist.push(id); });
+          const existing = new Set(mpPlaylist);
+          siblings.forEach(id => { if (!existing.has(id)) mpPlaylist.push(id); });
         } else {
           mpPlaylist.push(trackId);
         }

@@ -2127,7 +2127,8 @@ async function openSyncFolder(id) {
    Fetches content/manifest.json on startup and adds every top-level folder
    it lists to items.desktop.children, creating a default synced-folder item
    for any entry that has no existing definition. Existing item definitions
-   (with custom names / iconTypes) are preserved unchanged.
+   (with custom names / iconTypes) are preserved unchanged, but their
+   syncFolder is always aligned to 'content/<name>' as declared by the manifest.
    Fixed items that are already in items.desktop.children (shortcuts etc.)
    are kept at the front; manifest-derived content folders are appended after. */
 async function loadDesktopRootsFromManifest() {
@@ -2142,12 +2143,16 @@ async function loadDesktopRootsFromManifest() {
     const contentIds = entries
       .filter(e => e.type === 'folder')
       .map(e => {
-        // Reuse existing definition if present (preserves custom name/iconType);
-        // otherwise synthesise a default synced-folder entry.
-        if (!items[e.name]) {
+        const expectedSync = 'content/' + e.name;
+        if (items[e.name]) {
+          // Reuse existing definition (preserves custom name/iconType) but ensure
+          // syncFolder matches the canonical path from the manifest.
+          items[e.name].syncFolder = expectedSync;
+        } else {
+          // Synthesize a default synced-folder entry for new manifest entries.
           items[e.name] = {
             type: 'folder', name: e.name, iconType: 'folder',
-            syncFolder: 'content/' + e.name,
+            syncFolder: expectedSync,
             children: [], modified: e.modified || new Date().toISOString().slice(0, 10)
           };
         }
@@ -4277,10 +4282,13 @@ document.getElementById('menu-paint').addEventListener('click', () => {
 });
 
 /* ---------- login ---------- */
+let loginInProgress = false;
 async function tryLogin() {
+  if (loginInProgress) return;
   const input = document.getElementById('password-input');
   const err = document.getElementById('login-error');
   if (input.value === SITE_PASSWORD) {
+    loginInProgress = true;
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('desktop').style.display = 'block';
     await loadDesktopRootsFromManifest();

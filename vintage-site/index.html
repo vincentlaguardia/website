@@ -1440,12 +1440,14 @@ function openBrowserWindow(landingUrlOverride) {
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
-  titlebar.tabIndex = 0;
   titlebar.innerHTML = `
     <span class="title-text">Internet Explorer</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
-      <div class="win-btn" data-action="max" title="Maximize" aria-label="Maximize">&#9633;</div>
+      <div class="win-btn" data-action="max" title="Maximize" role="button" tabindex="0">
+        <span aria-hidden="true">&#9633;</span>
+        <span style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;">Maximize</span>
+      </div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -1505,16 +1507,17 @@ function openBrowserWindow(landingUrlOverride) {
   }
 
   win.addEventListener('mousedown', () => bringToFront(id));
+  const maxBtn = titlebar.querySelector('[data-action="max"]');
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
-  titlebar.querySelector('[data-action="max"]').addEventListener('click', () => toggleMaximize(id));
-  titlebar.addEventListener('dblclick', e => {
-    if (e.target.closest('.win-btn')) return;
-    toggleMaximize(id);
-  });
-  titlebar.addEventListener('keydown', e => {
+  maxBtn.addEventListener('click', () => toggleMaximize(id));
+  maxBtn.addEventListener('keydown', e => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
+    toggleMaximize(id);
+  });
+  titlebar.addEventListener('dblclick', e => {
+    if (e.target.closest('.win-btn')) return;
     toggleMaximize(id);
   });
   makeDraggable(win, titlebar);
@@ -2052,6 +2055,7 @@ function toggleMinimize(id) {
 function toggleMaximize(id) {
   const w = openWindows[id];
   if (!w) return;
+  const MIN_MAXIMIZED_WINDOW_HEIGHT = 120;
   if (!w.maximized) {
     w.restoreBounds = {
       left: w.el.style.left,
@@ -2065,7 +2069,7 @@ function toggleMaximize(id) {
     w.el.style.top = '0px';
     w.el.style.width = window.innerWidth + 'px';
     // Keep enough room for title/content/status chrome even on tiny viewports.
-    w.el.style.height = Math.max(120, window.innerHeight - taskbarHeight) + 'px';
+    w.el.style.height = Math.max(MIN_MAXIMIZED_WINDOW_HEIGHT, window.innerHeight - taskbarHeight) + 'px';
     w.maximized = true;
   } else {
     if (w.restoreBounds) {

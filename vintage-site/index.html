@@ -890,7 +890,7 @@ const WINNER_PAGE_URL = 'data:text/html;base64,' + btoa(
 
 
 function getIcon(item, size) {
-  if (item && item.iconSize) size = item.iconSize;
+  if (item && item.iconSize && item.iconSize > 0) size = item.iconSize;
   if (item && item.customIcon === 'notepad') return imgIcon(NOTEPAD_ICON, size * 2);
   if (item && item.customIcon === 'livvyam') return imgIcon(LIVVYAM_ICON, size);
   if (item && item.customIcon === 'ieshortcut') return imgIcon(IE_SHORTCUT_ICON, size);

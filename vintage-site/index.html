@@ -866,7 +866,7 @@ function getIcon(item, size) {
 
 /* ---------- site map ---------- */
 const items = {
-  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['easy', 'watches', 'watchthisbabyyyyyyyy', 'purplestuff', 'collage', 'eyes', 'thoughts', 'interface', 'miscinfo', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'catscans', 'coolstuff', 'miscbooks'], modified: '2026-06-01' },
+  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['easy', 'watchthisbabyyyyyyyy', 'purplestuff', 'collage', 'eyes', 'thoughts', 'interface', 'miscinfo', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'catscans', 'coolstuff', 'miscbooks'], modified: '2026-06-01' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/catscans', children: [], modified: '2026-07-08' },
@@ -894,7 +894,6 @@ const items = {
   // Default Songs Player startup source: loads tracks from /audio only.
   mpaudio:      { type: 'folder', name: 'audio',           iconType: 'folder',   syncFolder: 'audio', children: [], modified: '2026-07-08' },
 
-  watches:      { type: 'folder', name: 'watches',        iconType: 'folder', syncFolder: 'content/watches', children: [], modified: '2026-07-08' },
   watchthisbabyyyyyyyy: { type: 'folder', name: 'watch this babyyyyyyyy', iconType: 'folder', syncFolder: 'content/watchthisbabyyyyyyyy', children: [], modified: '2026-07-08' },
   purplestuff:  { type: 'folder', name: 'purple stuff',    iconType: 'folder',   syncFolder: 'content/purplestuff', children: [], modified: '2026-07-08' },
   collage:      { type: 'folder', name: 'collage',         iconType: 'picture',  syncFolder: 'content/collage', children: [], modified: '2026-07-08' },
@@ -939,6 +938,48 @@ function persistFolderChildren(parentId) {
   childrenOverrides[parentId] = { children: items[parentId].children.slice(), modified: items[parentId].modified };
   localStorage.setItem('site-children-overrides', JSON.stringify(childrenOverrides));
 }
+
+  (function sanitizeLegacyWatches() {
+  // Remove legacy item definition if somehow present
+  if (items.watches) delete items.watches;
+
+  // Remove from desktop children
+  if (items.desktop && Array.isArray(items.desktop.children)) {
+    items.desktop.children = items.desktop.children.filter(id => id !== 'watches');
+  }
+
+  // Remove from any folder children arrays
+  Object.keys(items).forEach(id => {
+    const it = items[id];
+    if (it && Array.isArray(it.children)) {
+      it.children = it.children.filter(child => child !== 'watches');
+    }
+  });
+
+  // Purge legacy persisted overrides that can re-insert it
+  try {
+    const raw = localStorage.getItem('site-children-overrides');
+    const obj = raw ? JSON.parse(raw) : {};
+    Object.keys(obj).forEach(pid => {
+      const entry = obj[pid];
+      if (Array.isArray(entry)) {
+        obj[pid] = entry.filter(x => x !== 'watches');
+      } else if (entry && Array.isArray(entry.children)) {
+        entry.children = entry.children.filter(x => x !== 'watches');
+      }
+    });
+    localStorage.setItem('site-children-overrides', JSON.stringify(obj));
+  } catch (e) {}
+
+  try {
+    const rawFolders = localStorage.getItem('site-custom-folders');
+    const cf = rawFolders ? JSON.parse(rawFolders) : {};
+    if (cf.watches) {
+      delete cf.watches;
+      localStorage.setItem('site-custom-folders', JSON.stringify(cf));
+    }
+  } catch (e) {}
+})();
 
 /* ---------- per-folder view mode (List vs Thumbnail), persisted ---------- */
 let folderViewModes = {};

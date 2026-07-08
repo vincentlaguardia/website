@@ -3281,6 +3281,11 @@ document.addEventListener('keydown', e => {
     openPictureWindow(itemId, parentId, { quickPreview: true });
     return;
   }
+  if (item.type === 'shortcut' && item.action === 'external' && item.url) {
+    e.preventDefault();
+    window.open(item.url, '_blank', 'noopener');
+    return;
+  }
 });
 
 function renderPictureContent(id) {

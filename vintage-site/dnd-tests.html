@@ -99,7 +99,7 @@ function resetState() {
     file1:   { type: 'picture', name: 'cat.jpg' },
     file2:   { type: 'pdf',     name: 'doc.pdf' },
     file3:   { type: 'audio',   name: 'song.mp3' },
-    subF:    { type: 'folder',  name: 'sub', children: ['file1'] },
+    subF:    { type: 'folder',  name: 'sub', children: [] },
   };
 }
 
@@ -154,8 +154,7 @@ assert(
 );
 
 // 4. No-op detection: inserting back at same slot
-// children = [file1, file2, file3]. Drag file2 (srcIdx=1) insertBefore file3 (anchorIdx=2).
-// After removing file2: [file1, file3]. newAnchorIdx=1. insertIdx=1. srcIdx was 1. → same slot → false.
+// (file2 is already immediately before file3, so inserting before file3 is a no-op)
 resetState();
 assert(
   'reorder: no-op when item lands back in same position',

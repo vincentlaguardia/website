@@ -1635,8 +1635,8 @@ function findReorderDropTarget(clientX, clientY, excludeItemId, parentId, scopeE
   // Determine whether to insert before or after based on cursor position
   const rect = holder.getBoundingClientRect();
   const before = holder.classList.contains('grid-item')
-    ? clientX < rect.left + rect.width / 2   // grid: left/right half
-    : clientY < rect.top  + rect.height / 2; // list: top/bottom half
+    ? clientX < rect.left + rect.width / 2   // grid: left / right half
+    : clientY < rect.top  + rect.height / 2; // list: top / bottom half
   return { id: targetId, el: holder, before };
 }
 
@@ -1651,7 +1651,7 @@ function reorderItemInFolder(itemId, parentId, anchorItemId, insertBefore, skipU
   const anchorIdx = parent.children.indexOf(anchorItemId);
   if (srcIdx === -1 || anchorIdx === -1) return false;
   const originalChildren = parent.children.slice();
-  // Remove item from current position then find anchor's updated index
+  // Remove item from current position; anchor's index may shift, so recalculate it
   parent.children.splice(srcIdx, 1);
   const newAnchorIdx = parent.children.indexOf(anchorItemId);
   const insertIdx = insertBefore ? newAnchorIdx : newAnchorIdx + 1;

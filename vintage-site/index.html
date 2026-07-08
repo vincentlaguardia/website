@@ -2747,7 +2747,7 @@ function pvRenderCurrent() {
     let isSeeking = false;
 
     // Spectrum analyzer via Web Audio API
-    let vizCtx = null, vizAnalyser = null;
+    let vizCtx = null, vizAnalyser = null, vizData = null;
     function pvVizInit() {
       if (vizCtx) return;
       try {
@@ -2758,6 +2758,7 @@ function pvRenderCurrent() {
         const src = vizCtx.createMediaElementSource(audio);
         src.connect(vizAnalyser);
         vizAnalyser.connect(vizCtx.destination);
+        vizData = new Float32Array(vizAnalyser.frequencyBinCount);
       } catch(e) { vizCtx = null; }
     }
     function pvVizDraw() {
@@ -2804,32 +2805,32 @@ function pvRenderCurrent() {
         const labelFreqs = [100, 1000, 10000];
         const labelText  = { 100: '100', 1000: '1k', 10000: '10k' };
         for (const f of labelFreqs) {
-          const x = freqToX(f);
-          c.fillText(labelText[f], x, h - 3);
+          c.fillText(labelText[f], freqToX(f), h - 3);
         }
       }
 
-      if (!vizAnalyser || !vizCtx) return;
+      if (!vizAnalyser || !vizData) return;
 
-      const binCount = vizAnalyser.frequencyBinCount;
-      const floatData = new Float32Array(binCount);
-      vizAnalyser.getFloatFrequencyData(floatData);
+      vizAnalyser.getFloatFrequencyData(vizData);
       const nyquist = vizCtx.sampleRate / 2;
+      const binCount = vizData.length;
+      const freqRatio = MAX_FREQ / MIN_FREQ;
 
-      // Build smooth filled spectrum path on log scale
-      c.beginPath();
-      c.moveTo(0, h);
-
+      // Compute Y positions once, then draw filled area and edge line together
+      const pts = new Float32Array(w + 1);
       for (let px = 0; px <= w; px++) {
-        const freq = MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, px / w);
+        const freq = MIN_FREQ * Math.pow(freqRatio, px / w);
         const binF = (freq / nyquist) * binCount;
         const b0 = Math.floor(binF), b1 = Math.min(b0 + 1, binCount - 1);
         const t = binF - b0;
-        const db = floatData[b0] * (1 - t) + floatData[b1] * t;
-        const y = dbToY(Math.max(MIN_DB, Math.min(MAX_DB, db)));
-        if (px === 0) c.lineTo(0, y); else c.lineTo(px, y);
+        const db = vizData[b0] * (1 - t) + vizData[b1] * t;
+        pts[px] = dbToY(Math.max(MIN_DB, Math.min(MAX_DB, db)));
       }
 
+      // Filled area
+      c.beginPath();
+      c.moveTo(0, h);
+      for (let px = 0; px <= w; px++) { c.lineTo(px, pts[px]); }
       c.lineTo(w, h);
       c.closePath();
       c.fillStyle = 'rgba(121,250,15,0.30)';
@@ -2837,15 +2838,8 @@ function pvRenderCurrent() {
 
       // Bright edge line
       c.beginPath();
-      for (let px = 0; px <= w; px++) {
-        const freq = MIN_FREQ * Math.pow(MAX_FREQ / MIN_FREQ, px / w);
-        const binF = (freq / nyquist) * binCount;
-        const b0 = Math.floor(binF), b1 = Math.min(b0 + 1, binCount - 1);
-        const t = binF - b0;
-        const db = floatData[b0] * (1 - t) + floatData[b1] * t;
-        const y = dbToY(Math.max(MIN_DB, Math.min(MAX_DB, db)));
-        if (px === 0) c.moveTo(0, y); else c.lineTo(px, y);
-      }
+      c.moveTo(0, pts[0]);
+      for (let px = 1; px <= w; px++) { c.lineTo(px, pts[px]); }
       c.strokeStyle = '#79fa0f';
       c.lineWidth = 1.5;
       c.stroke();

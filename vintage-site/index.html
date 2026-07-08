@@ -3377,6 +3377,7 @@ function openPaintWindow() {
   const id = 'paint';
   const DEFAULT_PAINT_GRID_SIZE = 128;
   const DEFAULT_PAINT_IMAGE_SOURCES = [
+    'https://github.com/user-attachments/assets/f8da11ef-63bc-4d8f-9dec-0c9a21fd509a',
     'https://github.com/user-attachments/assets/06941b9b-7348-4c97-abb5-5dd5ade88cd6'
   ];
   if (openWindows[id]) {
@@ -3613,11 +3614,11 @@ function openPaintWindow() {
     const availH = canvasAreaEl.clientHeight;
     if (!availW || !availH) return;
     if (!cols) return;
-    const raw = Math.max(0, Math.min(availW, availH));
-    const snapped = Math.floor(raw / cols) * cols;
-    const size = snapped >= cols ? snapped : raw;
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
+    const maxAvailableSize = Math.max(0, Math.min(availW, availH));
+    const gridAlignedSize = Math.floor(maxAvailableSize / cols) * cols;
+    const finalSize = gridAlignedSize >= cols ? gridAlignedSize : maxAvailableSize;
+    canvas.style.width = finalSize + 'px';
+    canvas.style.height = finalSize + 'px';
   }
 
   resetGrid(DEFAULT_PAINT_GRID_SIZE, DEFAULT_PAINT_GRID_SIZE);
@@ -3680,7 +3681,7 @@ function openPaintWindow() {
   function loadDefaultPaintArt() {
     tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img, src) => {
       if (!ok || !img) {
-        console.warn('Default paint image could not be loaded (network/CORS/path issue).');
+        console.warn('Default paint image could not be loaded from any source after CORS and non-CORS attempts:', DEFAULT_PAINT_IMAGE_SOURCES);
         return;
       }
       try {

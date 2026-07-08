@@ -3323,6 +3323,11 @@ document.addEventListener('keydown', e => {
   const parentId = selected.dataset.parentId;
   const item = items[itemId];
   if (!item) return;
+  if (item.type === 'video' && item.youtubeId) {
+    e.preventDefault();
+    openChildItem(itemId, item, parentId);
+    return;
+  }
   if (item.type === 'picture' || item.type === 'video' || item.type === 'audio') {
     e.preventDefault();
     openPictureWindow(itemId, parentId, { quickPreview: true });

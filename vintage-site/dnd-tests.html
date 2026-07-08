@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DnD Tests</title>
+<style>
+  body { font-family: monospace; font-size: 13px; padding: 20px; background: #c0c0c0; }
+  h1 { font-size: 15px; margin-bottom: 8px; }
+  .pass { color: green; } .fail { color: red; font-weight: bold; }
+  #summary { margin-top: 12px; font-weight: bold; border-top: 1px solid #000; padding-top: 6px; }
+</style>
+</head>
+<body>
+<h1>Drag-and-Drop Unit Tests</h1>
+<div id="results"></div>
+<div id="summary"></div>
+<script>
+/* ------------------------------------------------------------------ */
+/* Minimal stubs for the functions under test                          */
+/* ------------------------------------------------------------------ */
+
+// Global state mirroring index.html
+let items = {};
+let childrenOverrides = {};
+let undoStack = [];
+
+function persistFolderChildren(parentId) {
+  if (!items[parentId]) return;
+  items[parentId].modified = Date.now();
+  childrenOverrides[parentId] = { children: items[parentId].children.slice(), modified: items[parentId].modified };
+}
+function pushUndo(fn) { undoStack.push(fn); }
+function refreshFolderView() { /* stub */ }
+function buildDesktopIcons() { /* stub */ }
+
+/* ------------------------------------------------------------------ */
+/* Paste the functions under test verbatim from index.html             */
+/* ------------------------------------------------------------------ */
+
+function moveItemToFolder(itemId, fromParentId, toFolderId, skipUndo) {
+  if (!itemId || !fromParentId || !toFolderId || fromParentId === toFolderId) return false;
+  const dest = items[toFolderId];
+  if (!dest || dest.type !== 'folder' || itemId === toFolderId) return false;
+  const from = items[fromParentId];
+  if (!from || !from.children) return false;
+  const i = from.children.indexOf(itemId);
+  if (i === -1) return false;
+  from.children.splice(i, 1);
+  dest.children.push(itemId);
+  persistFolderChildren(fromParentId);
+  persistFolderChildren(toFolderId);
+  if (!skipUndo) {
+    pushUndo(() => {
+      moveItemToFolder(itemId, toFolderId, fromParentId, true);
+      refreshFolderView(fromParentId);
+      refreshFolderView(toFolderId);
+      if (fromParentId === 'desktop' || toFolderId === 'desktop') buildDesktopIcons();
+    });
+  }
+  return true;
+}
+
+function reorderItemInFolder(itemId, parentId, anchorItemId, insertBefore, skipUndo) {
+  if (!itemId || !parentId || !anchorItemId || itemId === anchorItemId) return false;
+  const parent = items[parentId];
+  if (!parent || !parent.children) return false;
+  const srcIdx = parent.children.indexOf(itemId);
+  const anchorIdx = parent.children.indexOf(anchorItemId);
+  if (srcIdx === -1 || anchorIdx === -1) return false;
+  const originalChildren = parent.children.slice();
+  parent.children.splice(srcIdx, 1);
+  const newAnchorIdx = parent.children.indexOf(anchorItemId);
+  const insertIdx = insertBefore ? newAnchorIdx : newAnchorIdx + 1;
+  if (insertIdx === srcIdx) {
+    parent.children.splice(srcIdx, 0, itemId);
+    return false;
+  }
+  parent.children.splice(insertIdx, 0, itemId);
+  persistFolderChildren(parentId);
+  if (!skipUndo) {
+    pushUndo(() => {
+      items[parentId].children = originalChildren.slice();
+      persistFolderChildren(parentId);
+      refreshFolderView(parentId);
+    });
+  }
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Helpers                                                             */
+/* ------------------------------------------------------------------ */
+function resetState() {
+  undoStack = [];
+  childrenOverrides = {};
+  items = {
+    folderA: { type: 'folder', name: 'A', children: ['file1', 'file2', 'file3'] },
+    folderB: { type: 'folder', name: 'B', children: [] },
+    file1:   { type: 'picture', name: 'cat.jpg' },
+    file2:   { type: 'pdf',     name: 'doc.pdf' },
+    file3:   { type: 'audio',   name: 'song.mp3' },
+    subF:    { type: 'folder',  name: 'sub', children: ['file1'] },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Test runner                                                         */
+/* ------------------------------------------------------------------ */
+let passed = 0, failed = 0;
+const out = document.getElementById('results');
+
+function assert(description, condition) {
+  const div = document.createElement('div');
+  if (condition) {
+    div.className = 'pass';
+    div.textContent = '✓ ' + description;
+    passed++;
+  } else {
+    div.className = 'fail';
+    div.textContent = '✗ ' + description;
+    failed++;
+  }
+  out.appendChild(div);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tests: reorderItemInFolder                                          */
+/* ------------------------------------------------------------------ */
+
+// 1. Move file to a new position (before anchor)
+resetState();
+assert(
+  'reorder: move file1 before file3 (insert-before)',
+  reorderItemInFolder('file1', 'folderA', 'file3', true) === true &&
+  JSON.stringify(items.folderA.children) === JSON.stringify(['file2', 'file1', 'file3'])
+);
+
+// 2. Move file after anchor
+resetState();
+assert(
+  'reorder: move file1 after file3 (insert-after)',
+  reorderItemInFolder('file1', 'folderA', 'file3', false) === true &&
+  JSON.stringify(items.folderA.children) === JSON.stringify(['file2', 'file3', 'file1'])
+);
+
+// 3. No-op: dragging file2 before file1, but it already is before file1 effectively?
+// file2 is at index 1; anchor file1 is at index 0; insert before file1 means index 0.
+// After removal of file2, children = ['file1','file3'], newAnchorIdx=0, insertIdx=0, srcIdx was 1. Not same → actually a real move.
+// Instead test: file2 inserted after file2 itself → same item guard
+resetState();
+assert(
+  'reorder: no-op when itemId === anchorItemId',
+  reorderItemInFolder('file1', 'folderA', 'file1', true) === false
+);
+
+// 4. No-op detection: inserting back at same slot
+// children = [file1, file2, file3]. Drag file2 (srcIdx=1) insertBefore file3 (anchorIdx=2).
+// After removing file2: [file1, file3]. newAnchorIdx=1. insertIdx=1. srcIdx was 1. → same slot → false.
+resetState();
+assert(
+  'reorder: no-op when item lands back in same position',
+  reorderItemInFolder('file2', 'folderA', 'file3', true) === false &&
+  JSON.stringify(items.folderA.children) === JSON.stringify(['file1', 'file2', 'file3'])
+);
+
+// 5. Invalid item (not in folder)
+resetState();
+assert(
+  'reorder: invalid itemId not in parent returns false',
+  reorderItemInFolder('ghost', 'folderA', 'file1', true) === false
+);
+
+// 6. Invalid anchor (not in folder)
+resetState();
+assert(
+  'reorder: invalid anchorItemId not in parent returns false',
+  reorderItemInFolder('file1', 'folderA', 'ghost', true) === false
+);
+
+// 7. Missing parentId
+resetState();
+assert(
+  'reorder: missing parentId returns false',
+  reorderItemInFolder('file1', null, 'file3', true) === false
+);
+
+// 8. Undo restores original order
+resetState();
+const origOrder = items.folderA.children.slice();
+reorderItemInFolder('file1', 'folderA', 'file3', false);
+assert('reorder: order changed after drag', JSON.stringify(items.folderA.children) !== JSON.stringify(origOrder));
+undoStack.pop()(); // execute undo
+assert(
+  'reorder: undo restores original order',
+  JSON.stringify(items.folderA.children) === JSON.stringify(origOrder)
+);
+
+/* ------------------------------------------------------------------ */
+/* Tests: moveItemToFolder (cross-folder file move)                    */
+/* ------------------------------------------------------------------ */
+
+// 9. File moved to another folder
+resetState();
+items.folderA.children = ['file2', 'file3'];
+items.folderB.children = [];
+items.file1 = { type: 'picture', name: 'cat.jpg' };
+items.folderA.children.unshift('file1'); // ['file1','file2','file3']
+assert(
+  'cross-folder: file moved to destination folder',
+  moveItemToFolder('file1', 'folderA', 'folderB') === true &&
+  !items.folderA.children.includes('file1') &&
+  items.folderB.children.includes('file1')
+);
+
+// 10. Same-folder rejected
+resetState();
+assert(
+  'cross-folder: same-folder move returns false',
+  moveItemToFolder('file1', 'folderA', 'folderA') === false
+);
+
+// 11. Destination is not a folder
+resetState();
+assert(
+  'cross-folder: non-folder destination returns false',
+  moveItemToFolder('file1', 'folderA', 'file2') === false
+);
+
+// 12. Item not in source parent
+resetState();
+items.folderB.children = [];
+assert(
+  'cross-folder: item missing from source returns false',
+  moveItemToFolder('file1', 'folderB', 'folderA') === false
+);
+
+// 13. Null / missing args guarded
+assert(
+  'cross-folder: null args return false',
+  moveItemToFolder(null, 'folderA', 'folderB') === false &&
+  moveItemToFolder('file1', null, 'folderB') === false &&
+  moveItemToFolder('file1', 'folderA', null) === false
+);
+
+// 14. Moving a folder item works (regression - existing behavior preserved)
+resetState();
+items.folderA.children = ['file1', 'file2', 'file3', 'subF'];
+items.subF = { type: 'folder', name: 'sub', children: [] };
+assert(
+  'regression: folder can still be moved between folders',
+  moveItemToFolder('subF', 'folderA', 'folderB') === true &&
+  items.folderB.children.includes('subF') &&
+  !items.folderA.children.includes('subF')
+);
+
+/* ------------------------------------------------------------------ */
+/* Tests: fall-through protections                                     */
+/* ------------------------------------------------------------------ */
+
+// 15. Drop does NOT fall through to unrelated folder (scope guard)
+// Simulate: findReorderDropTarget should return null if parentId doesn't match
+// We test this indirectly through reorderItemInFolder's parentId guard
+resetState();
+items.folderB.children = ['file2', 'file3'];
+assert(
+  'fall-through: reorder into wrong folder is a no-op (item not in that parent)',
+  reorderItemInFolder('file1', 'folderB', 'file2', true) === false
+);
+
+// 16. Persisted order survives after reorder
+resetState();
+reorderItemInFolder('file3', 'folderA', 'file1', true);
+assert(
+  'persistence: childrenOverrides updated after reorder',
+  Array.isArray(childrenOverrides['folderA'] && childrenOverrides['folderA'].children)
+);
+
+/* ------------------------------------------------------------------ */
+/* Summary                                                             */
+/* ------------------------------------------------------------------ */
+const sum = document.getElementById('summary');
+const total = passed + failed;
+sum.textContent = total + ' tests: ' + passed + ' passed, ' + failed + ' failed.';
+sum.style.color = failed === 0 ? 'green' : 'red';
+</script>
+</body>
+</html>

@@ -1,3 +1,9 @@
 [build]
   command = "node build-manifests.js"
   publish = "."
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false

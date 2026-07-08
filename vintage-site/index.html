@@ -3612,6 +3612,7 @@ function openPaintWindow() {
     const availW = canvasAreaEl.clientWidth;
     const availH = canvasAreaEl.clientHeight;
     if (!availW || !availH) return;
+    if (!cols) return;
     const raw = Math.max(0, Math.min(availW, availH));
     const snapped = Math.floor(raw / cols) * cols;
     const size = snapped >= cols ? snapped : raw;
@@ -3663,16 +3664,25 @@ function openPaintWindow() {
   function tryLoadImageSource(sources, onDone) {
     if (!sources.length) return onDone(false);
     const src = sources[0];
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => onDone(true, img);
-    img.onerror = () => tryLoadImageSource(sources.slice(1), onDone);
-    img.src = src;
+    const tryOne = useCrossOrigin => {
+      const img = new Image();
+      if (useCrossOrigin) img.crossOrigin = 'anonymous';
+      img.onload = () => onDone(true, img, src);
+      img.onerror = () => {
+        if (useCrossOrigin) tryOne(false);
+        else tryLoadImageSource(sources.slice(1), onDone);
+      };
+      img.src = src;
+    };
+    tryOne(true);
   }
 
   function loadDefaultPaintArt() {
-    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img) => {
-      if (!ok || !img) return;
+    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img, src) => {
+      if (!ok || !img) {
+        console.warn('Default paint image could not be loaded (network/CORS/path issue).');
+        return;
+      }
       try {
         const n = DEFAULT_PAINT_GRID_SIZE;
         const tmp = document.createElement('canvas');
@@ -3689,7 +3699,7 @@ function openPaintWindow() {
         resetGrid(n, n, art);
         sizeSelectEl.value = String(n);
       } catch (e) {
-        console.warn('Default paint image could not be loaded:', e);
+        console.warn('Default paint image could not be parsed from source:', src, e);
       }
     });
   }

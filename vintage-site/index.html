@@ -1995,7 +1995,23 @@ function toggleMinimize(id) {
   if (!w) return;
   w.minimized = !w.minimized;
   w.el.style.display = w.minimized ? 'none' : 'flex';
-  if (!w.minimized) bringToFront(id);
+  if (w.minimized) {
+    // Pause any playing media so audio doesn't continue in the background.
+    // Track which elements were playing so only those are resumed later.
+    w.el.querySelectorAll('video, audio').forEach(m => {
+      m.dataset.wasPlaying = m.paused ? '' : 'true';
+      if (!m.paused) m.pause();
+    });
+  } else {
+    bringToFront(id);
+    // Resume only the media elements that were playing before minimize
+    w.el.querySelectorAll('video, audio').forEach(m => {
+      if (m.dataset.wasPlaying === 'true') {
+        delete m.dataset.wasPlaying;
+        m.play().catch(() => {});
+      }
+    });
+  }
 }
 
 function addTaskbarEntry(id, name, iconSvg) {

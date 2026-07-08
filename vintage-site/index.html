@@ -2782,9 +2782,29 @@ function renderVideoContent(id) {
 
 function renderTextContent(id) {
   const item = items[id];
+  const filePath = typeof item.file === 'string' ? item.file.trim() : '';
   const ta = document.createElement('textarea');
   ta.readOnly = true;
   ta.value = item.text || '';
+  if (!item.text && filePath) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    ta.value = 'Loading...';
+    fetch(filePath, { cache: 'default', signal: controller.signal })
+      .then(res => {
+        if (!res.ok) throw new Error('text fetch failed: ' + res.status);
+        return res.text();
+      })
+      .then(text => {
+        item.text = text;
+        if (ta.isConnected) ta.value = text;
+      })
+      .catch(err => {
+        console.error('Could not load text file', filePath, err);
+        if (ta.isConnected) ta.value = `Could not load ${item.name || 'file'}. Please try again later.`;
+      })
+      .finally(() => clearTimeout(timeout));
+  }
   ta.style.width = '100%';
   ta.style.height = '100%';
   ta.style.boxSizing = 'border-box';

@@ -3376,6 +3376,12 @@ function openWindow(id) {
 // chrome here is kept minimal (just a draggable titlebar with min/close).
 function openPaintWindow() {
   const id = 'paint';
+  const DEFAULT_PAINT_GRID_SIZE = 128;
+  const DEFAULT_PAINT_IMAGE_SOURCES = [
+    // Requested default "pam nude pixel" artwork variants; we try each.
+    'https://github.com/user-attachments/assets/f8da11ef-63bc-4d8f-9dec-0c9a21fd509a',
+    'https://github.com/user-attachments/assets/06941b9b-7348-4c97-abb5-5dd5ade88cd6'
+  ];
   if (openWindows[id]) {
     if (openWindows[id].minimized) toggleMinimize(id);
     else bringToFront(id);
@@ -3552,6 +3558,7 @@ function openPaintWindow() {
     canvas.width = cols * BASE_CELL;
     canvas.height = rows * BASE_CELL;
     redraw();
+    paintFitSquare();
   }
 
   function paintAt(clientX, clientY) {
@@ -3601,59 +3608,39 @@ function openPaintWindow() {
     resetGrid(n, n);
   });
 
-  resetGrid(30, 30);
+  // Keep the displayed canvas size divisible by the grid size so dense
+  // modes (64/128) get consistent, even cell boundaries.
+  const canvasAreaEl = wrap.querySelector('.paint-canvas-area');
+  function paintFitSquare() {
+    const availW = canvasAreaEl.clientWidth;
+    const availH = canvasAreaEl.clientHeight;
+    if (!availW || !availH) return;
+    if (!cols) return;
+    const availableSquareSize = Math.max(0, Math.min(availW, availH));
+    // Force the shown canvas to a multiple of `cols` so each cell gets
+    // an integer number of CSS pixels (no fractional-cell jitter at 64/128).
+    const gridAlignedSize = Math.floor(availableSquareSize / cols) * cols;
+    // Tiny windows may not fit one full cell per row/col; in that case,
+    // use the largest possible square anyway so Paint still remains usable.
+    // `gridAlignedSize >= cols` means at least 1 CSS pixel is available per
+    // grid cell (because gridAlignedSize is a multiple of `cols`).
+    const finalSize = gridAlignedSize >= cols ? gridAlignedSize : availableSquareSize;
+    canvas.style.width = finalSize + 'px';
+    canvas.style.height = finalSize + 'px';
+  }
+
+  resetGrid(DEFAULT_PAINT_GRID_SIZE, DEFAULT_PAINT_GRID_SIZE);
+  sizeSelectEl.value = String(DEFAULT_PAINT_GRID_SIZE);
 
   win.appendChild(titlebar);
   win.appendChild(menubar);
   win.appendChild(content);
   document.getElementById('desktop').appendChild(win);
 
-  // Keep the grid perfectly square (no stretched/rectangular pixels), AND
-  // keep the window itself snug around that square with no leftover grey
-  // gutter: whenever the window gets resized, snap its own width/height so
-  // the canvas area's available space is exactly square (using the
-  // smaller of the two available dimensions), then size the canvas to
-  // fill that square exactly.
-  const canvasAreaEl = wrap.querySelector('.paint-canvas-area');
-  const paletteRowEl = wrap.querySelector('.paint-palette-row');
-  const toolbarRowEl = wrap.querySelector('.paint-toolbar-row');
-
-  function paintFitSquare() {
-    const availW = canvasAreaEl.clientWidth;
-    const availH = canvasAreaEl.clientHeight;
-    if (!availW || !availH) return;
-    const size = Math.max(0, Math.min(availW, availH));
-    canvas.style.width = size + 'px';
-    canvas.style.height = size + 'px';
-  }
-
-  let paintSnapping = false;
-  function paintSnapWindowToSquare() {
-    if (paintSnapping) return;
-    const contentStyle = getComputedStyle(content);
-    const padX = parseFloat(contentStyle.paddingLeft) + parseFloat(contentStyle.paddingRight);
-    const padY = parseFloat(contentStyle.paddingTop) + parseFloat(contentStyle.paddingBottom);
-    const chromeW = padX;
-    const chromeH = titlebar.offsetHeight + menubar.offsetHeight + toolbarRowEl.offsetHeight + paletteRowEl.offsetHeight + padY;
-    const availW = win.clientWidth - chromeW;
-    const availH = win.clientHeight - chromeH;
-    if (availW <= 0 || availH <= 0) return;
-    const size = Math.min(availW, availH);
-    const targetW = Math.round(size + chromeW);
-    const targetH = Math.round(size + chromeH);
-    if (Math.abs(win.clientWidth - targetW) > 1 || Math.abs(win.clientHeight - targetH) > 1) {
-      paintSnapping = true;
-      win.style.width = targetW + 'px';
-      win.style.height = targetH + 'px';
-      paintSnapping = false;
-    }
-    paintFitSquare();
-  }
-
-  paintSnapWindowToSquare();
+  paintFitSquare();
   let paintResizeObserver = null;
   if (window.ResizeObserver) {
-    paintResizeObserver = new ResizeObserver(() => paintSnapWindowToSquare());
+    paintResizeObserver = new ResizeObserver(() => paintFitSquare());
     paintResizeObserver.observe(win);
   }
 
@@ -3682,6 +3669,52 @@ function openPaintWindow() {
     }
     return best;
   }
+
+  function tryLoadImageSource(sources, onDone, lastError) {
+    if (!sources.length) return onDone({ success: false, error: lastError });
+    const src = sources[0];
+    const tryOne = useCrossOrigin => {
+      const img = new Image();
+      if (useCrossOrigin) img.crossOrigin = 'anonymous';
+      img.onload = () => onDone({ success: true, img, src });
+      img.onerror = () => {
+        const mode = useCrossOrigin ? 'with anonymous CORS' : 'without CORS';
+        const err = new Error('Load failed for ' + src + ' (' + mode + ')');
+        if (useCrossOrigin) tryOne(false);
+        else tryLoadImageSource(sources.slice(1), onDone, err);
+      };
+      img.src = src;
+    };
+    tryOne(true);
+  }
+
+  function loadDefaultPaintArt() {
+    tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), result => {
+      if (!result.success || !result.img) {
+        console.warn('Default paint artwork could not be loaded from any source; starting with blank canvas.', DEFAULT_PAINT_IMAGE_SOURCES, result.error ? result.error.message : '');
+        return;
+      }
+      try {
+        const n = DEFAULT_PAINT_GRID_SIZE;
+        const tmp = document.createElement('canvas');
+        tmp.width = n;
+        tmp.height = n;
+        const tctx = tmp.getContext('2d');
+        tctx.drawImage(result.img, 0, 0, n, n);
+        const data = tctx.getImageData(0, 0, n, n).data;
+        const art = new Array(n * n);
+        for (let i = 0; i < n * n; i++) {
+          const r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+          art[i] = nearestPaletteColor(r, g, b);
+        }
+        resetGrid(n, n, art);
+        sizeSelectEl.value = String(n);
+      } catch (e) {
+        console.warn('Failed to parse default paint artwork from ' + result.src + '; starting with blank canvas. Error: ' + (e && e.message ? e.message : e));
+      }
+    });
+  }
+  loadDefaultPaintArt();
 
   function importImageToPaint() {
     const input = document.createElement('input');
@@ -5012,8 +5045,9 @@ async function tryLogin() {
     buildDesktopIcons();
     updateClock();
     setInterval(updateClock, 30000);
-    // Open order controls stacking (last opened ends up on top): browser
-    // furthest back, Solitaire in the middle, media player on top.
+    // Open order controls stacking (last opened ends up on top): Paint
+    // furthest back, then browser, Solitaire, and media player on top.
+    openPaintWindow();
     openBrowserWindow('https://en.wikipedia.org/wiki/Valeriepieris_circle');
     openSolitaireWindow(true);
     openMediaPlayerWindow();

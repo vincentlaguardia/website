@@ -2605,13 +2605,11 @@ function pvRenderCurrent() {
     nameEl.textContent = item.name;
     const audio = document.createElement('audio');
     audio.controls = true;
-    audio.autoplay = true;
     audio.style.width = '80%';
-    const source = document.createElement('source');
-    source.setAttribute('src', item.file || '');
-    audio.appendChild(source);
+    audio.src = item.file || '';
     viewer.appendChild(nameEl);
     viewer.appendChild(audio);
+    if (item.file) audio.play().catch(() => {});
   } else {
     const img = document.createElement('img');
     img.setAttribute('src', item.image || item.file || '');
@@ -4333,6 +4331,24 @@ async function openMediaPlayerWindow(trackId) {
   await (async () => {
     try {
       await mpBuildPlaylist();
+      // If the requested track isn't in the default playlist (e.g. it came
+      // from an album folder rather than the /audio directory), find its
+      // parent folder and append all audio siblings to the playlist so the
+      // track can actually be loaded and prev/next navigation works.
+      if (trackId && !mpPlaylist.includes(trackId)) {
+        const parentId = Object.keys(items).find(
+          pid => items[pid].type === 'folder' &&
+                 Array.isArray(items[pid].children) &&
+                 items[pid].children.includes(trackId)
+        );
+        if (parentId) {
+          const siblings = await mpDiscoverAudioItems(parentId);
+          const existing = new Set(mpPlaylist);
+          siblings.forEach(id => { if (!existing.has(id)) mpPlaylist.push(id); });
+        } else {
+          mpPlaylist.push(trackId);
+        }
+      }
       mpRenderPlaylist();
       mpPreloadDurations();
     } catch (e) {

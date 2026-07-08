@@ -894,7 +894,7 @@ const items = {
   // Default Songs Player startup source: loads tracks from /audio only.
   mpaudio:      { type: 'folder', name: 'audio',           iconType: 'folder',   syncFolder: 'audio', children: [], modified: '2026-07-08' },
 
-  watches:      { type: 'folder', name: 'watch this babyyyyyyyyy', iconType: 'folder', syncFolder: 'content/watches', children: [], modified: '2026-07-08' },
+  watches:      { type: 'folder', name: 'watches',        iconType: 'folder', syncFolder: 'content/watches', children: [], modified: '2026-07-08' },
   purplestuff:  { type: 'folder', name: 'purple stuff',    iconType: 'folder',   syncFolder: 'content/purplestuff', children: [], modified: '2026-07-08' },
   collage:      { type: 'folder', name: 'collage',         iconType: 'picture',  syncFolder: 'content/collage', children: [], modified: '2026-07-08' },
 
@@ -1640,6 +1640,23 @@ function findReorderDropTarget(clientX, clientY, excludeItemId, parentId, scopeE
   return { id: targetId, el: holder, before };
 }
 
+// If a drag is released over blank space within the current folder view,
+// treat it as an "append to end" reorder target.
+function findReorderAppendTarget(clientX, clientY, excludeItemId, parentId, scopeEl) {
+  const topEl = document.elementFromPoint(clientX, clientY);
+  if (!topEl) return null;
+  if (scopeEl && !scopeEl.contains(topEl)) return null;
+  const inFolderViewport = topEl.closest('.folder-grid, .details-table, .details-table tbody, .details-table tr, .details-table td');
+  if (!inFolderViewport) return null;
+  const parent = items[parentId];
+  if (!parent || !Array.isArray(parent.children)) return null;
+  for (let i = parent.children.length - 1; i >= 0; i--) {
+    const siblingId = parent.children[i];
+    if (siblingId !== excludeItemId) return { id: siblingId, el: null, before: false };
+  }
+  return null;
+}
+
 // Reorders itemId within parentId.children by moving it before or after
 // anchorItemId. Persists the new order and pushes an undo entry.
 // Returns false for no-ops (same effective position) or invalid inputs.
@@ -1710,8 +1727,11 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
         ghost.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
         // Priority: cross-folder drop target first, then in-folder reorder target
         const folderTarget = (itemId && parentId) ? findFolderDropTarget(ev.clientX, ev.clientY, itemId, dropScopeEl) : null;
-        const reorderTarget = (!folderTarget && itemId && parentId)
+        let reorderTarget = (!folderTarget && itemId && parentId)
           ? findReorderDropTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl) : null;
+        if (!folderTarget && !reorderTarget && itemId && parentId) {
+          reorderTarget = findReorderAppendTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl);
+        }
         const newTargetEl = folderTarget ? folderTarget.el : (reorderTarget ? reorderTarget.el : null);
         if (activeTargetEl && activeTargetEl !== newTargetEl) {
           activeTargetEl.classList.remove('drop-target-active', 'drop-insert-before', 'drop-insert-after');
@@ -1765,7 +1785,8 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
         return;
       }
       // 3. Same-folder reorder (dropped onto a sibling item)
-      const reorderTarget = findReorderDropTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl);
+      let reorderTarget = findReorderDropTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl);
+      if (!reorderTarget) reorderTarget = findReorderAppendTarget(ev.clientX, ev.clientY, itemId, parentId, dropScopeEl);
       el.style.display = oldDisplay;
       if (reorderTarget && reorderItemInFolder(itemId, parentId, reorderTarget.id, reorderTarget.before)) {
         refreshFolderView(parentId);

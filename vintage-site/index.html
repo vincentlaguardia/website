@@ -345,10 +345,10 @@
 
   /* ---- WMP XP-style audio preview ---- */
   .pv-audio-viewer { width:100%; height:100%; display:flex; flex-direction:column; background:#001235; font-family:Tahoma,'MS Sans Serif',sans-serif; }
-  .pv-audio-display { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px 16px; background:#001235; }
-  .pv-audio-album { width:80px; height:80px; background:linear-gradient(135deg,#0a2a6a,#1a4aaa); border:2px solid #2060cc; display:flex; align-items:center; justify-content:center; font-size:32px; color:#4080cc; border-radius:2px; }
-  .pv-audio-title { color:#60a0e0; font-size:13px; text-align:center; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pv-audio-time  { color:#3a6ab0; font-size:11px; font-family:monospace; letter-spacing:1px; }
+  .pv-audio-display { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 8px 6px; background:#001235; min-height:0; }
+  .pv-audio-viz { flex:1; width:100%; display:block; min-height:40px; }
+  .pv-audio-title { color:#60a0e0; font-size:13px; text-align:center; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:none; }
+  .pv-audio-time  { color:#3a6ab0; font-size:11px; font-family:monospace; letter-spacing:1px; flex:none; }
   .pv-audio-statusbar { background:#000; color:#00cc00; font-size:11px; padding:3px 10px; font-family:'Courier New',monospace; border-top:2px solid #002266; flex:none; }
   .pv-audio-seekrow { background:#000; padding:0 0 2px 0; flex:none; }
   .pv-audio-seekrow input[type=range] { display:block; width:100%; margin:0; height:12px; accent-color:#00cc00; cursor:pointer; background:transparent; }
@@ -2674,9 +2674,8 @@ function pvRenderCurrent() {
     const display = document.createElement('div');
     display.className = 'pv-audio-display';
 
-    const albumArt = document.createElement('div');
-    albumArt.className = 'pv-audio-album';
-    albumArt.textContent = '♪';
+    const vizCanvas = document.createElement('canvas');
+    vizCanvas.className = 'pv-audio-viz';
 
     const titleEl = document.createElement('div');
     titleEl.className = 'pv-audio-title';
@@ -2686,7 +2685,7 @@ function pvRenderCurrent() {
     timeEl.className = 'pv-audio-time';
     timeEl.textContent = '0:00 / 0:00';
 
-    display.appendChild(albumArt);
+    display.appendChild(vizCanvas);
     display.appendChild(titleEl);
     display.appendChild(timeEl);
 
@@ -2747,6 +2746,46 @@ function pvRenderCurrent() {
     let isMuted = false;
     let isSeeking = false;
 
+    // EQ visualizer via Web Audio API
+    let vizCtx = null, vizAnalyser = null, vizData = null;
+    function pvVizInit() {
+      if (vizCtx) return;
+      try {
+        vizCtx = new (window.AudioContext || window.webkitAudioContext)();
+        vizAnalyser = vizCtx.createAnalyser();
+        vizAnalyser.fftSize = 128;
+        vizAnalyser.smoothingTimeConstant = 0.8;
+        vizData = new Uint8Array(vizAnalyser.frequencyBinCount);
+        const src = vizCtx.createMediaElementSource(audio);
+        src.connect(vizAnalyser);
+        vizAnalyser.connect(vizCtx.destination);
+      } catch(e) { vizCtx = null; }
+    }
+    function pvVizDraw() {
+      if (!vizCanvas.isConnected) return;
+      requestAnimationFrame(pvVizDraw);
+      const w = vizCanvas.offsetWidth, h = vizCanvas.offsetHeight;
+      if (!w || !h) return;
+      vizCanvas.width = w; vizCanvas.height = h;
+      const c = vizCanvas.getContext('2d');
+      c.fillStyle = '#001235';
+      c.fillRect(0, 0, w, h);
+      if (!vizAnalyser || !vizData) return;
+      vizAnalyser.getByteFrequencyData(vizData);
+      const bars = vizData.length, barW = w / bars;
+      const grad = c.createLinearGradient(0, h, 0, 0);
+      grad.addColorStop(0, '#1040a0');
+      grad.addColorStop(0.5, '#00aadd');
+      grad.addColorStop(1, '#00ff88');
+      c.fillStyle = grad;
+      for (let i = 0; i < bars; i++) {
+        const bh = (vizData[i] / 255) * h;
+        if (bh < 1) continue;
+        c.fillRect(Math.round(i * barW) + 1, h - bh, Math.max(Math.round(barW) - 1, 1), bh);
+      }
+    }
+    requestAnimationFrame(pvVizDraw);
+
     audio.addEventListener('loadedmetadata', () => {
       // Reset to 0 explicitly: browsers may restore a previous cached playback
       // position when the same URL is loaded again, making the seek bar appear
@@ -2762,6 +2801,8 @@ function pvRenderCurrent() {
       statusBar.textContent = item.name + '  ' + mpFormatTime(audio.currentTime) + ' / ' + mpFormatTime(audio.duration);
     });
     audio.addEventListener('play', () => {
+      pvVizInit();
+      if (vizCtx && vizCtx.state === 'suspended') vizCtx.resume();
       playBtn.textContent = '⏸';
       playBtn.classList.add('pv-playing');
     });

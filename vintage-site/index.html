@@ -3545,7 +3545,7 @@ function openWindow(id) {
 function openPaintWindow() {
   const id = 'paint';
   const PAINT_WINDOW_MIN_SIDE = 560;
-  const DEFAULT_PAINT_GRID_SIZE = 128;
+  const DEFAULT_PAINT_GRID_SIZE = 48;
   const DEFAULT_PAINT_IMAGE_SOURCES = [
     // Requested default "pam nude pixel" artwork variants; we try each.
     'https://github.com/user-attachments/assets/f8da11ef-63bc-4d8f-9dec-0c9a21fd509a',
@@ -3647,8 +3647,9 @@ function openPaintWindow() {
           <option value="16">16 x 16</option>
           <option value="20">20 x 20</option>
           <option value="24">24 x 24</option>
-          <option value="30" selected>30 x 30</option>
+          <option value="30">30 x 30</option>
           <option value="32">32 x 32</option>
+          <option value="48" selected>48 x 48</option>
           <option value="64">64 x 64</option>
           <option value="128">128 x 128</option>
         </select>

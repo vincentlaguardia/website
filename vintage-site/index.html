@@ -3581,7 +3581,7 @@ function openPaintWindow() {
     const rect = fileMenuItem.getBoundingClientRect();
     showContextMenu(rect.left, rect.bottom, [
       { label: 'New', onClick: () => resetGrid(cols, rows) },
-      { label: 'Add…', onClick: () => importImageToPaint() },
+      { label: 'Add...', onClick: () => importImageToPaint() },
       { label: 'Save', onClick: () => savePaintImage() },
       { label: 'Close', onClick: () => closeWindow(id) }
     ]);

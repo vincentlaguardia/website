@@ -3377,6 +3377,7 @@ function openPaintWindow() {
   const id = 'paint';
   const DEFAULT_PAINT_GRID_SIZE = 128;
   const DEFAULT_PAINT_IMAGE_SOURCES = [
+    // Requested default "pam nude pixel" artwork variants; we try each.
     'https://github.com/user-attachments/assets/f8da11ef-63bc-4d8f-9dec-0c9a21fd509a',
     'https://github.com/user-attachments/assets/06941b9b-7348-4c97-abb5-5dd5ade88cd6'
   ];
@@ -3614,9 +3615,11 @@ function openPaintWindow() {
     const availH = canvasAreaEl.clientHeight;
     if (!availW || !availH) return;
     if (!cols) return;
-    const maxAvailableSize = Math.max(0, Math.min(availW, availH));
-    const gridAlignedSize = Math.floor(maxAvailableSize / cols) * cols;
-    const finalSize = gridAlignedSize >= cols ? gridAlignedSize : maxAvailableSize;
+    const availableSquareSize = Math.max(0, Math.min(availW, availH));
+    const gridAlignedSize = Math.floor(availableSquareSize / cols) * cols;
+    // Tiny windows may not fit one full cell per row/col; in that case,
+    // use the largest possible square anyway so Paint still remains usable.
+    const finalSize = gridAlignedSize >= cols ? gridAlignedSize : availableSquareSize;
     canvas.style.width = finalSize + 'px';
     canvas.style.height = finalSize + 'px';
   }
@@ -3681,7 +3684,7 @@ function openPaintWindow() {
   function loadDefaultPaintArt() {
     tryLoadImageSource(DEFAULT_PAINT_IMAGE_SOURCES.slice(), (ok, img, src) => {
       if (!ok || !img) {
-        console.warn('Default paint image could not be loaded from any source after CORS and non-CORS attempts:', DEFAULT_PAINT_IMAGE_SOURCES);
+        console.warn('Default paint artwork could not be loaded from any source; starting with blank canvas.', DEFAULT_PAINT_IMAGE_SOURCES);
         return;
       }
       try {
@@ -3700,7 +3703,7 @@ function openPaintWindow() {
         resetGrid(n, n, art);
         sizeSelectEl.value = String(n);
       } catch (e) {
-        console.warn('Default paint image could not be parsed from source:', src, e);
+        console.warn('Failed to parse default paint artwork from ' + src + '; starting with blank canvas. Error: ' + (e && e.message ? e.message : e));
       }
     });
   }

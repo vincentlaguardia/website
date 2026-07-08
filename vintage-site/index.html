@@ -1423,8 +1423,8 @@ function ieHomeUrl() {
 
 function ieLandingUrl() {
   // What the browser shows when it *first opens*, before the visitor has
-  // clicked anywhere. At the top level that's still the site itself. Each
-  // deeper layer -- tracked via the ?ieDepth=N query string this page's
+  // clicked anywhere. At the top level (depth 0) that's Project Mockingbird.
+  // Each deeper layer -- tracked via the ?ieDepth=N query string this page's
   // own URL was loaded with (set by ieHomeUrl() the last time someone hit
   // Home) -- lands on a different page, so recursing further keeps
   // surfacing something new instead of repeating the same thing forever.

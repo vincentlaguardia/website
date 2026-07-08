@@ -262,6 +262,7 @@
     background: #3a5090;
   }
   .grid-item.selected .label { color: #fff; }
+  .grid-item:focus, .details-row:focus { outline: none; }
   .grid-item.drop-target-active {
     border: 1px dotted #0a246a;
     background: #d7e8ff;
@@ -2302,8 +2303,9 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
   }
   el.addEventListener('click', () => {
     if (moved) { moved = false; return; }
-    document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));
+    document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
     el.classList.add('selected');
+    el.focus();
   });
   if (onOpen) {
     el.addEventListener('dblclick', () => {
@@ -2326,11 +2328,13 @@ function renderFolderContent(id) {
     el.className = 'grid-item';
     el.dataset.itemId = childId;
     el.dataset.parentId = id;
+    el.tabIndex = -1;
     el.innerHTML = getIcon(child, 64) +
       '<div class="label">' + child.name + '</div>';
     el.addEventListener('click', e => {
-      document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));
+      document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
       el.classList.add('selected');
+      el.focus();
       e.stopPropagation();
     });
     el.addEventListener('dblclick', () => openChildItem(childId, child, id));
@@ -2381,14 +2385,16 @@ function renderDetailsContent(id) {
     row.className = 'details-row';
     row.dataset.itemId = childId;
     row.dataset.parentId = id;
+    row.tabIndex = -1;
     row.innerHTML =
       '<td class="details-name">' + getIcon(child, 20) + '<span class="label">' + child.name + '</span></td>' +
       '<td class="details-type">' + fileTypeLabel(child) + '</td>' +
       '<td class="details-size">' + formatFileSize(child.size) + '</td>' +
       '<td class="details-date">' + formatDate(child.modified) + '</td>';
     row.addEventListener('click', e => {
-      document.querySelectorAll('.details-row.selected').forEach(s => s.classList.remove('selected'));
+      document.querySelectorAll('.grid-item.selected, .details-row.selected, .desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
       row.classList.add('selected');
+      row.focus();
       e.stopPropagation();
     });
     row.addEventListener('dblclick', () => openChildItem(childId, child, id));
@@ -2583,7 +2589,7 @@ document.addEventListener('keydown', e => {
 // Pressing Space on the same selected item while the viewer is minimized
 // un-minimizes it and brings it back to the front.
 document.addEventListener('keydown', e => {
-  if (e.key !== ' ' && e.code !== 'Space') return;
+  if (e.key !== ' ' && e.key !== 'Spacebar' && e.code !== 'Space') return;
   const tag = (e.target && e.target.tagName) || '';
   if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
   // If the media viewer is already open and visible, Space minimizes it

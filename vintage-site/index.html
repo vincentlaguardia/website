@@ -910,7 +910,8 @@ function getIcon(item, size) {
 const items = {
   // Content-synced root folders are no longer hardcoded here; they are
   // populated at startup by loadDesktopRootsFromManifest() from content/manifest.json.
-  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut'], modified: '2026-06-01' },
+  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'desktoppic'], modified: '2026-06-01' },
+  desktoppic:   { type: 'picture', name: 'photo.jpg', file: 'content/desktop-photo.jpg', modified: '2026-07-08' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/catscans', children: [], modified: '2026-07-08' },

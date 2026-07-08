@@ -356,7 +356,8 @@
   .win98-menubar .pv-menu-group[hidden] { display: none; }
   .win98-menubar .pv-menu-static { color: #444; white-space: nowrap; }
   .pv-audio-sel-label { font-size: 11px; color: #000; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
-  .pv-audio-sel-label select { font-size: 11px; font-family: inherit; padding: 0 2px; height: 18px; cursor: pointer; }
+  .pv-audio-sel-label select { font-size: 11px; font-family: inherit; padding: 0 2px; height: 18px; cursor: pointer; background: #c0c0c0; border: 1px solid #808080; border-radius: 0; outline: none; box-shadow: none; }
+  .pv-audio-sel-label select:focus { outline: none; box-shadow: none; }
   .win98-menubar .pv-zoom-label { margin-left: auto; color: #333; }
   .picture-window { resize: both; overflow: hidden; }
 
@@ -3266,14 +3267,16 @@ function pvRenderCurrent() {
       const frequencyPreset = pvGetPreset(PV_AUDIO_FREQUENCY_PRESETS, pvState && pvState.audioVizFrequencyPreset);
       const colorPreset = pvGetPreset(PV_AUDIO_COLOR_PRESETS, pvState && pvState.audioVizColorPreset);
 
-      const grad = ctx.createLinearGradient(0,0,0,h);
-      grad.addColorStop(0, colorPreset.top);
-      grad.addColorStop(0.45, colorPreset.mid);
-      grad.addColorStop(1,'#111110');
-
       const bars = frequencyPreset.bars;
       const bw = Math.max(2, Math.floor(w / bars) - 1);
       const gap = 1;
+
+      function barGrad(y, bh) {
+        const g = ctx.createLinearGradient(0, y, 0, y + bh);
+        g.addColorStop(0, colorPreset.top);
+        g.addColorStop(1, colorPreset.mid);
+        return g;
+      }
 
       if (audio.paused) {
         // Idle animation: gentle slow-moving sin-wave bars
@@ -3309,10 +3312,10 @@ function pvRenderCurrent() {
           v = Math.max(0, Math.min(1, v));
           v = Math.pow(v, 1.6);
 
-          const bh = Math.max(1, Math.round(v * (h - 8)));
+          const bh = Math.max(2, Math.round(v * (h - 8)));
           const x = i * (bw + gap);
           const y = h - bh;
-          ctx.fillStyle = grad;
+          ctx.fillStyle = barGrad(y, bh);
           ctx.fillRect(x, y, bw, bh);
         }
       } else {
@@ -3320,7 +3323,7 @@ function pvRenderCurrent() {
         for (let i = 0; i < bars; i++) {
           const x = i * (bw + gap);
           const bh = 4 + Math.round(Math.abs(Math.sin(performance.now() / 180 + i * 0.7)) * 20);
-          ctx.fillStyle = grad;
+          ctx.fillStyle = barGrad(h - bh, bh);
           ctx.fillRect(x, h - bh, bw, bh);
         }
       }

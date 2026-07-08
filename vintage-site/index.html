@@ -355,6 +355,8 @@
   .win98-menubar .pv-menu-group { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: nowrap; }
   .win98-menubar .pv-menu-group[hidden] { display: none; }
   .win98-menubar .pv-menu-static { color: #444; white-space: nowrap; }
+  .pv-audio-sel-label { font-size: 11px; color: #000; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+  .pv-audio-sel-label select { font-size: 11px; font-family: inherit; padding: 0 2px; height: 18px; cursor: pointer; }
   .win98-menubar .pv-zoom-label { margin-left: auto; color: #333; }
   .picture-window { resize: both; overflow: hidden; }
 
@@ -2845,6 +2847,12 @@ function pvCycleAudioPreset(stateKey, presets) {
   pvSyncViewOptions();
 }
 
+function pvSetAudioPreset(stateKey, id) {
+  if (!pvState) return;
+  pvState[stateKey] = id;
+  pvSyncViewOptions();
+}
+
 function pvSetViewMode(mode) {
   if (!pvState) return;
   pvState.pictureViewMode = (mode === 'actual') ? 'actual' : 'fit';
@@ -2981,13 +2989,13 @@ function pvSyncViewOptions() {
   }
 
   const timeEl = pvWin.el.querySelector('[data-pv-audio="time"]');
-  if (timeEl) timeEl.textContent = 'Time: ' + pvGetPreset(PV_AUDIO_TIME_PRESETS, pvState.audioVizTimePreset).label;
+  if (timeEl) timeEl.value = pvGetPreset(PV_AUDIO_TIME_PRESETS, pvState.audioVizTimePreset).id;
 
   const frequencyEl = pvWin.el.querySelector('[data-pv-audio="frequency"]');
-  if (frequencyEl) frequencyEl.textContent = 'Detail: ' + pvGetPreset(PV_AUDIO_FREQUENCY_PRESETS, pvState.audioVizFrequencyPreset).label;
+  if (frequencyEl) frequencyEl.value = pvGetPreset(PV_AUDIO_FREQUENCY_PRESETS, pvState.audioVizFrequencyPreset).id;
 
   const colorEl = pvWin.el.querySelector('[data-pv-audio="color"]');
-  if (colorEl) colorEl.textContent = 'Color: ' + pvGetPreset(PV_AUDIO_COLOR_PRESETS, pvState.audioVizColorPreset).label;
+  if (colorEl) colorEl.value = pvGetPreset(PV_AUDIO_COLOR_PRESETS, pvState.audioVizColorPreset).id;
 }
 
 
@@ -3051,11 +3059,9 @@ function openPictureWindow(childId, parentId, options = {}) {
       <span class="pv-zoom-label">100%</span>
     </div>
     <div class="pv-menu-group" data-pv-menu="audio" hidden>
-      <span class="pv-menu-static">Drag Window</span>
-      <span class="pv-menu-static">Resize Window</span>
-      <span class="pv-view-option" data-pv-audio="time">Time: Balanced</span>
-      <span class="pv-view-option" data-pv-audio="frequency">Detail: Balanced</span>
-      <span class="pv-view-option" data-pv-audio="color">Color: Lime</span>
+      <label class="pv-audio-sel-label">Time<select data-pv-audio="time"><option value="soft">Soft</option><option value="balanced" selected>Balanced</option><option value="snappy">Snappy</option></select></label>
+      <label class="pv-audio-sel-label">Detail<select data-pv-audio="frequency"><option value="smooth">Smooth</option><option value="balanced" selected>Balanced</option><option value="detailed">Detailed</option></select></label>
+      <label class="pv-audio-sel-label">Color<select data-pv-audio="color"><option value="lime" selected>Lime</option><option value="sunset">Sunset</option><option value="ocean">Ocean</option><option value="orchid">Orchid</option></select></label>
     </div>
     <div class="pv-menu-group" data-pv-menu="video" hidden>
       <span class="pv-menu-static">Use video playback controls below</span>
@@ -3090,9 +3096,9 @@ function openPictureWindow(childId, parentId, options = {}) {
   menubar.querySelector('[data-pv-view="reset"]').addEventListener('click', () => pvResetView());
   menubar.querySelector('[data-pv-zoom="in"]').addEventListener('click', () => pvAdjustZoom(0.1));
   menubar.querySelector('[data-pv-zoom="out"]').addEventListener('click', () => pvAdjustZoom(-0.1));
-  menubar.querySelector('[data-pv-audio="time"]').addEventListener('click', () => pvCycleAudioPreset('audioVizTimePreset', PV_AUDIO_TIME_PRESETS));
-  menubar.querySelector('[data-pv-audio="frequency"]').addEventListener('click', () => pvCycleAudioPreset('audioVizFrequencyPreset', PV_AUDIO_FREQUENCY_PRESETS));
-  menubar.querySelector('[data-pv-audio="color"]').addEventListener('click', () => pvCycleAudioPreset('audioVizColorPreset', PV_AUDIO_COLOR_PRESETS));
+  menubar.querySelector('[data-pv-audio="time"]').addEventListener('change', e => pvSetAudioPreset('audioVizTimePreset', e.target.value));
+  menubar.querySelector('[data-pv-audio="frequency"]').addEventListener('change', e => pvSetAudioPreset('audioVizFrequencyPreset', e.target.value));
+  menubar.querySelector('[data-pv-audio="color"]').addEventListener('change', e => pvSetAudioPreset('audioVizColorPreset', e.target.value));
 
   makeDraggable(win, titlebar);
 
@@ -3269,7 +3275,16 @@ function pvRenderCurrent() {
       const bw = Math.max(2, Math.floor(w / bars) - 1);
       const gap = 1;
 
-      if (vizAnalyser && vizData) {
+      if (audio.paused) {
+        // Idle animation: gentle slow-moving sin-wave bars
+        for (let i = 0; i < bars; i++) {
+          const x = i * (bw + gap);
+          const norm = performance.now() / 900 + i * 0.45;
+          const bh = Math.max(2, Math.round((0.06 + Math.abs(Math.sin(norm)) * 0.20) * h));
+          ctx.fillStyle = colorPreset.idle;
+          ctx.fillRect(x, h - bh, bw, bh);
+        }
+      } else if (vizAnalyser && vizData) {
         vizAnalyser.smoothingTimeConstant = timePreset.smoothing;
         vizAnalyser.getFloatFrequencyData(vizData);
         const hzPerBin = (vizCtx.sampleRate / 2) / vizData.length;
@@ -3293,7 +3308,6 @@ function pvRenderCurrent() {
           let v = (db + 90) / 80;
           v = Math.max(0, Math.min(1, v));
           v = Math.pow(v, 1.6);
-          if (audio.paused) v *= 0.1;
 
           const bh = Math.max(1, Math.round(v * (h - 8)));
           const x = i * (bw + gap);
@@ -3302,10 +3316,11 @@ function pvRenderCurrent() {
           ctx.fillRect(x, y, bw, bh);
         }
       } else {
+        // Playing but no analyser yet: animated sin-wave bars
         for (let i = 0; i < bars; i++) {
           const x = i * (bw + gap);
-          const bh = (audio.paused ? 2 : (4 + Math.round(Math.sin((performance.now()/180)+i*0.7) * 6 + 8)));
-          ctx.fillStyle = colorPreset.idle;
+          const bh = 4 + Math.round(Math.abs(Math.sin(performance.now() / 180 + i * 0.7)) * 20);
+          ctx.fillStyle = grad;
           ctx.fillRect(x, h - bh, bw, bh);
         }
       }

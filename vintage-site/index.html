@@ -2378,6 +2378,7 @@ function pvRenderCurrent() {
     video.autoplay = true;
     video.style.cssText = 'max-width:100%;max-height:100%;display:block;';
     const source = document.createElement('source');
+    // videoData holds base64-encoded video; file is used for synced content/ items
     source.setAttribute('src', item.videoData || item.file || '');
     source.setAttribute('type', 'video/mp4');
     video.appendChild(source);

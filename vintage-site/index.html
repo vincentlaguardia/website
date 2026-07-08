@@ -1074,10 +1074,8 @@ try { trashItems = JSON.parse(localStorage.getItem('site-trash') || '[]'); } cat
 // On first visit, desktoppic starts in the trash by default
 if (!localStorage.getItem('site-trash-defaults-set')) {
   localStorage.setItem('site-trash-defaults-set', '1');
-  if (!trashItems.some(t => t.id === 'desktoppic')) {
-    trashItems.push({ id: 'desktoppic', parentId: 'desktop' });
-    localStorage.setItem('site-trash', JSON.stringify(trashItems));
-  }
+  trashItems.push({ id: 'desktoppic', parentId: 'desktop' });
+  localStorage.setItem('site-trash', JSON.stringify(trashItems));
 }
 
 function saveTrash() {
@@ -1386,7 +1384,7 @@ function openTrashWindow() {
     const contentEl = win.querySelector('.win98-content');
     const selected = contentEl ? [...contentEl.querySelectorAll('.grid-item.selected[data-item-id]')] : [];
     if (selected.length) {
-      selected.map(el => el.dataset.itemId).forEach(id => restoreItem(id));
+      selected.forEach(el => restoreItem(el.dataset.itemId));
     } else {
       [...trashItems].forEach(entry => restoreItem(entry.id));
     }

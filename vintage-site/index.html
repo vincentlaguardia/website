@@ -2140,6 +2140,7 @@ function inferTypeFromExt(name) {
 }
 
 const MP_LIBRARY_SOURCE_FOLDER_ID = 'audio';
+const MP_DEFAULT_PLAYLIST_ROOT_ID = MP_LIBRARY_SOURCE_FOLDER_ID;
 const MP_AUDIO_PLACEHOLDER_SIZE_THRESHOLD = 256;
 
 function mpFindLibraryTrackIdByName(name) {
@@ -3977,8 +3978,6 @@ async function mpDiscoverAudioItems(id, visited) {
   return found;
 }
 
-const MP_DEFAULT_PLAYLIST_ROOT_ID = 'mpaudio';
-
 async function mpBuildPlaylist() {
   mpPlaylist = await mpDiscoverAudioItems(MP_DEFAULT_PLAYLIST_ROOT_ID);
 }
@@ -4362,7 +4361,7 @@ async function openMediaPlayerWindow(trackId) {
   }
 
   // Rebuilt on every open (not just the first time the window is created),
-  // so newly added files under /audio can appear automatically.
+  // so the player always resets back to the default /audio playlist.
   // Use mpBuildAllPlaylist() if you want a full-site "browse all music"
   // mode that recursively discovers audio anywhere in the site tree.
   await (async () => {

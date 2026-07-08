@@ -2139,6 +2139,24 @@ function inferTypeFromExt(name) {
   return 'file';
 }
 
+const MP_CANONICAL_AUDIO_FOLDER_ID = 'audio';
+const MP_AUDIO_PLACEHOLDER_MAX_BYTES = 256;
+
+function mpFindCanonicalTrackByName(name) {
+  const folder = items[MP_CANONICAL_AUDIO_FOLDER_ID];
+  if (!folder || !Array.isArray(folder.children)) return null;
+  return folder.children.find(
+    cid => items[cid] && items[cid].type === 'audio' && items[cid].name === name
+  ) || null;
+}
+
+function mpResolveSyncedAudioFile(name, size, fallbackFile) {
+  if (!(size <= MP_AUDIO_PLACEHOLDER_MAX_BYTES)) return fallbackFile;
+  const canonicalTrackId = mpFindCanonicalTrackByName(name);
+  const canonicalTrack = canonicalTrackId && items[canonicalTrackId];
+  return canonicalTrack && canonicalTrack.file ? canonicalTrack.file : fallbackFile;
+}
+
 async function loadSyncChildren(id) {
   const item = items[id];
   if (!item || !item.syncFolder) return;
@@ -2160,10 +2178,13 @@ async function loadSyncChildren(id) {
       } else {
         const type = inferTypeFromExt(e.name);
         const filePath = item.syncFolder + '/' + e.name;
+        const file = type === 'audio'
+          ? mpResolveSyncedAudioFile(e.name, e.size, toAssetUrl(filePath))
+          : toAssetUrl(filePath);
         items[cid] = {
           type: type, name: e.name, iconType: type,
           filePath,
-          file: toAssetUrl(filePath),
+          file,
           size: e.size, modified: e.modified
         };
       }
@@ -3966,6 +3987,22 @@ async function mpBuildAllPlaylist() {
   mpPlaylist = await mpDiscoverAudioItems('desktop');
 }
 
+async function mpBuildPlaylistForTrack(trackId) {
+  await mpBuildPlaylist();
+  if (!trackId || mpPlaylist.includes(trackId)) return;
+  const parentId = Object.keys(items).find(
+    pid => items[pid].type === 'folder' &&
+           Array.isArray(items[pid].children) &&
+           items[pid].children.includes(trackId)
+  );
+  if (!parentId) {
+    mpPlaylist = [trackId];
+    return;
+  }
+  const siblings = await mpDiscoverAudioItems(parentId);
+  mpPlaylist = siblings.length ? siblings : [trackId];
+}
+
 function mpPreloadDurations() {
   // Tracks discovered later (e.g. a synced folder opened after the player
   // was already running) need probing too -- so this tracks which specific
@@ -4330,25 +4367,7 @@ async function openMediaPlayerWindow(trackId) {
   // mode that recursively discovers audio anywhere in the site tree.
   await (async () => {
     try {
-      await mpBuildPlaylist();
-      // If the requested track isn't in the default playlist (e.g. it came
-      // from an album folder rather than the /audio directory), find its
-      // parent folder and append all audio siblings to the playlist so the
-      // track can actually be loaded and prev/next navigation works.
-      if (trackId && !mpPlaylist.includes(trackId)) {
-        const parentId = Object.keys(items).find(
-          pid => items[pid].type === 'folder' &&
-                 Array.isArray(items[pid].children) &&
-                 items[pid].children.includes(trackId)
-        );
-        if (parentId) {
-          const siblings = await mpDiscoverAudioItems(parentId);
-          const existing = new Set(mpPlaylist);
-          siblings.forEach(id => { if (!existing.has(id)) mpPlaylist.push(id); });
-        } else {
-          mpPlaylist.push(trackId);
-        }
-      }
+      await mpBuildPlaylistForTrack(trackId);
       mpRenderPlaylist();
       mpPreloadDurations();
     } catch (e) {

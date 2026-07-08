@@ -866,7 +866,9 @@ function getIcon(item, size) {
 
 /* ---------- site map ---------- */
 const items = {
-  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['easy', 'watchthisbabyyyyyyyy', 'purplestuff', 'collage', 'eyes', 'thoughts', 'interface', 'miscinfo', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'catscans', 'coolstuff', 'miscbooks'], modified: '2026-06-01' },
+  // Content-synced root folders are no longer hardcoded here; they are
+  // populated at startup by loadDesktopRootsFromManifest() from content/manifest.json.
+  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut'], modified: '2026-06-01' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/catscans', children: [], modified: '2026-07-08' },
@@ -2119,6 +2121,42 @@ async function openSyncFolder(id) {
   await loadSyncChildren(id);
   if (openWindows[id]) refreshFolderView(id);
   else openWindow(id);
+}
+
+/* ---------- manifest-driven desktop roots ----------
+   Fetches content/manifest.json on startup and adds every top-level folder
+   it lists to items.desktop.children, creating a default synced-folder item
+   for any entry that has no existing definition. Existing item definitions
+   (with custom names / iconTypes) are preserved unchanged.
+   Fixed items that are already in items.desktop.children (shortcuts etc.)
+   are kept at the front; manifest-derived content folders are appended after. */
+async function loadDesktopRootsFromManifest() {
+  try {
+    const res = await fetch('content/manifest.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
+    const entries = await res.json();
+    // Keep any fixed (non-content-synced) items already in desktop.children
+    const fixed = items.desktop.children.filter(
+      id => !items[id] || !items[id].syncFolder || !items[id].syncFolder.startsWith('content/')
+    );
+    const contentIds = entries
+      .filter(e => e.type === 'folder')
+      .map(e => {
+        // Reuse existing definition if present (preserves custom name/iconType);
+        // otherwise synthesise a default synced-folder entry.
+        if (!items[e.name]) {
+          items[e.name] = {
+            type: 'folder', name: e.name, iconType: 'folder',
+            syncFolder: 'content/' + e.name,
+            children: [], modified: e.modified || new Date().toISOString().slice(0, 10)
+          };
+        }
+        return e.name;
+      });
+    items.desktop.children = [...fixed, ...contentIds];
+  } catch (err) {
+    console.error('Could not load desktop roots from content/manifest.json; keeping defaults', err);
+  }
 }
 
 function renderFolderContent(id) {
@@ -4239,12 +4277,13 @@ document.getElementById('menu-paint').addEventListener('click', () => {
 });
 
 /* ---------- login ---------- */
-function tryLogin() {
+async function tryLogin() {
   const input = document.getElementById('password-input');
   const err = document.getElementById('login-error');
   if (input.value === SITE_PASSWORD) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('desktop').style.display = 'block';
+    await loadDesktopRootsFromManifest();
     buildDesktopIcons();
     updateClock();
     setInterval(updateClock, 30000);

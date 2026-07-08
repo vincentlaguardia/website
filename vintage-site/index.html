@@ -2725,7 +2725,16 @@ let pvState = null; // { parentId, ids, index, quickPreview, pictureViewMode, pi
 function pvSetViewMode(mode) {
   if (!pvState) return;
   pvState.pictureViewMode = (mode === 'actual') ? 'actual' : 'fit';
+  if (mode !== 'actual') pvState.pictureZoom = 1;
   if (!Number.isFinite(pvState.pictureZoom) || pvState.pictureZoom <= 0) pvState.pictureZoom = 1;
+  pvApplyPictureLayout();
+  pvSyncViewOptions();
+}
+
+function pvResetView() {
+  if (!pvState) return;
+  pvState.pictureViewMode = 'fit';
+  pvState.pictureZoom = 1;
   pvApplyPictureLayout();
   pvSyncViewOptions();
 }
@@ -2885,6 +2894,7 @@ function openPictureWindow(childId, parentId, options = {}) {
     <span class="pv-view-option" data-pv-view="actual">Actual Size</span>
     <span class="pv-view-option" data-pv-zoom="in">Zoom In</span>
     <span class="pv-view-option" data-pv-zoom="out">Zoom Out</span>
+    <span class="pv-view-option" data-pv-view="reset">Reset</span>
     <span class="pv-zoom-label">100%</span>
   `;
 
@@ -2913,6 +2923,7 @@ function openPictureWindow(childId, parentId, options = {}) {
 
   menubar.querySelector('[data-pv-view="fit"]').addEventListener('click', () => pvSetViewMode('fit'));
   menubar.querySelector('[data-pv-view="actual"]').addEventListener('click', () => pvSetViewMode('actual'));
+  menubar.querySelector('[data-pv-view="reset"]').addEventListener('click', () => pvResetView());
   menubar.querySelector('[data-pv-zoom="in"]').addEventListener('click', () => pvAdjustZoom(0.1));
   menubar.querySelector('[data-pv-zoom="out"]').addEventListener('click', () => pvAdjustZoom(-0.1));
 

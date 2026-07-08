@@ -1071,6 +1071,13 @@ function trashIconMarkup(size, full) {
 let trashItems = [];
 try { trashItems = JSON.parse(localStorage.getItem('site-trash') || '[]'); } catch (e) { trashItems = []; }
 
+// On first visit, desktoppic starts in the trash by default
+if (!localStorage.getItem('site-trash-defaults-set')) {
+  localStorage.setItem('site-trash-defaults-set', '1');
+  trashItems.push({ id: 'desktoppic', parentId: 'desktop' });
+  localStorage.setItem('site-trash', JSON.stringify(trashItems));
+}
+
 function saveTrash() {
   localStorage.setItem('site-trash', JSON.stringify(trashItems));
 }
@@ -1295,6 +1302,7 @@ function renderTrashContent() {
     if (!child) return;
     const el = document.createElement('div');
     el.className = 'grid-item';
+    el.dataset.itemId = entry.id;
     el.innerHTML = getIcon(child, 64) + '<div class="label">' + child.name + '</div>';
     el.addEventListener('click', e => {
       document.querySelectorAll('.grid-item.selected').forEach(s => s.classList.remove('selected'));
@@ -1342,7 +1350,9 @@ function openTrashWindow() {
 
   const menubar = document.createElement('div');
   menubar.className = 'win98-menubar';
-  menubar.innerHTML = '<span id="trash-empty-btn" style="cursor:pointer;text-decoration:underline;">Empty Recycle Bin</span>';
+  menubar.innerHTML = '<span id="trash-empty-btn" style="cursor:pointer;text-decoration:underline;">Empty Recycle Bin</span>' +
+    '<span style="margin:0 8px;color:#808080;">|</span>' +
+    '<span id="trash-restore-btn" style="cursor:pointer;text-decoration:underline;">Restore Items</span>';
 
   const content = document.createElement('div');
   content.className = 'win98-content';
@@ -1370,6 +1380,15 @@ function openTrashWindow() {
   bringToFront(id);
 
   document.getElementById('trash-empty-btn').addEventListener('click', () => emptyTrash());
+  document.getElementById('trash-restore-btn').addEventListener('click', () => {
+    const contentEl = win.querySelector('.win98-content');
+    const selected = contentEl ? [...contentEl.querySelectorAll('.grid-item.selected[data-item-id]')] : [];
+    if (selected.length) {
+      selected.forEach(el => restoreItem(el.dataset.itemId));
+    } else {
+      [...trashItems].forEach(entry => restoreItem(entry.id));
+    }
+  });
 }
 
 /* ---------- Internet Explorer (in-site browser window) ---------- */

@@ -19,7 +19,7 @@ const CONTENT_DIR = path.join(__dirname, 'content');
 const URL_SAFE_TXT_BASE_RE = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 
 function isHidden(name) {
-  return name.startsWith('.');
+  return name.startsWith('.') || name.startsWith('_');
 }
 
 function formatDate(mtime) {

@@ -341,6 +341,8 @@
   .video-viewer { width: 100%; height: 100%; background: #000; }
   .picture-viewer { width: 100%; height: 100%; min-width: 0; min-height: 0; background: #000; display: flex; align-items: center; justify-content: center; }
   .picture-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .picture-viewer.actual-size { display: block; overflow: auto; padding: 12px; box-sizing: border-box; text-align: center; }
+  .picture-viewer.actual-size img { max-width: none; max-height: none; object-fit: none; margin: auto; }
   .picture-window { resize: both; overflow: hidden; }
 
   /* ---- WMP XP-style audio preview ---- */
@@ -2561,20 +2563,39 @@ function renderArtContent(id) {
   return wrap;
 }
 
-let pvState = null; // { parentId, ids, index } for the picture viewer's slideshow
+let pvState = null; // { parentId, ids, index, quickPreview } for the picture viewer's slideshow
 
-function openPictureWindow(childId, parentId) {
+function pvApplyQuickPreviewLayout(win) {
+  if (!win) return;
+  const desktop = document.getElementById('desktop');
+  const taskbar = document.getElementById('taskbar');
+  const desktopRect = desktop ? desktop.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+  const taskbarHeight = taskbar ? taskbar.offsetHeight : 0;
+  const margin = 14;
+  const width = Math.max(320, Math.floor(desktopRect.width - margin * 2));
+  const height = Math.max(240, Math.floor(desktopRect.height - taskbarHeight - margin * 2));
+  win.style.left = margin + 'px';
+  win.style.top = margin + 'px';
+  win.style.width = width + 'px';
+  win.style.height = height + 'px';
+}
+
+function openPictureWindow(childId, parentId, options = {}) {
   const id = 'picviewer';
   const parent = items[parentId];
   const ids = (parent && parent.children ? parent.children : [childId])
     .filter(cid => items[cid] && ['picture', 'video', 'audio'].includes(items[cid].type));
   const index = Math.max(0, ids.indexOf(childId));
-  pvState = { parentId, ids, index };
+  const quickPreview = !!options.quickPreview;
+  pvState = { parentId, ids, index, quickPreview };
 
   if (openWindows[id]) {
     if (openWindows[id].minimized) toggleMinimize(id);
     bringToFront(id);
     pvRenderCurrent();
+    if (quickPreview && items[pvState.ids[pvState.index]] && items[pvState.ids[pvState.index]].type === 'picture') {
+      pvApplyQuickPreviewLayout(openWindows[id].el);
+    }
     return;
   }
 
@@ -2587,6 +2608,9 @@ function openPictureWindow(childId, parentId) {
   win.style.height = '460px';
   win.style.minWidth = '260px';
   win.style.minHeight = '220px';
+  if (quickPreview && items[pvState.ids[pvState.index]] && items[pvState.ids[pvState.index]].type === 'picture') {
+    pvApplyQuickPreviewLayout(win);
+  }
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
@@ -2926,6 +2950,7 @@ function pvRenderCurrent() {
 
     if (item.file) audio.play().catch(() => {});
   } else {
+    if (pvState && pvState.quickPreview) viewer.classList.add('actual-size');
     const img = document.createElement('img');
     img.setAttribute('src', item.image || item.file || '');
     img.alt = item.name;
@@ -2975,7 +3000,7 @@ document.addEventListener('keydown', e => {
   if (!item) return;
   if (item.type === 'picture' || item.type === 'video' || item.type === 'audio') {
     e.preventDefault();
-    openPictureWindow(itemId, parentId);
+    openPictureWindow(itemId, parentId, { quickPreview: true });
     return;
   }
 });

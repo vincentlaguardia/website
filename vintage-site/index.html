@@ -3261,7 +3261,10 @@ function pvRenderCurrent() {
     volSlider.addEventListener('input', () => { audio.volume = volSlider.value / 100; });
     audio.volume = 0.8;
 
-    if (item.file) audio.play().catch(() => {});
+    if (item.file) {
+      pvVizInit();
+      audio.play().catch(() => {});
+    }
   } else {
     const img = document.createElement('img');
     img.setAttribute('src', item.image || item.file || '');

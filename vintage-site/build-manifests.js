@@ -7,6 +7,11 @@
 // all it takes for it to show up on the live site, at any depth, with no
 // HTML editing.
 //
+// Also scans content/_backgrounds/ for image files and writes
+// content/_backgrounds/backgrounds-manifest.json for the desktop wallpaper
+// picker. Drop an image into content/_backgrounds/ and push -- it will appear
+// in "Change Background" after the next build.
+//
 // This runs automatically as the "build command" on Netlify / Cloudflare
 // Pages every time you push new files -- you should not need to run it
 // yourself. (If you ever do want to run it by hand: `node build-manifests.js`
@@ -16,7 +21,10 @@ const fs = require('fs');
 const path = require('path');
 
 const CONTENT_DIR = path.join(__dirname, 'content');
+const BACKGROUNDS_DIR = path.join(CONTENT_DIR, '_backgrounds');
+const BACKGROUNDS_MANIFEST = path.join(BACKGROUNDS_DIR, 'backgrounds-manifest.json');
 const URL_SAFE_TXT_BASE_RE = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg']);
 
 function isHidden(name) {
   return name.startsWith('.') || name.startsWith('_');
@@ -87,7 +95,38 @@ function main() {
     console.log('Created empty content/ folder.');
   }
   buildManifest(CONTENT_DIR);
+  buildBackgroundsManifest();
   console.log('Validation OK: manifests generated and all .txt filenames are lowercase URL-safe.');
+}
+
+// Scans content/_backgrounds/ for image files and writes backgrounds-manifest.json.
+// Each entry: { id, name, src }  (src is the public URL path used by index.html).
+// Non-image files and hidden entries are silently ignored.
+function buildBackgroundsManifest() {
+  if (!fs.existsSync(BACKGROUNDS_DIR)) {
+    fs.mkdirSync(BACKGROUNDS_DIR, { recursive: true });
+    console.log('Created content/_backgrounds/ folder.');
+  }
+
+  const entries = fs.readdirSync(BACKGROUNDS_DIR, { withFileTypes: true });
+  const backgrounds = [];
+
+  entries.forEach(entry => {
+    if (!entry.isFile()) return;
+    if (isHidden(entry.name)) return;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!IMAGE_EXTS.has(ext)) return;
+
+    const baseName = path.basename(entry.name, ext);
+    const id = baseName.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    const name = baseName;
+    const src = 'content/_backgrounds/' + entry.name;
+    backgrounds.push({ id, name, src });
+  });
+
+  backgrounds.sort((a, b) => a.name.localeCompare(b.name));
+  fs.writeFileSync(BACKGROUNDS_MANIFEST, JSON.stringify(backgrounds, null, 2));
+  console.log('content/_backgrounds/backgrounds-manifest.json  (' + backgrounds.length + ' image' + (backgrounds.length === 1 ? '' : 's') + ')');
 }
 
 main();

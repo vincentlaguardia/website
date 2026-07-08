@@ -2315,7 +2315,7 @@ function mpResolveSyncedAudioFile(name, size, fallbackFile) {
   return libraryTrack && libraryTrack.file ? libraryTrack.file : fallbackFile;
 }
 
-async function buildSyncedFileItem(syncFolder, entry, fallbackModified) {
+async function buildSyncedFileItem(syncFolder, entry, fallbackModified, companionThumbUrl) {
   const filePath = syncFolder + '/' + entry.name;
   const assetUrl = toAssetUrl(filePath);
   if (isInternetShortcutName(entry.name)) {
@@ -2364,6 +2364,7 @@ async function buildSyncedFileItem(syncFolder, entry, fallbackModified) {
     iconType: type,
     filePath,
     file,
+    thumb: type === 'video' ? (companionThumbUrl || '') : '',
     size: entry.size,
     modified: entry.modified || fallbackModified
   };
@@ -2377,8 +2378,26 @@ async function loadSyncChildren(id) {
     const res = await fetch(manifestUrl, { cache: 'no-store' });
     if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
     const entries = await res.json();
+    const videoBaseNames = new Set(
+      entries
+        .filter(e => e.type === 'file' && inferTypeFromExt(e.name) === 'video')
+        .map(e => stripExtension(e.name).toLowerCase())
+    );
+    const companionThumbByBaseName = Object.create(null);
+    for (const e of entries) {
+      if (e.type !== 'file' || inferTypeFromExt(e.name) !== 'picture') continue;
+      const baseName = stripExtension(e.name).toLowerCase();
+      if (!videoBaseNames.has(baseName)) continue;
+      if (!companionThumbByBaseName[baseName]) {
+        companionThumbByBaseName[baseName] = toAssetUrl(item.syncFolder + '/' + e.name);
+      }
+    }
     const childIds = [];
     for (const e of entries) {
+      if (e.type === 'file' && inferTypeFromExt(e.name) === 'picture') {
+        const baseName = stripExtension(e.name).toLowerCase();
+        if (companionThumbByBaseName[baseName]) continue;
+      }
       const cid = 'sync__' + slugifyPath(item.syncFolder + '/' + e.name);
       if (e.type === 'folder') {
         items[cid] = Object.assign({}, items[cid], {
@@ -2388,7 +2407,8 @@ async function loadSyncChildren(id) {
           modified: e.modified || item.modified
         });
       } else {
-        items[cid] = await buildSyncedFileItem(item.syncFolder, e, item.modified);
+        const companionThumbUrl = companionThumbByBaseName[stripExtension(e.name).toLowerCase()] || '';
+        items[cid] = await buildSyncedFileItem(item.syncFolder, e, item.modified, companionThumbUrl);
       }
       childIds.push(cid);
     }

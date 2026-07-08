@@ -1,5 +1,10 @@
 [
   {
+    "type": "folder",
+    "name": "_assets",
+    "modified": "2026-07-08"
+  },
+  {
     "type": "file",
     "name": "avril.jpeg",
     "size": 93726,

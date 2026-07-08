@@ -2368,14 +2368,41 @@ function pvRenderCurrent() {
   // Stop any currently playing media before switching content
   const oldMedia = content.querySelector('video, audio');
   if (oldMedia) { oldMedia.pause(); oldMedia.src = ''; }
+  content.innerHTML = '';
+  const viewer = document.createElement('div');
+  viewer.className = 'picture-viewer';
   if (item.type === 'video') {
-    const src = item.videoData || item.file;
-    content.innerHTML = '<div class="picture-viewer" style="background:#000;"><video controls autoplay style="max-width:100%;max-height:100%;display:block;"><source src="' + src + '" type="video/mp4"></video></div>';
+    viewer.style.background = '#000';
+    const video = document.createElement('video');
+    video.controls = true;
+    video.autoplay = true;
+    video.style.cssText = 'max-width:100%;max-height:100%;display:block;';
+    const source = document.createElement('source');
+    source.setAttribute('src', item.videoData || item.file || '');
+    source.setAttribute('type', 'video/mp4');
+    video.appendChild(source);
+    viewer.appendChild(video);
   } else if (item.type === 'audio') {
-    content.innerHTML = '<div class="picture-viewer" style="flex-direction:column;gap:12px;"><div style="font-size:14px;color:#fff;text-align:center;padding:0 16px;">' + item.name + '</div><audio controls autoplay style="width:80%;"><source src="' + (item.file || '') + '"></audio></div>';
+    viewer.style.cssText = 'flex-direction:column;gap:12px;';
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-size:14px;color:#fff;text-align:center;padding:0 16px;';
+    nameEl.textContent = item.name;
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.autoplay = true;
+    audio.style.width = '80%';
+    const source = document.createElement('source');
+    source.setAttribute('src', item.file || '');
+    audio.appendChild(source);
+    viewer.appendChild(nameEl);
+    viewer.appendChild(audio);
   } else {
-    content.innerHTML = '<div class="picture-viewer"><img src="' + (item.image || item.file) + '" alt="' + item.name + '"></div>';
+    const img = document.createElement('img');
+    img.setAttribute('src', item.image || item.file || '');
+    img.alt = item.name;
+    viewer.appendChild(img);
   }
+  content.appendChild(viewer);
 }
 
 function pvStep(delta) {
@@ -2398,6 +2425,8 @@ document.addEventListener('keydown', e => {
 // Pressing Space on a selected picture, video, or audio icon (without
 // double-clicking) opens a quick-preview viewer -- similar to Finder's
 // Quick Look. Pressing Space again while it's open minimizes it.
+// Pressing Space on the same selected item while the viewer is minimized
+// un-minimizes it and brings it back to the front.
 document.addEventListener('keydown', e => {
   if (e.key !== ' ' && e.code !== 'Space') return;
   const tag = (e.target && e.target.tagName) || '';

@@ -1429,7 +1429,7 @@ function ieLandingUrl() {
   // Home) -- lands on a different page, so recursing further keeps
   // surfacing something new instead of repeating the same thing forever.
   const depth = parseInt(new URLSearchParams(window.location.search).get('ieDepth') || '0', 10);
-  if (depth <= 0) return ieHomeUrl();
+  if (depth <= 0) return 'https://en.wikipedia.org/wiki/Project_Mockingbird';
   if (depth === 1) return 'https://en.wikipedia.org/wiki/CIA_activities_in_Cambodia';
   if (depth === 2) return 'https://en.wikipedia.org/wiki/Allen_Dulles';
   if (depth === 3) return 'https://en.wikipedia.org/wiki/Operation_Paperclip';

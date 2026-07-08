@@ -3273,7 +3273,10 @@ function pvRenderCurrent() {
     volSlider.addEventListener('input', () => { audio.volume = volSlider.value / 100; });
     audio.volume = 0.8;
 
-    if (item.file) audio.play().catch(() => {});
+    if (item.file) {
+      pvVizInit();
+      audio.play().catch(() => {});
+    }
   } else {
     const img = document.createElement('img');
     img.setAttribute('src', item.image || item.file || '');
@@ -3335,6 +3338,11 @@ document.addEventListener('keydown', e => {
   const parentId = selected.dataset.parentId;
   const item = items[itemId];
   if (!item) return;
+  if (item.type === 'video' && item.youtubeId) {
+    e.preventDefault();
+    openChildItem(itemId, item, parentId);
+    return;
+  }
   if (item.type === 'picture' || item.type === 'video' || item.type === 'audio') {
     e.preventDefault();
     openPictureWindow(itemId, parentId, { quickPreview: true });

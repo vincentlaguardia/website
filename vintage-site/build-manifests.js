@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CONTENT_DIR = path.join(__dirname, 'content');
-const SAFE_TXT_NAME_RE = /^[a-z0-9._-]+\.txt$/;
+const URL_SAFE_TXT_NAME_RE = /^[a-z0-9._-]+\.txt$/;
 
 function isHidden(name) {
   return name.startsWith('.');
@@ -49,10 +49,11 @@ function buildManifest(folderPath) {
       result.push({ type: 'folder', name: entry.name, modified: formatDate(stat.mtime) });
     } else if (entry.isFile()) {
       const isTxt = path.extname(entry.name).toLowerCase() === '.txt';
-      if (isTxt && !SAFE_TXT_NAME_RE.test(entry.name)) {
+      if (isTxt && !URL_SAFE_TXT_NAME_RE.test(entry.name)) {
+        const suggested = entry.name.toLowerCase().replace(/[^a-z0-9._-]/g, '_');
         throw new Error(
           'Invalid .txt filename "' + entry.name + '" in ' + path.relative(__dirname, folderPath) +
-          '. Use lowercase URL-safe names (a-z, 0-9, ".", "_", "-") ending in .txt.'
+          '. Use lowercase URL-safe names (a-z, 0-9, ".", "_", "-") ending in .txt. Suggested name: ' + suggested
         );
       }
       result.push({ type: 'file', name: entry.name, size: stat.size, modified: formatDate(stat.mtime) });

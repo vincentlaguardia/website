@@ -2101,7 +2101,13 @@ function slugifyPath(s) {
 function toAssetUrl(path) {
   return String(path || '')
     .split('/')
-    .map(seg => encodeURIComponent(seg))
+    .map(seg => {
+      try {
+        return encodeURIComponent(decodeURIComponent(seg));
+      } catch {
+        return encodeURIComponent(seg);
+      }
+    })
     .join('/');
 }
 
@@ -2808,7 +2814,11 @@ function renderTextContent(id) {
           return text;
         })
         .catch(err => {
-          console.error('Could not load text file for', id, item.filePath || item.file, err);
+          const debugPath = (() => {
+            try { return decodeURIComponent(item.filePath || item.file || ''); }
+            catch { return item.filePath || item.file; }
+          })();
+          console.error('Could not load text file for', id, debugPath, err);
           const fallback = '[Could not load this text file.]';
           item.text = fallback;
           item._textLoaded = true;
@@ -2951,9 +2961,10 @@ function openWindow(id) {
 
   const statusbar = document.createElement('div');
   statusbar.className = 'win98-statusbar';
+  const textSizeLabel = () => (item.text || '').length + ' bytes';
   let pdfPageInfoEl = null;
   if (item.type === 'folder') statusbar.textContent = item.children.length + ' object(s)';
-  else if (item.type === 'text') statusbar.textContent = item._textLoaded ? (item.text || '').length + ' bytes' : 'Loading...';
+  else if (item.type === 'text') statusbar.textContent = item._textLoaded ? textSizeLabel() : 'Loading...';
   else if (item.type === 'video') statusbar.textContent = formatFileSize(item.size);
   else if (item.type === 'picture') statusbar.textContent = formatFileSize(item.size);
   else if (item.type === 'pdf') {
@@ -2977,7 +2988,7 @@ function openWindow(id) {
 
   if (item.type === 'text' && bodyContent && bodyContent._loadPromise) {
     bodyContent._loadPromise.then(() => {
-      if (openWindows[id]) statusbar.textContent = (item.text || '').length + ' bytes';
+      if (openWindows[id]) statusbar.textContent = textSizeLabel();
     });
   }
 

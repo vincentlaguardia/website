@@ -76,7 +76,6 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.72);
     z-index: 10;
-    cursor: pointer;
     gap: 12px;
   }
   .fullscreen-overlay span {
@@ -161,7 +160,7 @@
     Best experienced on desktop
   </div>
   <div class="doom-content" id="doomContent">
-    <div class="fullscreen-overlay" id="fsOverlay" role="button" tabindex="0" aria-label="Launch DOOM fullscreen">
+    <div class="fullscreen-overlay" id="fsOverlay">
       <span>Mouse pointer requires fullscreen to stay locked</span>
       <button class="fullscreen-btn" id="fsBtn">▶ Play Fullscreen</button>
     </div>
@@ -193,9 +192,10 @@
         || target.mozRequestFullScreen
         || target.msRequestFullscreen;
       if (req) {
-        req.call(target).catch(function () {});
+        req.call(target).then(function () {
+          overlay.style.display = 'none';
+        }).catch(function () {});
       }
-      overlay.style.display = 'none';
     }
 
     btn.addEventListener('click', function (e) {
@@ -203,7 +203,10 @@
       launchFullscreen();
     });
     overlay.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') launchFullscreen();
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        launchFullscreen();
+      }
     });
   })();
 </script>

@@ -1301,11 +1301,14 @@
   const GRADIENT_KEY_PRECISION = 1000;
   const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
   let pastramiButtonGradientKey = '';
+  function shouldSkipPastramiGradient(){
+    return !pastramiMode || importedMode || !zones.length;
+  }
   function roundToGradientPrecision(value){
     return Math.round(value*GRADIENT_KEY_PRECISION)/GRADIENT_KEY_PRECISION;
   }
   function getPastramiButtonGradientKey(){
-    if(!pastramiMode || importedMode || !zones.length) return '';
+    if(shouldSkipPastramiGradient()) return '';
     const skewPart = skewColor
       ? [skewColor.h, skewColor.s, skewColor.l].map(roundToGradientPrecision).join(',')
       : 'none';
@@ -1323,7 +1326,7 @@
     ].join('|');
   }
   function buildPastramiButtonGradient(){
-    if(!pastramiMode || importedMode || !zones.length) return '';
+    if(shouldSkipPastramiGradient()) return '';
     const colorCount = Math.min(5, zones.length);
     const sampled = [];
     if(colorCount === 1){
@@ -1336,7 +1339,6 @@
     }
     const unique = [...new Set(sampled)];
     if(unique.length === 1) return unique[0];
-    if(unique.length < 2) return '';
     const stops = unique.map((hex, idx)=>{
       const pct = Math.round((idx*100)/(unique.length-1));
       return hex + ' ' + pct + '%';

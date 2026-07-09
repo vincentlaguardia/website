@@ -372,63 +372,8 @@
     margin-right:3px;
     flex:0 0 auto;
   }
-  /* diary popup window */
-  .diary-win{
-    display:none;
-    position:fixed;
-    top:80px; left:50%;
-    transform:translateX(-50%);
-    width:546px;
-    max-width:96vw;
-    z-index:80;
-    background:var(--face);
-    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
-                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
-    padding:3px;
-    flex-direction:column;
-  }
-  .diary-win.show{ display:flex; }
-  .diary-win .titlebar{ cursor:default; }
-  .diary-grid{
-    display:grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap:4px;
-    padding:6px;
-  }
-  .diary-swatch{
-    position:relative;
-    min-height:72px;
-    aspect-ratio:1;
-    cursor:default;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    border:1px solid rgba(0,0,0,0.25);
-    padding:3px;
-    user-select:none;
-  }
-  .diary-swatch.empty{
-    background:var(--face) !important;
-    border:1px dashed var(--shadow) !important;
-    opacity:0.35;
-  }
-  .dsw-hex{
-    font-size:9px;
-    font-weight:bold;
-    text-align:center;
-    line-height:1.3;
-    word-break:break-all;
-  }
-  .dsw-rgb{
-    font-size:8px;
-    text-align:center;
-    line-height:1.3;
-    word-break:break-all;
-  }
-  /* canvas + diary context menus */
-  #cc-ctx-menu, #diary-ctx-menu{
+  /* canvas context menu */
+  #cc-ctx-menu{
     position:fixed;
     z-index:250;
     min-width:140px;
@@ -461,9 +406,10 @@
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
         <div class="menu-sep"></div>
-        <div class="menu-option" data-action="save-to-desktop">Save to Desktop...</div>
+        <div class="menu-option" data-action="save-to-desktop">Save to Desktop (.jpg)...</div>
         <div class="menu-sep"></div>
-        <div class="menu-option" data-action="save">Save Image...</div>
+        <div class="menu-option" data-action="save">Save As PNG...</div>
+        <div class="menu-option" data-action="save-as">Save As JPG...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="exit">Exit</div>
       </div>
@@ -490,7 +436,7 @@
       <button class="ctrl-btn" id="cc-match-sat" title="Set the Saturation slider to match the swatch color">Match Sat</button>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
-      <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Click to pick a skew color — palette will lean toward it. Right-click to clear."><span class="skew-icon" id="skew-icon"></span>Skew</button>
+      <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Click to pick a skew color — palette leans toward it. When active, click again to toggle off. Right-click to clear."><span class="skew-icon" id="skew-icon"></span>Skew</button>
       <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
@@ -498,6 +444,7 @@
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
+          <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
         </div>
       </div>
     </div>
@@ -557,28 +504,11 @@
     </div>
   </div>
 </div>
-<div id="diary-dialog" class="diary-win">
-  <div class="titlebar" id="diary-titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary</span></div>
-    <div class="titlebar-btns"><div class="tbtn" id="diary-close">X</div></div>
-  </div>
-  <div class="winbody" style="padding:4px 6px 6px;">
-    <div id="diary-grid" class="diary-grid"></div>
-    <div style="display:flex; align-items:center; gap:8px; padding:2px 2px 0;">
-      <span id="diary-count" style="font-size:11px;">0 / 36</span>
-      <button class="win-btn" id="diary-clear" style="margin-left:auto;">Clear All</button>
-      <button class="win-btn" id="diary-export">Export PDF</button>
-    </div>
-  </div>
-</div>
 <div id="cc-ctx-menu" class="raised">
   <div class="menu-option" id="ctx-copy-hex">Copy Hex</div>
   <div class="menu-option" id="ctx-copy-rgb">Copy RGB</div>
   <div class="menu-sep"></div>
   <div class="menu-option" id="ctx-add-diary">Add to Diary</div>
-</div>
-<div id="diary-ctx-menu" class="raised">
-  <div class="menu-option" id="dctx-delete">Delete</div>
 </div>
 <div id="taskbar">
   <div id="start-btn"><span class="flag"></span>Start</div>
@@ -826,6 +756,14 @@
     link.href = canvas.toDataURL('image/png');
     link.click();
   });
+  document.querySelector('[data-action="save-as"]').addEventListener('click', e=>{
+    e.stopPropagation();
+    closeAllMenus();
+    const link = document.createElement('a');
+    link.download = 'chroma-palette-' + timestampTag() + '.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  });
   const win = document.querySelector('.window');
   const winbody = document.querySelector('.window > .winbody');
   const menubar = document.querySelector('.menubar');
@@ -950,7 +888,7 @@
     return idx;
   }
   function applySkewToHue(hue){
-    if(skewColor === null) return hue;
+    if(skewColor === null || !skewActive) return hue;
     const diff = ((skewColor.h - hue + 540) % 360) - 180;
     return (hue + diff * SKEW_STRENGTH + 360) % 360;
   }
@@ -1019,14 +957,13 @@
       alert('Save to Desktop is only available when chroma.exe is open inside the virtual desktop.');
       return;
     }
-    const defaultName = 'chroma-palette-' + timestampTag() + '.txt';
-    const raw = window.prompt('Save palette to virtual desktop as:', defaultName);
+    const defaultName = 'chroma-' + timestampTag() + '.jpg';
+    const raw = window.prompt('Save palette image to virtual desktop as:', defaultName);
     if(raw === null) return;
-    const fname = raw.trim() || defaultName;
-    const name = fname.endsWith('.txt') ? fname : fname + '.txt';
-    const text = buildPaletteText();
-    // index.html listens for type:'chroma-save-to-desktop' and creates a text item on the virtual desktop
-    window.parent.postMessage({ type: 'chroma-save-to-desktop', name, text }, window.location.origin);
+    let fname = raw.trim() || defaultName;
+    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.jpg';
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl }, window.location.origin);
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
@@ -1042,6 +979,7 @@
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
   let skewColor = null;
+  let skewActive = false;
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
@@ -1265,10 +1203,19 @@
   const skewBtn = document.getElementById('cc-skew-btn');
   const skewInput = document.getElementById('cc-skew-color');
   const skewIcon = document.getElementById('skew-icon');
-  skewBtn.addEventListener('click', ()=>{ skewInput.click(); });
+  skewBtn.addEventListener('click', ()=>{
+    if(skewColor !== null){
+      skewActive = !skewActive;
+      skewBtn.classList.toggle('is-active', skewActive);
+      drawScene();
+    } else {
+      skewInput.click();
+    }
+  });
   skewBtn.addEventListener('contextmenu', e=>{
     e.preventDefault();
     skewColor = null;
+    skewActive = false;
     skewIcon.style.background = '';
     skewBtn.classList.remove('is-active');
     drawScene();
@@ -1278,6 +1225,7 @@
     const rgb = hexToRgbObj(hex);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
     skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
+    skewActive = true;
     skewIcon.style.background = hex;
     skewBtn.classList.add('is-active');
     drawScene();
@@ -1287,89 +1235,23 @@
   const MAX_DIARY = 36;
   let diaryColors = (()=>{ try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(err){ console.warn('chroma: failed to load diary from localStorage', err); return []; } })();
   function saveDiary(){ localStorage.setItem(DIARY_KEY, JSON.stringify(diaryColors)); }
-  function swatchTextColor(r,g,b){ return (0.299*r + 0.587*g + 0.114*b)/255 > 0.55 ? '#000' : '#fff'; }
-  function renderDiary(){
-    const grid = document.getElementById('diary-grid');
-    const countEl = document.getElementById('diary-count');
-    grid.innerHTML = '';
-    countEl.textContent = diaryColors.length + ' / ' + MAX_DIARY;
-    diaryColors.forEach((c,idx)=>{
-      const tc = swatchTextColor(c.r, c.g, c.b);
-      const div = document.createElement('div');
-      div.className = 'diary-swatch';
-      div.style.background = c.hex;
-      div.title = c.hex + ' \u2014 right-click to delete';
-      const hexSpan = document.createElement('span');
-      hexSpan.className = 'dsw-hex'; hexSpan.style.color = tc; hexSpan.textContent = c.hex;
-      const rgbSpan = document.createElement('span');
-      rgbSpan.className = 'dsw-rgb'; rgbSpan.style.color = tc; rgbSpan.textContent = c.r+','+c.g+','+c.b;
-      div.appendChild(hexSpan); div.appendChild(rgbSpan);
-      div.addEventListener('contextmenu', e=>{ e.preventDefault(); e.stopPropagation(); showDiaryCtxMenu(e, idx); });
-      grid.appendChild(div);
-    });
-    for(let i=diaryColors.length; i<MAX_DIARY; i++){
-      const div = document.createElement('div');
-      div.className = 'diary-swatch empty';
-      grid.appendChild(div);
-    }
-  }
   function addToDiary(color){
     if(diaryColors.length >= MAX_DIARY){ alert('Diary is full (' + MAX_DIARY + ' colors max). Delete some to add more.'); return false; }
     diaryColors.push({ hex: color.hex, r: color.r, g: color.g, b: color.b });
-    saveDiary(); renderDiary(); return true;
+    saveDiary(); return true;
   }
-  function deleteFromDiary(idx){ diaryColors.splice(idx, 1); saveDiary(); renderDiary(); }
-  function clearDiary(){ if(!diaryColors.length || !confirm('Clear all diary colors?')) return; diaryColors=[]; saveDiary(); renderDiary(); }
-  const diaryDialog = document.getElementById('diary-dialog');
-  const diaryTitlebar = document.getElementById('diary-titlebar');
-  function openDiary(){ diaryDialog.classList.add('show'); renderDiary(); }
-  function closeDiary(){ diaryDialog.classList.remove('show'); }
-  let dDrag=false, dSX=0, dSY=0, dSL=0, dST=0;
-  diaryTitlebar.addEventListener('pointerdown', e=>{
-    if(e.target.closest('.tbtn')) return;
-    dDrag=true; diaryTitlebar.setPointerCapture(e.pointerId);
-    const r = diaryDialog.getBoundingClientRect();
-    dSX=e.clientX; dSY=e.clientY; dSL=r.left; dST=r.top;
-    e.preventDefault();
-  });
-  diaryTitlebar.addEventListener('pointermove', e=>{
-    if(!dDrag) return;
-    diaryDialog.style.left = (dSL + e.clientX - dSX)+'px';
-    diaryDialog.style.top = (dST + e.clientY - dSY)+'px';
-    diaryDialog.style.transform = 'none';
-  });
-  ['pointerup','pointercancel'].forEach(t=> diaryTitlebar.addEventListener(t, ()=>{ dDrag=false; }));
-  document.getElementById('diary-close').addEventListener('click', closeDiary);
+  let diaryWin = null;
+  function openDiary(){
+    if(diaryWin && !diaryWin.closed){ diaryWin.focus(); return; }
+    const w=580, h=520;
+    const left=Math.round((screen.width-w)/2), top=Math.round((screen.height-h)/2);
+    diaryWin = window.open('diary.html','chroma-diary','width='+w+',height='+h+',left='+left+',top='+top+',resizable=yes');
+  }
   document.getElementById('menu-diary').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openDiary(); });
-  document.getElementById('diary-clear').addEventListener('click', clearDiary);
-  // Validate hex strings before writing into generated HTML to prevent XSS
-  const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-  function exportDiaryPDF(){
-    if(!diaryColors.length){ alert('Diary is empty.'); return; }
-    // noopener prevents the new page from accessing window.opener;
-    // noreferrer additionally suppresses the Referer header
-    const pw = window.open('','_blank','width=750,height=950,noopener,noreferrer');
-    if(!pw){ alert('Please allow popups to export PDF.'); return; }
-    let s=''; diaryColors.forEach(c=>{
-      if(!HEX_RE.test(c.hex)) return;
-      const r=Math.round(c.r), g=Math.round(c.g), b=Math.round(c.b);
-      if([r,g,b].some(v=> !Number.isInteger(v) || v<0 || v>255)) return;
-      const tc = swatchTextColor(r,g,b);
-      s+='<div style="background:'+c.hex+';width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,0.2);gap:2px;">'
-        +'<span style="color:'+tc+';font-size:10px;font-weight:bold;">'+c.hex+'</span>'
-        +'<span style="color:'+tc+';font-size:9px;">RGB '+r+','+g+','+b+'</span>'
-        +'</div>';
-    });
-    pw.document.write('<!DOCTYPE html><html><head><title>chroma.exe \u2014 Color Diary</title>'
-      +'<style>body{font-family:Tahoma,Arial,sans-serif;padding:24px;margin:0;}h1{font-size:16px;margin:0 0 14px;}'
-      +'.grid{display:flex;flex-wrap:wrap;gap:6px;}'
-      +'@media print{@page{margin:16mm;}}</style></head>'
-      +'<body><h1>chroma.exe \u2014 Color Diary</h1><div class="grid">'+s+'</div></body></html>');
-    pw.document.close(); pw.focus();
-    // short delay lets the browser finish rendering before the print dialog opens
-    setTimeout(()=>pw.print(), 400);
-  }
-  document.getElementById('diary-export').addEventListener('click', exportDiaryPDF);
+  document.getElementById('cc-diary-add').addEventListener('click', ()=>{
+    if(!lastColor) return;
+    addToDiary(lastColor);
+  });
   // --- Canvas context menu ---
   const ccCtxMenu = document.getElementById('cc-ctx-menu');
   let ctxMenuColor = null;
@@ -1395,30 +1277,11 @@
   document.getElementById('ctx-add-diary').addEventListener('click', e=>{
     e.stopPropagation();
     if(!ctxMenuColor) return;
-    const added = addToDiary(ctxMenuColor);
+    addToDiary(ctxMenuColor);
     hideCanvasCtxMenu();
-    if(added && !diaryDialog.classList.contains('show')) openDiary();
   });
   document.addEventListener('click', e=>{
     if(!ccCtxMenu.contains(e.target)) hideCanvasCtxMenu();
-  });
-  // --- Diary context menu ---
-  const diaryCtxMenu = document.getElementById('diary-ctx-menu');
-  let diaryCtxIdx = -1;
-  function showDiaryCtxMenu(e, idx){
-    diaryCtxIdx = idx;
-    diaryCtxMenu.style.left = e.clientX+'px';
-    diaryCtxMenu.style.top = e.clientY+'px';
-    diaryCtxMenu.style.display = 'block';
-  }
-  function hideDiaryCtxMenu(){ diaryCtxMenu.style.display = 'none'; }
-  document.getElementById('dctx-delete').addEventListener('click', e=>{
-    e.stopPropagation();
-    if(diaryCtxIdx < 0) return;
-    deleteFromDiary(diaryCtxIdx); hideDiaryCtxMenu();
-  });
-  document.addEventListener('click', e=>{
-    if(!diaryCtxMenu.contains(e.target)) hideDiaryCtxMenu();
   });
 })();
 </script>

@@ -1401,6 +1401,7 @@
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;
+  // ITU-R BT.601 luma weights keep the diary label readable against each swatch color.
   const LUM_R = 0.299;
   const LUM_G = 0.587;
   const LUM_B = 0.114;
@@ -1434,27 +1435,27 @@
   function renderDiary(){
     diaryGrid.innerHTML = '';
     diaryCount.textContent = diaryColors.length + ' / ' + MAX_DIARY;
-    diaryColors.forEach((c, idx)=>{
-      const tc = swatchTextColor(c.r, c.g, c.b);
+    diaryColors.forEach((color, idx)=>{
+      const tc = swatchTextColor(color.r, color.g, color.b);
       const div = document.createElement('div');
       div.className = 'diary-swatch';
-      div.style.background = c.hex;
-      div.title = c.hex + ' — right-click to delete';
+      div.style.background = color.hex;
+      div.title = color.hex + ' — right-click to delete';
       const hexSpan = document.createElement('span');
       hexSpan.className = 'dsw-hex';
       hexSpan.style.color = tc;
-      hexSpan.textContent = c.hex;
+      hexSpan.textContent = color.hex;
       const rgbSpan = document.createElement('span');
       rgbSpan.className = 'dsw-rgb';
       rgbSpan.style.color = tc;
-      rgbSpan.textContent = c.r + ',' + c.g + ',' + c.b;
+      rgbSpan.textContent = color.r + ',' + color.g + ',' + color.b;
       div.appendChild(hexSpan);
       div.appendChild(rgbSpan);
       div.addEventListener('contextmenu', e=>{
         e.preventDefault();
         e.stopPropagation();
         diaryCtxIdx = idx;
-        diaryCtxColor = c;
+        diaryCtxColor = color;
         diaryCtxMenu.style.left = e.clientX + 'px';
         diaryCtxMenu.style.top = e.clientY + 'px';
         diaryCtxMenu.style.display = 'block';
@@ -1489,14 +1490,14 @@
   function exportDiaryJPG(){
     if(!diaryColors.length){ alert('Diary is empty.'); return; }
     const gridColumns = getDiaryGridColumns();
-    const GRID_ROWS = Math.ceil(diaryColors.length / gridColumns);
+    const gridRows = Math.ceil(diaryColors.length / gridColumns);
     const SWATCH_WIDTH = 110;
     const SWATCH_HEIGHT = 110;
     const SWATCH_GAP = 6;
     const CANVAS_PADDING = 16;
     const HEADER_HEIGHT = 36;
     const cw = gridColumns * SWATCH_WIDTH + (gridColumns - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
-    const ch = GRID_ROWS * SWATCH_HEIGHT + (GRID_ROWS - 1) * SWATCH_GAP + CANVAS_PADDING * 2 + HEADER_HEIGHT;
+    const ch = gridRows * SWATCH_HEIGHT + (gridRows - 1) * SWATCH_GAP + CANVAS_PADDING * 2 + HEADER_HEIGHT;
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
     const cx = c.getContext('2d');
@@ -1555,8 +1556,11 @@
   });
   window.addEventListener('storage', e=>{
     if(e.key === DIARY_KEY){
-      try{ diaryColors = JSON.parse(e.newValue) || []; }
-      catch(err){ console.warn('chroma: failed to sync diary from localStorage', err); diaryColors = []; }
+      if(e.newValue === null){ diaryColors = []; }
+      else {
+        try{ diaryColors = JSON.parse(e.newValue) || []; }
+        catch(err){ console.warn('chroma: failed to sync diary from localStorage', err); diaryColors = []; }
+      }
       if(diaryDialog.classList.contains('show')) renderDiary();
     }
   });

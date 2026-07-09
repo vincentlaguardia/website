@@ -51,9 +51,6 @@
     };
 
     const promptForLocalRom = () => {
-      const canPickFile = typeof romPickerEl?.click === 'function';
-      if (!canPickFile) return;
-
       setStatus('ROM not found at /roms/dkc.sfc. Select a local ROM to continue.', true);
       console.info('To host Donkey Kong permanently, add vintage-site/roms/dkc.sfc and redeploy.');
       romPickerEl.value = '';
@@ -163,12 +160,6 @@
         loadEmulator(createRomBlobUrl(romBytes));
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
-      }
-    });
-
-    window.addEventListener('beforeunload', () => {
-      if (currentRomBlobUrl) {
-        URL.revokeObjectURL(currentRomBlobUrl);
       }
     });
 

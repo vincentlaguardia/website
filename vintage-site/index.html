@@ -2643,7 +2643,7 @@ function normalizeManifestUrl(url) {
 }
 
 function stripExtension(name) {
-  return String(name || '').replace(/\.[^.]+$/, '');
+  return String(name || '').replace(/\.[^.]+$/, '').trimEnd();
 }
 
 function isInternetShortcutName(name) {
@@ -2684,7 +2684,7 @@ function getYouTubeThumbnailUrl(videoId) {
 }
 
 function inferTypeFromExt(name) {
-  const ext = (name.split('.').pop() || '').toLowerCase();
+  const ext = (name.split('.').pop() || '').trim().toLowerCase();
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'picture';
   if (['mp4', 'mov', 'webm', 'm4v'].includes(ext)) return 'video';
   if (ext === 'pdf') return 'pdf';

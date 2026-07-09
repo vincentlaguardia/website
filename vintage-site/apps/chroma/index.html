@@ -1100,12 +1100,37 @@
       l: clamp(src.l + (jitterB-0.5)*(10 + w*24), 8, 92)
     };
   }
+  function resolveImportedZoneColorPastrami(zone, palette, seed, strange){
+    if(!palette.length) return { h:0, s:0, l:DEFAULT_LIGHTNESS };
+    const paletteIndex = bandIndexFor(zone, palette.length, seed);
+    const src = palette[paletteIndex];
+    const jitterA = hashZone(zone.col+43, zone.row+89);
+    const jitterB = hashZone(zone.col+11, zone.row+61);
+    const jitterC = hashZone(zone.col+97, zone.row+7);
+    const jitterD = hashZone(zone.col+7,  zone.row+61);
+    const jitterE = hashZone(zone.col+19, zone.row+83);
+    const w = clamp(strange, 0, 100) / 100;
+    const hueJitter = (jitterC - 0.5) * (80 + w * 220);
+    const hue = applySkewToHue((src.h + hueJitter + 3600) % 360);
+    const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
+    let sat, light;
+    if(isPastel){
+      sat   = 50 + jitterA * 30;
+      light = 72 + jitterB * 16;
+    } else {
+      sat   = 92 + jitterA * 8;
+      light = 47 + jitterB * 20;
+    }
+    return { h: hue, s: clamp(sat, 0, 100), l: clamp(light, 0, 100) };
+  }
   function zoneHex(zone){
-    const sourceColor = importedMode
-      ? resolveImportedZoneColor(zone, importedPalette, seed, strange)
-      : pastramiMode
-        ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
-        : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
+    const sourceColor = importedMode && pastramiMode
+      ? resolveImportedZoneColorPastrami(zone, importedPalette, seed, strange)
+      : importedMode
+        ? resolveImportedZoneColor(zone, importedPalette, seed, strange)
+        : pastramiMode
+          ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
+          : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
     return hslToHex(sourceColor.h, clamp(sourceColor.s * globalSatMul, 0, 100), sourceColor.l).toUpperCase();
   }
   function exportPaletteText(){

@@ -344,7 +344,6 @@
     background:var(--face);
   }
   body.embedded #desktop{
-    min-height:100vh;
     height:100vh;
     padding:0;
     align-items:stretch;
@@ -361,7 +360,7 @@
 </style>
 </head>
 <body>
-<script>if(window.self!==window.top){document.documentElement.classList.add('embedded');document.body.classList.add('embedded');}</script>
+<script>if (window.self !== window.top) { document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
 <div id="desktop">
   <div class="window">
     <div class="titlebar">

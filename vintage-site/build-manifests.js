@@ -114,13 +114,11 @@ function buildManifest(folderPath) {
   });
 
   const existingNames = new Set(result.map(entry => entry.name));
-  const urlEntriesByName = new Map();
+  const seenUrlNames = new Set();
   existingUrlEntries.forEach(entry => {
-    if (!urlEntriesByName.has(entry.name)) urlEntriesByName.set(entry.name, entry);
-  });
-  urlEntriesByName.forEach((entry, entryName) => {
-    if (existingNames.has(entryName)) return;
+    if (existingNames.has(entry.name) || seenUrlNames.has(entry.name)) return;
     result.push(entry);
+    seenUrlNames.add(entry.name);
   });
 
   result.sort((a, b) => a.name.localeCompare(b.name));

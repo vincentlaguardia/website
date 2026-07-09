@@ -170,21 +170,6 @@
     align-items:center;
     gap:4px;
   }
-  .hex-input{
-    width:78px;
-    height:20px;
-    padding:0 4px;
-    border:1px solid var(--shadow);
-    background:var(--face);
-    color:#000;
-    font-family:inherit;
-    font-size:11px;
-    text-transform:uppercase;
-  }
-  .hex-label{
-    font-size:10px;
-    color:#222;
-  }
   input[type=range]{
     -webkit-appearance:none;
     width:110px;
@@ -590,8 +575,6 @@
       <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
       <div class="picker-with-hex">
         <input type="color" id="cc-target-color" value="#968296">
-        <span class="hex-label">Hex</span>
-        <input type="text" id="cc-target-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Target dot color hex code">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
@@ -605,8 +588,6 @@
             <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
             <input type="color" id="cc-skew-color" value="#ff0000">
           </div>
-          <span class="hex-label">Hex</span>
-          <input type="text" id="cc-skew-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Skew color hex code">
         </div>
       </div>
       <div class="field">Last color clicked
@@ -780,12 +761,6 @@
       h *= 60;
     }
     return { h, s: s*100, l: l*100 };
-  }
-  function normalizeHexInputValue(value){
-    const cleaned = value.trim().replace(/^#/, '');
-    if(!/^[0-9a-fA-F]{6}$/.test(cleaned)) return null;
-    // Returns uppercase #RRGGBB for valid input, null otherwise.
-    return '#' + cleaned.toUpperCase();
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
   const DOWNLOAD_REVOKE_TIMEOUT = 1000;
@@ -1117,7 +1092,6 @@
   const canvas = document.getElementById('cc-canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const targetColorInput = document.getElementById('cc-target-color');
-  const targetHexInput = document.getElementById('cc-target-hex');
   const hideTargetsBtn = document.getElementById('cc-hide-targets');
   const satSlider = document.getElementById('cc-sat');
   const matchSatBtn = document.getElementById('cc-match-sat');
@@ -1462,29 +1436,11 @@
   });
   function applyTargetHex(hex){
     targetColorInput.value = hex;
-    targetHexInput.value = hex.toUpperCase();
     importedMode = false;
     TARGET = hexToRgbObj(hex);
     drawScene();
   }
   targetColorInput.addEventListener('input', ()=>{ applyTargetHex(targetColorInput.value); });
-  function commitTargetHexInput(){
-    const normalized = normalizeHexInputValue(targetHexInput.value);
-    if(!normalized){
-      targetHexInput.value = targetColorInput.value.toUpperCase();
-      return;
-    }
-    applyTargetHex(normalized);
-  }
-  targetHexInput.value = targetColorInput.value.toUpperCase();
-  targetHexInput.addEventListener('change', commitTargetHexInput);
-  targetHexInput.addEventListener('blur', commitTargetHexInput);
-  targetHexInput.addEventListener('keydown', e=>{
-    if(e.key === 'Enter'){
-      e.preventDefault();
-      commitTargetHexInput();
-    }
-  });
   hideTargetsBtn.addEventListener('click', ()=>{
     showTargets = !showTargets;
     hideTargetsBtn.textContent = showTargets ? 'Hide' : 'Show';
@@ -1654,7 +1610,6 @@
   const skewBtn = document.getElementById('cc-skew-btn');
   const skewSwatchBtn = document.getElementById('cc-skew-swatch');
   const skewInput = document.getElementById('cc-skew-color');
-  const skewHexInput = document.getElementById('cc-skew-hex');
   const skewIcon = document.getElementById('skew-icon');
   const defaultSkewHex = skewInput.value;
   function applySkewHex(hex){
@@ -1664,7 +1619,6 @@
     skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
     skewActive = true;
     skewIcon.style.background = hex;
-    skewHexInput.value = hex.toUpperCase();
     syncSkewButtonState();
     drawScene();
   }
@@ -1708,7 +1662,6 @@
     skewActive = false;
     skewInput.value = defaultSkewHex;
     skewIcon.style.background = 'var(--face)';
-    skewHexInput.value = defaultSkewHex.toUpperCase();
     syncSkewButtonState();
     drawScene();
   }
@@ -1716,23 +1669,6 @@
   skewSwatchBtn.addEventListener('contextmenu', clearSkew);
   skewInput.addEventListener('input', ()=>{
     applySkewHex(skewInput.value);
-  });
-  function commitSkewHexInput(){
-    const normalized = normalizeHexInputValue(skewHexInput.value);
-    if(!normalized){
-      skewHexInput.value = skewInput.value.toUpperCase();
-      return;
-    }
-    applySkewHex(normalized);
-  }
-  skewHexInput.value = skewInput.value.toUpperCase();
-  skewHexInput.addEventListener('change', commitSkewHexInput);
-  skewHexInput.addEventListener('blur', commitSkewHexInput);
-  skewHexInput.addEventListener('keydown', e=>{
-    if(e.key === 'Enter'){
-      e.preventDefault();
-      commitSkewHexInput();
-    }
   });
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';

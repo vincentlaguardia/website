@@ -479,7 +479,7 @@
   }
   /* dr pastrami mode */
   #pastrami-btn{
-    background: linear-gradient(105deg,#ff00ff 0%,#c0c0c0 38%,#c0c0c0 62%,#00ffff 100%);
+    background:var(--face);
     font-weight:bold;
     letter-spacing:.2px;
   }
@@ -511,12 +511,12 @@
       </div>
     </div>
     <div class="menubar">
-      <div class="menu-item" data-menu="file" role="button" aria-haspopup="true">File</div>
-      <div class="menu-item" data-menu="dots" role="button" aria-haspopup="true">Dots</div>
-      <div class="menu-item" id="menu-diary" role="button">Diary</div>
-      <div class="menu-item" id="menu-help" role="button">Info</div>
-      <div class="menu-item" id="menu-theory" role="button">Theory</div>
-      <div class="menu-item" id="menu-about" role="button">About</div>
+      <div class="menu-item" data-menu="file" role="button" tabindex="0" aria-haspopup="true">File</div>
+      <div class="menu-item" data-menu="dots" role="button" tabindex="0" aria-haspopup="true">Dots</div>
+      <div class="menu-item" id="menu-diary" role="button" tabindex="0">Diary</div>
+      <div class="menu-item" id="menu-help" role="button" tabindex="0">Info</div>
+      <div class="menu-item" id="menu-theory" role="button" tabindex="0">Theory</div>
+      <div class="menu-item" id="menu-about" role="button" tabindex="0">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
@@ -568,7 +568,7 @@
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Dr Pastrami Mode">Dr Pastrami Mode</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Dr Pastrami Mode" aria-pressed="false">Dr Pastrami Mode</button>
         </div>
       </div>
     </div>
@@ -1283,9 +1283,13 @@
     });
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
+  function syncPastramiButtonState(){
+    pastramiBtn.classList.toggle('is-active', pastramiMode);
+    pastramiBtn.setAttribute('aria-pressed', pastramiMode ? 'true' : 'false');
+  }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;
-    pastramiBtn.classList.toggle('is-active', pastramiMode);
+    syncPastramiButtonState();
     applyPastramiDropdown();
     // If current philosophy is not allowed in Pastrami mode, switch it
     if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){

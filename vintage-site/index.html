@@ -598,7 +598,7 @@
   }
   #start-menu .menu-item:hover { background: var(--acc-dark); color: #fff; }
   #programs-submenu {
-    position: absolute; left: 100%; top: -3px;
+    position: absolute; left: 100%; bottom: 0; top: auto;
     width: 150px;
     display: none;
     box-shadow:
@@ -948,7 +948,7 @@
         <div class="menu-item" id="menu-browser">Internet Explorer</div>
         <div class="menu-item" id="menu-paint">Paint</div>
         <div class="menu-item" id="menu-chroma">chroma.exe</div>
-        <div class="menu-item" id="menu-notepad">Notepad</div>
+        <div class="menu-item" id="menu-notepad">Notes</div>
       </div>
     </div>
     <div class="menu-item" id="menu-documents">Documents</div>
@@ -1043,7 +1043,7 @@ const items = {
   solitaireshortcut: { type: 'shortcut', name: 'Solitaire', customIcon: 'solitaireshortcut', action: 'solitaire', modified: '2026-07-07' },
   paintshortcut: { type: 'shortcut', name: 'Paint', customIcon: 'paintshortcut', action: 'paint', modified: '2026-07-07' },
   chromashortcut: { type: 'shortcut', name: 'chroma.exe', customIcon: 'chromashortcut', action: 'chroma', iconSize: 96, modified: '2026-07-09' },
-  notepadshortcut: { type: 'shortcut', name: 'Notepad', customIcon: 'notepadshortcut', action: 'notepad', modified: '2026-07-09' },
+  notepadshortcut: { type: 'shortcut', name: 'Notes', customIcon: 'notepadshortcut', action: 'notepad', modified: '2026-07-09' },
 
   // Fully GitHub-driven: nothing under here is hardcoded. Adding an album
   // is just making a new folder inside content/desktop/easy/albums/ on GitHub;
@@ -1989,7 +1989,16 @@ function showContextMenu(x, y, menuEntries) {
   menuEntries.forEach(entry => {
     const row = document.createElement('div');
     row.className = 'ctx-menu-item';
-    row.textContent = entry.label;
+    if (entry.color) {
+      const swatch = document.createElement('span');
+      swatch.style.cssText = 'display:inline-block;width:12px;height:12px;background:' + entry.color + ';border:1px solid #666;margin-right:5px;vertical-align:middle;flex-shrink:0;';
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.appendChild(swatch);
+      row.appendChild(document.createTextNode(entry.label));
+    } else {
+      row.textContent = entry.label;
+    }
     row.addEventListener('click', () => {
       closeContextMenu();
       entry.onClick();
@@ -2790,6 +2799,15 @@ function openChildItem(childId, child, parentId) {
   else if (child.type === 'picture') openPictureWindow(childId, parentId);
   else if (child.type === 'folder' && child.syncFolder) openSyncFolder(childId);
   else if (child.type === 'file') downloadItem(childId);
+  else if (child.type === 'text') {
+    const doOpen = text => openNotepadWindow(text, child.name);
+    const it = items[childId] || child;
+    if (it.file && !it._textLoaded) {
+      fetch(it.file, { cache: 'no-store' }).then(r => r.text()).then(doOpen).catch(() => doOpen(it.text || ''));
+    } else {
+      doOpen(it.text || '');
+    }
+  }
   else openWindow(childId);
 }
 
@@ -4683,7 +4701,7 @@ function openWindow(id) {
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
-  const titleText = item.type === 'pdf' ? ('Acrobat Reader  -  ' + item.name) : (item.name + (item.type === 'text' ? ' - Notepad' : ''));
+  const titleText = item.type === 'pdf' ? ('Acrobat Reader  -  ' + item.name) : (item.name + (item.type === 'text' ? ' - Notes' : ''));
   titlebar.innerHTML = `
     <span class="title-text">${titleText}</span>
     <div class="win-buttons">
@@ -5273,10 +5291,17 @@ function openPaintWindow() {
 }
 
 
-/* ================= NOTEPAD ================= */
+/* ================= NOTES (formerly Notepad) ================= */
+let _notesLoad = null;
+let _notesIsModified = false;
+
 function openNotepadWindow(initialText, initialFilename) {
   const id = 'notepad';
   if (openWindows[id]) {
+    if (initialText !== undefined && _notesLoad) {
+      const doLoad = !_notesIsModified || window.confirm('Discard current changes and open this file?');
+      if (doLoad) _notesLoad(initialText, initialFilename || null);
+    }
     if (openWindows[id].minimized) toggleMinimize(id);
     else bringToFront(id);
     return;
@@ -5285,6 +5310,9 @@ function openNotepadWindow(initialText, initialFilename) {
   let currentFilename = initialFilename || null;
   let modified = false;
   let wordWrap = false;
+  let bgColor = '#ffffff';
+  let textColor = '#000000';
+  let lineRuled = false;
 
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out notepad-window';
@@ -5299,7 +5327,7 @@ function openNotepadWindow(initialText, initialFilename) {
   win.style.overflow = 'hidden';
 
   function getTitle() {
-    return (modified ? '*' : '') + (currentFilename || 'Untitled') + ' - Notepad';
+    return (modified ? '*' : '') + (currentFilename || 'Untitled') + ' - Notes';
   }
 
   const titlebar = document.createElement('div');
@@ -5336,10 +5364,19 @@ function openNotepadWindow(initialText, initialFilename) {
   content.style.minHeight = '0';
 
   const ta = document.createElement('textarea');
-  ta.style.cssText = 'width:100%;height:100%;box-sizing:border-box;border:none;outline:none;resize:none;padding:4px;margin:0;background:#fff;color:#000;font-family:"Courier New",monospace;font-size:13px;white-space:pre;overflow-x:auto;overflow-y:auto;box-shadow:inset 1px 1px 0 #808080,inset -1px -1px 0 #fff;display:block;';
+  ta.style.cssText = 'width:100%;height:100%;box-sizing:border-box;border:none;outline:none;resize:none;padding:4px;margin:0;background:#fff;color:#000;font-family:"Courier New",monospace;font-size:13px;line-height:24px;white-space:pre;overflow-x:auto;overflow-y:auto;box-shadow:inset 1px 1px 0 #808080,inset -1px -1px 0 #fff;display:block;';
   ta.spellcheck = false;
   ta.value = initialText || '';
   content.appendChild(ta);
+
+  function applyEditorStyle() {
+    ta.style.backgroundColor = bgColor;
+    ta.style.color = textColor;
+    ta.style.backgroundImage = lineRuled
+      ? 'repeating-linear-gradient(transparent, transparent 23px, #c8c8c8 23px, #c8c8c8 24px)'
+      : 'none';
+  }
+  applyEditorStyle();
 
   const statusbar = document.createElement('div');
   statusbar.className = 'win98-statusbar';
@@ -5362,7 +5399,7 @@ function openNotepadWindow(initialText, initialFilename) {
   ta.addEventListener('keyup', updateStatus);
 
   ta.addEventListener('input', () => {
-    if (!modified) { modified = true; updateTitle(); }
+    if (!modified) { modified = true; _notesIsModified = true; updateTitle(); }
     updateStatus();
   });
 
@@ -5539,6 +5576,35 @@ function openNotepadWindow(initialText, initialFilename) {
           wordWrap = !wordWrap;
           ta.style.whiteSpace = wordWrap ? 'pre-wrap' : 'pre';
           ta.style.overflowX = wordWrap ? 'hidden' : 'auto';
+      }},
+      { label: (lineRuled ? '\u2713 ' : '    ') + 'Paper Lines', onClick: () => {
+          lineRuled = !lineRuled;
+          applyEditorStyle();
+      }},
+      { label: '\u2014 Background Color \u25b6', onClick: () => {
+          showContextMenu(r.right, r.bottom,
+            [{ label: '(white / default)', color: '#ffffff', onClick: () => { bgColor = '#ffffff'; applyEditorStyle(); } }].concat(
+              PAINT_PALETTE.map(hex => ({
+                label: hex,
+                color: hex,
+                onClick: () => { bgColor = hex; applyEditorStyle(); }
+              }))
+            )
+          );
+      }},
+      { label: '\u2014 Text Color \u25b6', onClick: () => {
+          showContextMenu(r.right, r.bottom,
+            [
+              { label: '(black / default)', color: '#000000', onClick: () => { textColor = '#000000'; applyEditorStyle(); } },
+              { label: '(white)', color: '#ffffff', onClick: () => { textColor = '#ffffff'; applyEditorStyle(); } }
+            ].concat(
+              PAINT_PALETTE.map(hex => ({
+                label: hex,
+                color: hex,
+                onClick: () => { textColor = hex; applyEditorStyle(); }
+              }))
+            )
+          );
       }}
     ]);
   });
@@ -5555,17 +5621,31 @@ function openNotepadWindow(initialText, initialFilename) {
     e.stopPropagation();
     const r = e.target.getBoundingClientRect();
     showContextMenu(r.left, r.bottom, [
-      { label: 'About Notepad', onClick: () => {
+      { label: 'About Notes', onClick: () => {
           window.alert(
-            'Notepad\n\n' +
+            'Notes\n\n' +
             'File \u25b6 Open\u2026           open a .txt from your computer\n' +
             'File \u25b6 Open from site\u2026  open a .txt hosted on this site\n' +
             'File \u25b6 Save / Save As\u2026  download as .txt to your computer\n' +
-            'File \u25b6 Save to Desktop    add as an icon on the virtual desktop'
+            'File \u25b6 Save to Desktop    add as an icon on the virtual desktop\n' +
+            'Format \u25b6 Paper Lines      toggle ruled-paper lines\n' +
+            'Format \u25b6 Background Color  change editor background color\n' +
+            'Format \u25b6 Text Color        change editor text color'
           );
       }}
     ]);
   });
+
+  function loadContent(text, fname) {
+    ta.value = text || '';
+    currentFilename = fname || null;
+    modified = false;
+    _notesIsModified = false;
+    updateTitle();
+    updateStatus();
+    ta.focus();
+  }
+  _notesLoad = loadContent;
 
   win.appendChild(titlebar);
   win.appendChild(menubar);
@@ -5574,7 +5654,11 @@ function openNotepadWindow(initialText, initialFilename) {
   document.getElementById('desktop').appendChild(win);
 
   win.addEventListener('mousedown', () => bringToFront(id));
-  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => {
+    closeWindow(id);
+    _notesLoad = null;
+    _notesIsModified = false;
+  });
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
   attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);

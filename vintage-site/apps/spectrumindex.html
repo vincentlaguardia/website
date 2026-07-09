@@ -317,8 +317,18 @@
     flex:0 0 var(--gutter);
     width:var(--gutter);
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
+    gap:4px;
+  }
+  #hz-display{
+    font-size:11px;
+    font-family:inherit;
+    text-align:center;
+    color:#222;
+    white-space:nowrap;
+    letter-spacing:0.02em;
   }
   .ruler-track{
     position:relative;
@@ -531,7 +541,8 @@
 
           <div class="ruler-row">
             <div class="ruler-gutter">
-              <button class="ctrl-btn" id="sound-btn" title="Toggle sound">&#128264;</button>
+              <div id="hz-display">—</div>
+              <button class="ctrl-btn" id="sound-btn" title="Toggle sound">Mute</button>
             </div>
             <div class="ruler-track sunken" id="ruler">
               <div class="ruler-handle" id="ruler-handle"></div>
@@ -751,6 +762,7 @@
   const swatchWavePath = document.getElementById('swatch-wave-path');
   const swatchMsg = document.getElementById('swatch-msg');
   const soundBtn = document.getElementById('sound-btn');
+  const hzDisplay = document.getElementById('hz-display');
 
   /* ---------- non-uniform scale: the visible band itself gets a big dedicated zone,
      true to scale, so the sliver you can actually see stays honestly tiny ---------- */
@@ -849,7 +861,7 @@
   /* on by default; browsers require a user gesture before audio can actually start,
      so the AudioContext is created on the first interaction rather than on load */
   let audioCtx = null, oscillator = null, gainNode = null, audioEnabled = true;
-  soundBtn.innerHTML = '\u{1F50A}';
+  soundBtn.textContent = 'Mute';
   soundBtn.classList.add('is-active');
   function ensureAudio(){
     if(audioCtx) return;
@@ -865,7 +877,7 @@
     ensureAudio();
     if(audioCtx.state==='suspended') audioCtx.resume();
     audioEnabled = on;
-    soundBtn.innerHTML = on ? '\u{1F50A}' : '\u{1F507}';
+    soundBtn.textContent = on ? 'Mute' : 'Unmute';
     soundBtn.classList.toggle('is-active', on);
     render();
   }
@@ -916,6 +928,7 @@
     });
 
     rulerHandle.style.left = pctFor(state.logF)+'%';
+    hzDisplay.textContent = formatHz(f);
   }
 
   /* ---------- animated wave inside the swatch, true-scale to the audible band ---------- */

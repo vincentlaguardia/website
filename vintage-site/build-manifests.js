@@ -115,8 +115,16 @@ function buildManifest(folderPath) {
 
   const existingNames = new Set(result.map(entry => entry.name));
   const seenUrlNames = new Set();
+  const relativeFolderPath = path.relative(__dirname, folderPath);
   existingUrlEntries.forEach(entry => {
-    if (existingNames.has(entry.name) || seenUrlNames.has(entry.name)) return;
+    if (existingNames.has(entry.name)) {
+      console.warn('Skipping URL-backed manifest entry "' + entry.name + '" in ' + relativeFolderPath + ': filesystem entry with same name already exists.');
+      return;
+    }
+    if (seenUrlNames.has(entry.name)) {
+      console.warn('Skipping duplicate URL-backed manifest entry "' + entry.name + '" in ' + relativeFolderPath + '.');
+      return;
+    }
     result.push(entry);
     seenUrlNames.add(entry.name);
   });

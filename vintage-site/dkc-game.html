@@ -51,8 +51,7 @@
     };
 
     const promptForLocalRom = () => {
-      setStatus('ROM not found at /roms/dkc.sfc. A file picker will open - please select your local Donkey Kong Country ROM file.', true);
-      console.info('To host Donkey Kong permanently, add vintage-site/roms/dkc.sfc and redeploy.');
+      setStatus('ROM not found at /roms/dkc.sfc. Select your local ROM file.', true);
       romPickerEl.value = '';
       romPickerEl.click();
     };
@@ -156,7 +155,7 @@
     };
 
     romPickerEl.addEventListener('change', async (event) => {
-      const selectedFile = event.target.files?.[0];
+      const selectedFile = event.target.files[0];
       if (!selectedFile) return;
 
       try {

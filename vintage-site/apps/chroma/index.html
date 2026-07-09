@@ -852,6 +852,9 @@
     lightRepeat: 7,
     lightRowOffset: 97
   };
+  function getTechnoLevelConfig(level){
+    return TECHNO_LEVEL_CONFIG[level] || TECHNO_LEVEL_CONFIG[1];
+  }
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1248,7 +1251,7 @@
     const jitterC = hashZone(zone.col+53, zone.row+17);
     const groupCol = Math.floor(zone.col / TECHNO_GROUP_SIZE);
     const groupRow = Math.floor(zone.row / TECHNO_GROUP_SIZE);
-    const config = TECHNO_LEVEL_CONFIG[technoLevel] || TECHNO_LEVEL_CONFIG[1];
+    const config = getTechnoLevelConfig(technoLevel);
     const branchRoll = hashZone(
       groupCol + seed.phase * TECHNO_HASH_MIX.branchPhase + role * TECHNO_HASH_MIX.branchRole,
       groupRow + seed.repeats * TECHNO_HASH_MIX.branchRepeat + bandIdx * TECHNO_HASH_MIX.branchBand
@@ -1268,7 +1271,7 @@
     const w = Math.max(0, Math.min(100, strange)) / 100;
     const isPastel = branchRoll < config.pastelProbability;
     const range = isPastel ? config.pastel : config.neon;
-    const roleBias = hues.length > 1 ? (role / (hues.length - 1)) - 0.5 : 0;
+    const roleBias = hues.length > 1 ? clamp((role / (hues.length - 1)) - 0.5, -0.5, 0.5) : 0;
     const localHueShare = 0.18 + config.localVariance * 0.3;
     const groupHueShare = 1 - localHueShare;
     const hueDrift = ((groupHue - 0.5) * 2 * config.hueDrift * groupHueShare)
@@ -1528,7 +1531,7 @@
   const pastramiLevelDropdown = document.getElementById('pastrami-level-dropdown');
   const pastramiLevelOptions = pastramiLevelDropdown.querySelectorAll('.menu-option');
   function syncTechnoLevelButtonState(){
-    const config = TECHNO_LEVEL_CONFIG[technoLevel] || TECHNO_LEVEL_CONFIG[1];
+    const config = getTechnoLevelConfig(technoLevel);
     pastramiLevelBtn.textContent = config.label;
     pastramiLevelBtn.title = 'Select Techno Level (current: ' + config.label + ')';
     pastramiLevelBtn.setAttribute('aria-label', 'Select Techno Level');

@@ -1983,11 +1983,12 @@ const WALLPAPER_IMG_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.
 // Default wallpaper shown when no custom wallpaper has been chosen.
 const DEFAULT_WALLPAPER_SRC = 'content/_backgrounds/trinityneo.jpg';
 
-// Version stamp for the persisted wallpaper preference. Bump this whenever
-// the default wallpaper changes so that stale saved values from the previous
-// default are silently discarded and every user gets the new default on their
-// next load, while intentional user selections made after the bump are kept.
-const WALLPAPER_PREF_VERSION = 1;
+// Version stamp for the persisted wallpaper preference.
+// Increment WALLPAPER_PREF_VERSION whenever the default wallpaper changes; this
+// invalidates any stale value saved under the old default so every user gets the
+// new default on their next load. Intentional selections made after the bump
+// will be saved with the new version and will continue to persist normally.
+const WALLPAPER_PREF_VERSION = 1;  // increment when changing DEFAULT_WALLPAPER_SRC
 const WALLPAPER_VERSION_KEY  = 'site-wallpaper-version';
 
 // Apply a wallpaper from the _backgrounds folder (src is a relative URL like

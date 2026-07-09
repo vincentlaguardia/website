@@ -2283,18 +2283,47 @@ const DEFAULT_WALLPAPER_SRC = 'content/_backgrounds/trinityneo.jpg';
 const WALLPAPER_PREF_VERSION = 1;  // increment when changing DEFAULT_WALLPAPER_SRC
 const WALLPAPER_VERSION_KEY  = 'site-wallpaper-version';
 
+// Apply wallpaper CSS rules to the desktop element for a given fit mode.
+// fit: 'fill' (cover) | 'stretch' | 'tile'
+function applyWallpaperFitStyle(desktopEl, fit) {
+  if (fit === 'tile') {
+    desktopEl.style.backgroundSize = 'auto';
+    desktopEl.style.backgroundRepeat = 'repeat';
+    desktopEl.style.backgroundPosition = '0 0';
+  } else if (fit === 'stretch') {
+    desktopEl.style.backgroundSize = '100% 100%';
+    desktopEl.style.backgroundRepeat = 'no-repeat';
+    desktopEl.style.backgroundPosition = 'center center';
+  } else {
+    // 'fill' — cover (default)
+    desktopEl.style.backgroundSize = 'cover';
+    desktopEl.style.backgroundRepeat = 'no-repeat';
+    desktopEl.style.backgroundPosition = 'center center';
+  }
+}
+
 // Apply a wallpaper from the _backgrounds folder (src is a relative URL like
 // "content/_backgrounds/photo.jpg"). Passing null/empty resets to the default.
-function applyWallpaper(src) {
+// fit: 'fill' | 'stretch' | 'tile' (defaults to stored or 'fill').
+// persist: when false, only updates the visual without touching localStorage.
+function applyWallpaper(src, fit, persist) {
   const desktopEl = document.getElementById('desktop');
+  const resolvedFit = fit || localStorage.getItem('site-wallpaper-fit') || 'fill';
+  applyWallpaperFitStyle(desktopEl, resolvedFit);
   if (src) {
     desktopEl.style.backgroundImage = 'url(' + toAssetUrl(src) + ')';
-    localStorage.setItem('site-wallpaper-src', src);
-    localStorage.setItem(WALLPAPER_VERSION_KEY, String(WALLPAPER_PREF_VERSION));
+    if (persist !== false) {
+      localStorage.setItem('site-wallpaper-src', src);
+      localStorage.setItem('site-wallpaper-fit', resolvedFit);
+      localStorage.setItem(WALLPAPER_VERSION_KEY, String(WALLPAPER_PREF_VERSION));
+    }
   } else {
     desktopEl.style.backgroundImage = 'url(' + toAssetUrl(DEFAULT_WALLPAPER_SRC) + ')';
-    localStorage.removeItem('site-wallpaper-src');
-    localStorage.removeItem(WALLPAPER_VERSION_KEY);
+    if (persist !== false) {
+      localStorage.removeItem('site-wallpaper-src');
+      localStorage.removeItem('site-wallpaper-fit');
+      localStorage.removeItem(WALLPAPER_VERSION_KEY);
+    }
   }
 }
 
@@ -2306,12 +2335,14 @@ function initWallpaper() {
   if (savedVersion < WALLPAPER_PREF_VERSION) {
     // Legacy or unversioned preference — clear it and use the current default.
     localStorage.removeItem('site-wallpaper-src');
+    localStorage.removeItem('site-wallpaper-fit');
     localStorage.removeItem(WALLPAPER_VERSION_KEY);
     applyWallpaper(null);
     return;
   }
   const saved = localStorage.getItem('site-wallpaper-src');
-  applyWallpaper(saved || null);
+  const savedFit = localStorage.getItem('site-wallpaper-fit') || 'fill';
+  applyWallpaper(saved || null, savedFit);
 }
 
 async function openBackgroundPickerWindow() {
@@ -2335,13 +2366,21 @@ async function openBackgroundPickerWindow() {
     }
   } catch (_) { /* network error - show empty state */ }
 
+  // Snapshot the saved state so we can revert on Cancel/Close
+  const originalSrc = localStorage.getItem('site-wallpaper-src') || null;
+  const originalFit = localStorage.getItem('site-wallpaper-fit') || 'fill';
+
+  // Track what the user has previewed (not yet applied)
+  let previewSrc = originalSrc;
+  let previewFit = originalFit;
+
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
   win.style.left = (140 + cascade * 24) + 'px';
   win.style.top  = (110 + cascade * 22) + 'px';
   win.style.width = '380px';
-  win.style.height = '300px';
+  win.style.height = '340px';
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
@@ -2358,6 +2397,33 @@ async function openBackgroundPickerWindow() {
   content.className = 'win98-content';
   content.style.cssText = 'display:flex;flex-direction:column;flex:1;overflow:hidden;';
 
+  // Fit mode radio row
+  const fitRow = document.createElement('div');
+  fitRow.style.cssText = 'display:flex;align-items:center;gap:12px;padding:6px 10px 4px;flex-shrink:0;border-bottom:1px solid #808080;font-size:11px;';
+  const fitLabel = document.createElement('span');
+  fitLabel.textContent = 'Display:';
+  fitLabel.style.cssText = 'font-weight:bold;margin-right:2px;';
+  fitRow.appendChild(fitLabel);
+  [['fill','Fill'],['stretch','Stretch'],['tile','Tile']].forEach(([val, lbl]) => {
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'bg-fit-' + id;
+    radio.value = val;
+    radio.id = 'bg-fit-' + val + '-' + id;
+    if (val === originalFit) radio.checked = true;
+    const radioLabel = document.createElement('label');
+    radioLabel.htmlFor = radio.id;
+    radioLabel.textContent = lbl;
+    radioLabel.style.cssText = 'cursor:pointer;user-select:none;';
+    radio.addEventListener('change', () => {
+      previewFit = val;
+      applyWallpaper(previewSrc, previewFit, false);
+    });
+    fitRow.appendChild(radio);
+    fitRow.appendChild(radioLabel);
+  });
+  content.appendChild(fitRow);
+
   if (backgrounds.length === 0) {
     const empty = document.createElement('div');
     empty.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:#808080;padding:16px;text-align:center;';
@@ -2367,11 +2433,10 @@ async function openBackgroundPickerWindow() {
     const grid = document.createElement('div');
     grid.style.cssText = 'flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:10px;';
 
-    const savedSrc = localStorage.getItem('site-wallpaper-src') || '';
     backgrounds.forEach(bg => {
       const thumb = document.createElement('div');
       thumb.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;';
-      if (bg.src === savedSrc) thumb.style.outline = '2px solid #000080';
+      if (bg.src === originalSrc) thumb.style.outline = '2px solid #000080';
 
       const img = document.createElement('img');
       img.src = toAssetUrl(bg.src);
@@ -2386,9 +2451,15 @@ async function openBackgroundPickerWindow() {
       thumb.appendChild(label);
 
       thumb.addEventListener('click', () => {
-        grid.querySelectorAll('div[style*="outline"]').forEach(el => { el.style.outline = ''; });
+        grid.querySelectorAll('[data-bg-thumb-selected]').forEach(el => {
+          el.removeAttribute('data-bg-thumb-selected');
+          el.style.outline = '';
+        });
+        thumb.setAttribute('data-bg-thumb-selected', '1');
         thumb.style.outline = '2px solid #000080';
-        applyWallpaper(bg.src);
+        previewSrc = bg.src;
+        // Preview without persisting
+        applyWallpaper(previewSrc, previewFit, false);
       });
 
       grid.appendChild(thumb);
@@ -2398,22 +2469,26 @@ async function openBackgroundPickerWindow() {
 
   const btnRow = document.createElement('div');
   btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;padding:8px 12px;flex-shrink:0;';
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'win98-button';
-  removeBtn.textContent = 'Remove';
-  removeBtn.title = 'Reset to default background';
-  removeBtn.addEventListener('click', () => {
-    if (backgrounds.length > 0) {
-      content.querySelector('div[style*="outline"]') && (content.querySelector('div[style*="outline"]').style.outline = '');
-    }
-    applyWallpaper(null);
+
+  const applyBtn = document.createElement('button');
+  applyBtn.className = 'win98-button';
+  applyBtn.textContent = 'Apply';
+  applyBtn.addEventListener('click', () => {
+    // Persist the current preview
+    applyWallpaper(previewSrc, previewFit);
   });
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'win98-button';
-  closeBtn.textContent = 'Close';
-  closeBtn.addEventListener('click', () => closeWindow(id));
-  btnRow.appendChild(removeBtn);
-  btnRow.appendChild(closeBtn);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'win98-button';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', () => {
+    // Revert to original saved state
+    applyWallpaper(originalSrc, originalFit, false);
+    closeWindow(id);
+  });
+
+  btnRow.appendChild(applyBtn);
+  btnRow.appendChild(cancelBtn);
   content.appendChild(btnRow);
 
   win.appendChild(titlebar);
@@ -2421,7 +2496,8 @@ async function openBackgroundPickerWindow() {
   document.getElementById('desktop').appendChild(win);
 
   win.addEventListener('mousedown', () => bringToFront(id));
-  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  const doCancel = () => { applyWallpaper(originalSrc, originalFit, false); closeWindow(id); };
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', doCancel);
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
   attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);

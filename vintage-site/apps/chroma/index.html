@@ -380,6 +380,22 @@
     padding:2px;
     display:none;
   }
+  /* dr pastrami mode */
+  #pastrami-btn{
+    background: linear-gradient(105deg,#ff00ff 0%,#c0c0c0 38%,#c0c0c0 62%,#00ffff 100%);
+    font-weight:bold;
+    letter-spacing:.2px;
+  }
+  #pastrami-btn.is-active{
+    background: linear-gradient(105deg,#00ffff 0%,#ffff00 35%,#ff00ff 65%,#00ff88 100%);
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  .style-dropdown .menu-option.pastrami-disabled{
+    color:var(--shadow);
+    cursor:default;
+    pointer-events:none;
+  }
 </style>
 </head>
 <body>
@@ -438,6 +454,7 @@
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
       <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Click to pick a skew color — palette leans toward it. When active, click again to toggle off. Right-click to clear."><span class="skew-icon" id="skew-icon"></span>Skew</button>
       <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
+      <button class="ctrl-btn" id="pastrami-btn" type="button" title="Activates Dr Pastrami Mode — a forbidden color palette.">Dr Pastrami Mode</button>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
@@ -481,7 +498,8 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
+      <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
+      <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">dr pastrami mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name. use it carefully.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -499,7 +517,7 @@
   </div>
   <div class="winbody">
     <div class="content-panel sunken" style="text-align:left;">
-      <p class="lead" style="text-align:center; margin-top:0;">chroma.exe<br>created by dr. vincent j. pastrami.</p>
+      <p class="lead" style="text-align:center; margin-top:0;">created by dr vincent j pastrami</p>
       <button class="win-btn" id="about-ok">OK</button>
     </div>
   </div>
@@ -731,6 +749,7 @@
   document.getElementById('about-ok').addEventListener('click', closeAbout);
   document.addEventListener('click', function(e){
     if(aboutDialog.classList.contains('show') && !aboutDialog.contains(e.target)) closeAbout();
+    if(helpDialog.classList.contains('show') && !helpDialog.contains(e.target)) closeHelp();
   });
   document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -912,6 +931,31 @@
     const light = BASE_LIGHT + lightOffset + (jitterB-0.5)*lightRange;
     return { h: hue, s: clamp(sat, 10, 97), l: clamp(light, 12, 88) };
   }
+  function resolveZoneColorPastrami(zone, philo, baseHue, seed, strange){
+    const hues = philo.hueOffsets.map(off => (baseHue+off+3600)%360);
+    const bandIdx = bandIndexFor(zone, philo.pattern.length, seed);
+    const role = philo.pattern[bandIdx];
+    const jitterA = hashZone(zone.col, zone.row);
+    const jitterB = hashZone(zone.col+91, zone.row+37);
+    const jitterC = hashZone(zone.col+53, zone.row+17);
+    const jitterD = hashZone(zone.col+7, zone.row+61);
+    const jitterE = hashZone(zone.col+19, zone.row+83);
+    const w = Math.max(0, Math.min(100, strange)) / 100;
+    // Zone flips between deeply unsaturated pastel and extreme neon/fluorescent
+    const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
+    // Hue: use philosophy hue but allow wild shifts — juxtaposition is the point
+    const hueJitter = (jitterC - 0.5) * (80 + w * 220);
+    const hue = applySkewToHue((hues[role] + hueJitter + 3600) % 360);
+    let sat, light;
+    if(isPastel){
+      sat  = 3  + jitterA * 20;        // deeply unsaturated: 3–23%
+      light = 80 + jitterB * 15;       // very light: 80–95%
+    } else {
+      sat  = 92 + jitterA * 8;         // extreme neon: 92–100%
+      light = 47 + jitterB * 20;       // vivid mid: 47–67%
+    }
+    return { h: hue, s: clamp(sat, 0, 100), l: clamp(light, 0, 100) };
+  }
   function resolveImportedZoneColor(zone, palette, seed, strange){
     if(!palette.length) return { h:0, s:0, l:DEFAULT_LIGHTNESS };
     const paletteIndex = bandIndexFor(zone, palette.length, seed);
@@ -929,7 +973,9 @@
   function zoneHex(zone){
     const sourceColor = importedMode
       ? resolveImportedZoneColor(zone, importedPalette, seed, strange)
-      : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
+      : pastramiMode
+        ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
+        : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
     return hslToHex(sourceColor.h, clamp(sourceColor.s * globalSatMul, 0, 100), sourceColor.l).toUpperCase();
   }
   function exportPaletteText(){
@@ -966,7 +1012,10 @@
     window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl }, window.location.origin);
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
+  const PASTRAMI_PHILOS = [0, 1, 3, 5]; // Monochromatic, Analogous, Split-Complementary, Tetradic
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
+  function randomPastramiPhiloIdx(){ return PASTRAMI_PHILOS[Math.floor(Math.random()*PASTRAMI_PHILOS.length)]; }
+  let pastramiMode = false;
   let randomStyle = true;
   let philoIdx = randomPhiloIdx();
   let seed = randomSeed();
@@ -1014,10 +1063,11 @@
   styleOptions.forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
+      if(opt.classList.contains('pastrami-disabled')) return;
       const isRandom = opt.dataset.idx === 'random';
       importedMode = false;
       randomStyle = isRandom;
-      philoIdx = isRandom ? randomPhiloIdx() : +opt.dataset.idx;
+      philoIdx = isRandom ? (pastramiMode ? randomPastramiPhiloIdx() : randomPhiloIdx()) : +opt.dataset.idx;
       styleBtn.innerHTML = (isRandom ? 'Random' : PHILOSOPHIES[philoIdx].name) + ' &#9662;';
       styleOptions.forEach(o=>o.classList.remove('active'));
       opt.classList.add('active');
@@ -1026,11 +1076,40 @@
       drawScene();
     });
   });
+  function applyPastramiDropdown(){
+    const disabledIdxs = new Set([2, 4]); // Complementary, Triadic
+    styleOptions.forEach(opt=>{
+      if(opt.dataset.idx === 'random') return;
+      const idx = +opt.dataset.idx;
+      if(pastramiMode && disabledIdxs.has(idx)){
+        opt.classList.add('pastrami-disabled');
+      } else {
+        opt.classList.remove('pastrami-disabled');
+      }
+    });
+  }
+  const pastramiBtn = document.getElementById('pastrami-btn');
+  pastramiBtn.addEventListener('click', ()=>{
+    pastramiMode = !pastramiMode;
+    pastramiBtn.classList.toggle('is-active', pastramiMode);
+    applyPastramiDropdown();
+    // If current philosophy is not allowed in Pastrami mode, switch it
+    if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){
+      philoIdx = randomPastramiPhiloIdx();
+      styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
+      randomStyle = false;
+      styleOptions.forEach(o=>o.classList.remove('active'));
+      const matchOpt = [...styleOptions].find(o=>+o.dataset.idx === philoIdx);
+      if(matchOpt) matchOpt.classList.add('active');
+      seed = randomSeed();
+    }
+    drawScene();
+  });
   rerollHueBtn.addEventListener('click', ()=>{
     importedMode = false;
     baseHue = Math.random()*360;
     hueSlider.value = Math.round(baseHue);
-    if(randomStyle){ philoIdx = randomPhiloIdx(); seed = randomSeed(); }
+    if(randomStyle){ philoIdx = pastramiMode ? randomPastramiPhiloIdx() : randomPhiloIdx(); seed = randomSeed(); }
     drawScene();
   });
   targetColorInput.addEventListener('input', ()=>{ importedMode = false; TARGET = hexToRgbObj(targetColorInput.value); drawScene(); });

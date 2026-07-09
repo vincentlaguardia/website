@@ -1317,8 +1317,30 @@ function restoreItem(id, skipUndo) {
 }
 
 function emptyTrash() {
+  const trashedEntries = trashItems.slice();
   trashItems = [];
   saveTrash();
+  // Permanently remove each trashed item so it no longer shows up anywhere
+  // (e.g. File > Open from site) after the trash is emptied.
+  let customDirty = false;
+  trashedEntries.forEach(entry => {
+    if (customFolders[entry.id]) {
+      // Custom (user-created) items: recursively clean up from items registry
+      // and localStorage.  Pass skipPersist=true to defer the (potentially
+      // expensive) localStorage writes until after the loop completes.
+      removeCustomItemTree(entry.id, /* skipPersist= */ true);
+      customDirty = true;
+    } else {
+      // Synced/static items: remove from the in-memory registry; they will be
+      // re-fetched from the server manifest if they still exist there.
+      delete items[entry.id];
+    }
+  });
+  if (customDirty) {
+    saveCustomFolders();
+    saveFolderIconPositions();
+    localStorage.setItem('site-folder-view-modes', JSON.stringify(folderViewModes));
+  }
   refreshTrashView();
   updateTrashIconEl();
 }
@@ -5462,7 +5484,8 @@ function openNotepadWindow(initialText, initialFilename) {
   }
 
   function buildSiteTxtEntries() {
-    const entries = Object.entries(items).filter(([, it]) => it.type === 'text');
+    const trashedIds = new Set(trashItems.map(t => t.id));
+    const entries = Object.entries(items).filter(([id, it]) => it.type === 'text' && !trashedIds.has(id));
     if (!entries.length) return [{ label: '(no .txt files on site)', onClick: () => {} }];
     return entries.map(([iid, it]) => ({
       label: it.name,

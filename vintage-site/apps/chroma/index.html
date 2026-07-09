@@ -461,6 +461,8 @@
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
         <div class="menu-sep"></div>
+        <div class="menu-option" data-action="save-to-desktop">Save to Desktop...</div>
+        <div class="menu-sep"></div>
         <div class="menu-option" data-action="save">Save Image...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="exit">Exit</div>
@@ -810,6 +812,11 @@
     closeAllMenus();
     document.getElementById('cc-export-palette').click();
   });
+  document.querySelector('[data-action="save-to-desktop"]').addEventListener('click', e=>{
+    e.stopPropagation();
+    closeAllMenus();
+    doSaveToVirtualDesktop();
+  });
   document.querySelector('[data-action="exit"]').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   document.querySelector('[data-action="save"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -999,6 +1006,24 @@
       return;
     }
     downloadTextFile('chroma-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
+  }
+  function buildPaletteText(){
+    const unique = [], seen = new Set();
+    zones.forEach(z=>{ const hex = zoneHex(z); if(!seen.has(hex)){ seen.add(hex); unique.push(hex); } });
+    return unique.join('\n') + '\n';
+  }
+  function doSaveToVirtualDesktop(){
+    if(window.self === window.top){
+      alert('Save to Desktop is only available when chroma.exe is open inside the virtual desktop.');
+      return;
+    }
+    const defaultName = 'chroma-palette-' + timestampTag() + '.txt';
+    const raw = window.prompt('Save palette to virtual desktop as:', defaultName);
+    if(raw === null) return;
+    const fname = raw.trim() || defaultName;
+    const name = fname.endsWith('.txt') ? fname : fname + '.txt';
+    const text = buildPaletteText();
+    window.parent.postMessage({ type: 'chroma-save-to-desktop', name, text }, window.location.origin);
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }

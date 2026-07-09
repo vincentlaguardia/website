@@ -3713,6 +3713,7 @@ function pvRenderCurrent() {
     video.controls = true;
     video.autoplay = true;
     video.preload = 'metadata';
+    if (item.thumb) video.poster = item.thumb;
     video.style.cssText = 'width:100%;height:100%;display:block;background:#000;object-fit:contain;';
     const source = document.createElement('source');
     // videoData holds base64-encoded video; file is used for synced content/ items
@@ -4273,6 +4274,8 @@ function renderVideoContent(id) {
         </video>
       </div>
     `;
+    const localPlayer = wrap.querySelector('.local-video-player');
+    if (localPlayer && item.thumb) localPlayer.poster = item.thumb;
     return wrap;
   }
   const src = 'https://www.youtube.com/embed/' + item.youtubeId + '?rel=0';

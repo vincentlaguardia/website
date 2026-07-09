@@ -116,6 +116,7 @@
   .menu-dropdown.show{ display:block; }
   .menu-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; }
   .menu-option:hover{ background:var(--navy); color:#fff; }
+  .menu-option-active{ font-weight:bold; }
   .menu-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 var(--white); margin:3px 2px; }
   .ctrlbar{
     display:flex;
@@ -488,6 +489,7 @@
     </div>
     <div class="menubar">
       <div class="menu-item" data-menu="file">File</div>
+      <div class="menu-item" data-menu="dots">Dots</div>
       <div class="menu-item" id="menu-diary">Diary</div>
       <div class="menu-item" id="menu-help">Info</div>
       <div class="menu-item" id="menu-theory">Theory</div>
@@ -502,6 +504,11 @@
         <div class="menu-option" data-action="save-as">Save As JPG...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="exit">Exit</div>
+      </div>
+      <div class="menu-dropdown raised" id="dropdown-dots">
+        <div class="menu-option" data-dot-size="small">Small</div>
+        <div class="menu-option menu-option-active" data-dot-size="medium">Medium</div>
+        <div class="menu-option" data-dot-size="large">Large</div>
       </div>
     </div>
     <div class="ctrlbar sunken">
@@ -805,7 +812,7 @@
     document.body.removeChild(ta);
   }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
-  const dropdowns = { file: document.getElementById('dropdown-file') };
+  const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };
   function closeAllMenus(){
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
@@ -1150,8 +1157,12 @@
   let importedPalette = [];
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
+  const DOT_RADIUS_SMALL = 0.125;
+  const DOT_RADIUS_MEDIUM = 0.275;
+  const DOT_RADIUS_LARGE = 0.45;
   let skewColor = null;
   let skewActive = false;
+  let dotSize = 'medium';
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
@@ -1163,8 +1174,11 @@
       ctx.fillRect(x, y, cw+1, ch+1);
       if(z.hasTarget && showTargets){
         const cx = x + cw/2, cy = y + ch/2;
-        const targetRadius = LAST_SWATCH_DIAMETER / 2;
-        const r = Math.min(targetRadius, cw / 2, ch / 2);
+        const cell = Math.min(cw, ch);
+        let r;
+        if(dotSize === 'large') r = cell * DOT_RADIUS_LARGE;
+        else if(dotSize === 'small') r = cell * DOT_RADIUS_SMALL;
+        else r = cell * DOT_RADIUS_MEDIUM;
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
         grad.addColorStop(0, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
         grad.addColorStop(0.62, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
@@ -1626,6 +1640,17 @@
     link.click();
   }
   document.getElementById('menu-diary').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openDiary(); });
+  document.querySelectorAll('#dropdown-dots [data-dot-size]').forEach(opt=>{
+    opt.addEventListener('click', e=>{
+      e.stopPropagation();
+      dotSize = opt.dataset.dotSize;
+      const dotOpts = document.querySelectorAll('#dropdown-dots [data-dot-size]');
+      dotOpts.forEach(o=>o.classList.remove('menu-option-active'));
+      opt.classList.add('menu-option-active');
+      closeAllMenus();
+      drawScene();
+    });
+  });
   document.getElementById('diary-close').addEventListener('click', closeDiary);
   document.getElementById('diary-clear').addEventListener('click', clearDiary);
   document.getElementById('diary-export').addEventListener('click', exportDiaryJPG);

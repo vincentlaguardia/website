@@ -29,21 +29,6 @@ input_mp4="$1"
 cover_jpg="$2"
 output_mp4="${3:-${input_mp4%.mp4}-with-cover.mp4}"
 
-if ! command -v ffmpeg >/dev/null 2>&1; then
-  echo "Error: ffmpeg is not installed or not in PATH." >&2
-  exit 1
-fi
-
-if [[ ! -f "$input_mp4" ]]; then
-  echo "Error: input MP4 not found: $input_mp4" >&2
-  exit 1
-fi
-
-if [[ ! -f "$cover_jpg" ]]; then
-  echo "Error: JPG cover image not found: $cover_jpg" >&2
-  exit 1
-fi
-
 shopt -s nocasematch
 if [[ ! "$input_mp4" =~ \.mp4$ ]]; then
   echo "Error: first argument must be an .mp4 file." >&2
@@ -56,8 +41,23 @@ if [[ ! "$cover_jpg" =~ \.jpe?g$ ]]; then
 fi
 shopt -u nocasematch
 
+if [[ ! -f "$input_mp4" ]]; then
+  echo "Error: input MP4 not found: $input_mp4" >&2
+  exit 1
+fi
+
+if [[ ! -f "$cover_jpg" ]]; then
+  echo "Error: JPG cover image not found: $cover_jpg" >&2
+  exit 1
+fi
+
 if [[ -e "$output_mp4" ]]; then
   echo "Error: output file already exists: $output_mp4" >&2
+  exit 1
+fi
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo "Error: ffmpeg is not installed or not in PATH." >&2
   exit 1
 fi
 

@@ -162,9 +162,9 @@
     border-radius:0;
     background:var(--face);
   }
-  input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
-  input[type=color]::-webkit-color-swatch{ border:none; border-radius:0; }
-  input[type=color]::-moz-color-swatch{ border:none; border-radius:0; }
+  input[type=color]::-webkit-color-swatch-wrapper{ padding:0; background:var(--face); }
+  input[type=color]::-webkit-color-swatch{ border:none; border-radius:0; background:var(--face); }
+  input[type=color]::-moz-color-swatch{ border:none; border-radius:0; background:var(--face); }
   input[type=range]{
     -webkit-appearance:none;
     width:110px;
@@ -511,12 +511,12 @@
       </div>
     </div>
     <div class="menubar">
-      <div class="menu-item" data-menu="file" role="button" tabindex="0" aria-haspopup="true">File</div>
-      <div class="menu-item" data-menu="dots" role="button" tabindex="0" aria-haspopup="true">Dots</div>
-      <div class="menu-item" id="menu-diary" role="button" tabindex="0">Diary</div>
-      <div class="menu-item" id="menu-help" role="button" tabindex="0">Info</div>
-      <div class="menu-item" id="menu-theory" role="button" tabindex="0">Theory</div>
-      <div class="menu-item" id="menu-about" role="button" tabindex="0">About</div>
+      <div class="menu-item" data-menu="file" tabindex="0" aria-haspopup="menu">File</div>
+      <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
+      <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
+      <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Info</div>
+      <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Theory</div>
+      <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
@@ -864,20 +864,13 @@
   });
   document.addEventListener('click', closeAllMenus);
   function activateMenuItemWithKeyboard(item){
-    item.tabIndex = 0;
     item.addEventListener('keydown', e=>{
       if(e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault();
       item.click();
     });
   }
-  menuItems.forEach(item=>{
-    activateMenuItemWithKeyboard(item);
-  });
-  ['menu-diary', 'menu-help', 'menu-theory', 'menu-about'].forEach(id=>{
-    const item = document.getElementById(id);
-    activateMenuItemWithKeyboard(item);
-  });
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -1285,7 +1278,7 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   function syncPastramiButtonState(){
     pastramiBtn.classList.toggle('is-active', pastramiMode);
-    pastramiBtn.setAttribute('aria-pressed', pastramiMode ? 'true' : 'false');
+    pastramiBtn.setAttribute('aria-pressed', String(pastramiMode));
   }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;
@@ -1484,7 +1477,7 @@
   const defaultSkewHex = skewInput.value;
   function syncSkewButtonState(){
     skewBtn.classList.toggle('is-active', skewActive);
-    skewBtn.setAttribute('aria-pressed', skewActive ? 'true' : 'false');
+    skewBtn.setAttribute('aria-pressed', String(skewActive));
   }
   skewBtn.addEventListener('click', ()=>{
     if(skewColor !== null){
@@ -1501,7 +1494,7 @@
     skewColor = null;
     skewActive = false;
     skewInput.value = defaultSkewHex;
-    skewIcon.style.background = '';
+    skewIcon.style.background = 'var(--face)';
     syncSkewButtonState();
     drawScene();
   }

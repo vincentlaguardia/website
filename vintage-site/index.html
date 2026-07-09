@@ -1068,6 +1068,8 @@ const items = {
    or because a pasted copy was added into a different folder. This runs BEFORE
    the trash system below, so trash removals are always applied last / on top of
    the current arrangement. */
+// Legacy name kept for backwards compatibility with the existing
+// `site-custom-folders` storage key; it now holds all custom items, not just folders.
 let customFolders = {};
 try { customFolders = JSON.parse(localStorage.getItem('site-custom-folders') || '{}'); } catch (e) { customFolders = {}; }
 Object.keys(customFolders).forEach(id => { items[id] = customFolders[id]; });
@@ -1332,10 +1334,11 @@ function generateUniqueCopiedItemName(parentId, originalName) {
   return name;
 }
 
-let customItemIdCounter = 0;
 function generateCustomItemId(prefix) {
-  customItemIdCounter += 1;
-  return prefix + '_' + Date.now() + '_' + customItemIdCounter + '_' + Math.floor(Math.random() * 100000);
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return prefix + '_' + window.crypto.randomUUID().replace(/-/g, '_');
+  }
+  return prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000000000);
 }
 
 let virtualClipboard = null;
@@ -1355,10 +1358,10 @@ function canPasteIntoFolder(parentId) {
   );
 }
 
-function removeCustomItemTree(id) {
+function removeCustomItemTree(id, skipPersist) {
   const item = items[id];
   if (item && Array.isArray(item.children)) {
-    item.children.slice().forEach(removeCustomItemTree);
+    item.children.slice().forEach(childId => removeCustomItemTree(childId, true));
   }
   delete items[id];
   delete customFolders[id];
@@ -1370,6 +1373,11 @@ function removeCustomItemTree(id) {
   });
   try { localStorage.removeItem('desktop-icon-pos-' + id); } catch (e) {}
   if (openWindows[id]) closeWindow(id);
+  if (!skipPersist) {
+    saveCustomFolders();
+    saveFolderIconPositions();
+    localStorage.setItem('site-folder-view-modes', JSON.stringify(folderViewModes));
+  }
 }
 
 async function cloneItemForPaste(sourceId) {
@@ -1377,7 +1385,7 @@ async function cloneItemForPaste(sourceId) {
   if (!source) return null;
   if (source.type === 'folder') {
     if (source.syncFolder) await loadSyncChildren(sourceId);
-    const cloneId = generateCustomItemId('userfolder');
+    const cloneId = generateCustomItemId('copiedfolder');
     const clone = Object.assign({}, source, {
       children: [],
       custom: true,
@@ -1395,7 +1403,7 @@ async function cloneItemForPaste(sourceId) {
     }
     return cloneId;
   }
-  const cloneId = generateCustomItemId('useritem');
+  const cloneId = generateCustomItemId('copieditem');
   const clone = Object.assign({}, source, {
     custom: true,
     modified: Date.now()
@@ -1431,9 +1439,6 @@ async function pasteClipboardInto(parentId, skipUndo) {
         persistFolderChildren(parentId);
       }
       removeCustomItemTree(cloneId);
-      saveCustomFolders();
-      saveFolderIconPositions();
-      localStorage.setItem('site-folder-view-modes', JSON.stringify(folderViewModes));
       refreshFolderView(parentId);
       if (parentId === 'desktop') buildDesktopIcons();
     });

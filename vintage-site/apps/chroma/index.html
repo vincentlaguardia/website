@@ -1202,16 +1202,14 @@
     if(technoMode){
       const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
       const hue = applySkewToHue((src.h + (jitterC-0.5)*(80 + w*220) + 3600) % 360);
-      const sat = isPastel
-        ? src.s * 0.35 + 32 + jitterA * 20
-        : src.s * 0.45 + 56 + jitterA * 12;
-      const light = isPastel
-        ? src.l * 0.4 + 42 + jitterB * 18
-        : src.l * 0.35 + 28 + jitterB * 22;
+      const technoSat = isPastel ? 50 + jitterA * 30 : 92 + jitterA * 8;
+      const technoLight = isPastel ? 72 + jitterB * 16 : 47 + jitterB * 20;
+      const sat = technoSat * (isPastel ? 0.72 : 0.8) + src.s * (isPastel ? 0.28 : 0.2);
+      const light = technoLight * (isPastel ? 0.7 : 0.72) + src.l * (isPastel ? 0.3 : 0.28);
       return {
         h: hue,
-        s: clamp(sat, isPastel ? 32 : 88, 100),
-        l: clamp(light, isPastel ? 48 : 28, isPastel ? 92 : 78)
+        s: clamp(sat, 0, 100),
+        l: clamp(light, 0, 100)
       };
     }
     return {

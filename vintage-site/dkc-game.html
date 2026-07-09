@@ -30,11 +30,13 @@
 <body>
   <div id="game"></div>
   <div id="status">Preparing Donkey Kong Country…</div>
+  <input id="rom-picker" type="file" accept=".sfc,.smc,.fig,.swc,.zip,application/octet-stream" hidden>
   <script>
     const ROM_URL = '/roms/dkc.sfc';
     const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
     const statusEl = document.getElementById('status');
     const gameEl = document.getElementById('game');
+    const romPickerEl = document.getElementById('rom-picker');
 
     const setStatus = (message, isError = false) => {
       statusEl.textContent = message;
@@ -44,6 +46,15 @@
 
     const hideStatus = () => {
       statusEl.classList.add('hidden');
+    };
+
+    const promptForLocalRom = () => {
+      const canPickFile = typeof romPickerEl?.click === 'function';
+      if (!canPickFile) return;
+
+      setStatus('ROM not found at /roms/dkc.sfc. Select a local Donkey Kong ROM file to continue, then add vintage-site/roms/dkc.sfc and redeploy for permanent hosting.', true);
+      romPickerEl.value = '';
+      romPickerEl.click();
     };
 
     const decodeHeader = (bytes) => {
@@ -103,6 +114,9 @@
         setStatus('Checking game ROM…');
         const romResponse = await fetch(ROM_URL);
         if (!romResponse.ok) {
+          if (romResponse.status === 404) {
+            promptForLocalRom();
+          }
           throw new Error(`ROM request failed (${romResponse.status}).`);
         }
 
@@ -124,6 +138,23 @@
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
       }
     };
+
+    romPickerEl.addEventListener('change', async (event) => {
+      const selectedFile = event.target.files?.[0];
+      if (!selectedFile) return;
+
+      try {
+        const romBytes = await selectedFile.arrayBuffer();
+        if (romBytes.byteLength < 1024) {
+          throw new Error('Selected ROM payload is unexpectedly small.');
+        }
+        setStatus('Loading emulator runtime…');
+        const romBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
+        loadEmulator(romBlobUrl);
+      } catch (error) {
+        setStatus(`Donkey Kong failed to start: ${error.message}`, true);
+      }
+    });
 
     start();
   </script>

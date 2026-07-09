@@ -2748,9 +2748,13 @@ async function loadDesktopRootsFromManifest() {
     if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
     const entries = await res.json();
     // Keep any fixed (non-content-synced) items already in desktop.children
-    const fixed = items.desktop.children.filter(
-      id => !items[id] || !items[id].syncFolder || !items[id].syncFolder.startsWith('content/')
-    );
+    const fixed = items.desktop.children.filter(id => {
+      const item = items[id];
+      if (!item) return true;
+      if (item.syncFolder && item.syncFolder.startsWith('content/')) return false;
+      if (item.filePath && item.filePath.startsWith('content/')) return false;
+      return true;
+    });
     const contentIds = entries
       .filter(e => e.type === 'folder')
       .map(e => {
@@ -2797,7 +2801,13 @@ async function loadDesktopRootsFromManifest() {
         return fileId;
       }).filter(Boolean);
 
-    items.desktop.children = [...fixed, ...contentIds, ...fileIds];
+    const mergedDesktopIds = [...fixed, ...contentIds, ...fileIds];
+    const seenDesktopIds = new Set();
+    items.desktop.children = mergedDesktopIds.filter(id => {
+      if (seenDesktopIds.has(id)) return false;
+      seenDesktopIds.add(id);
+      return true;
+    });
   } catch (err) {
     console.error('Could not load desktop roots from content/manifest.json; keeping defaults', err);
   }

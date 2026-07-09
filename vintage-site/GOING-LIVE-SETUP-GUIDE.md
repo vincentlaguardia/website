@@ -4,7 +4,7 @@ This guide covers one-time setup for hosting your site with GitHub + Netlify, so
 
 ## What's new in your site folder
 
-- **`content/`** — a new folder. Every subfolder you create in here (via GitHub) shows up automatically as a folder on your site, inside a new desktop icon called **My Files**.
+- **`content/desktop/`** — this folder drives your website desktop. Any file or folder you put here (via GitHub) shows up as a desktop icon after deploy.
 - **`build-manifests.js`** — a small script that scans `content/` and writes out what's in it. Netlify will run this automatically every time you upload something. You should never need to run it yourself.
 - **`netlify.toml`** — tells Netlify to run that script automatically. Already set up, nothing to configure.
 
@@ -34,11 +34,11 @@ If you own a domain name, Netlify's dashboard has a **Domain settings** section 
 
 ## Adding content going forward
 
-1. In GitHub, open your repository and navigate into `content/`.
+1. In GitHub, open your repository and navigate into `content/desktop/`.
 2. If it's a brand new category (e.g. "vacation photos"), click **Add file → Create new file**, type `vacation-photos/.gitkeep` as the filename (this creates the folder), and commit. From then on that folder exists and you can upload straight into it.
 3. Open the folder, click **Add file → Upload files**, drag in your photos/videos/PDFs/songs, and commit.
 4. Wait about 30 seconds — Netlify detects the change, runs the build script, and republishes automatically.
-5. Refresh your live site. Open **My Files** — your new folder and its contents are there.
+5. Refresh your live site — your new files/folders are on the desktop.
 
 No editing `index.html` required for any of this.
 

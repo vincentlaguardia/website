@@ -488,6 +488,7 @@
     </div>
     <div class="menubar">
       <div class="menu-item" data-menu="file">File</div>
+      <div class="menu-item" data-menu="dots">Dots</div>
       <div class="menu-item" id="menu-diary">Diary</div>
       <div class="menu-item" id="menu-help">Info</div>
       <div class="menu-item" id="menu-theory">Theory</div>
@@ -502,6 +503,11 @@
         <div class="menu-option" data-action="save-as">Save As JPG...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="exit">Exit</div>
+      </div>
+      <div class="menu-dropdown raised" id="dropdown-dots">
+        <div class="menu-option" data-dot-size="small">Small</div>
+        <div class="menu-option active" data-dot-size="medium">Medium</div>
+        <div class="menu-option" data-dot-size="large">Large</div>
       </div>
     </div>
     <div class="ctrlbar sunken">
@@ -805,7 +811,7 @@
     document.body.removeChild(ta);
   }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
-  const dropdowns = { file: document.getElementById('dropdown-file') };
+  const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };
   function closeAllMenus(){
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
@@ -825,6 +831,16 @@
     });
   });
   document.addEventListener('click', closeAllMenus);
+  document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
+    opt.addEventListener('click', e=>{
+      e.stopPropagation();
+      dotSizeMode = opt.dataset.dotSize;
+      document.querySelectorAll('#dropdown-dots .menu-option').forEach(o=>o.classList.remove('active'));
+      opt.classList.add('active');
+      closeAllMenus();
+      drawScene();
+    });
+  });
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
@@ -1147,6 +1163,7 @@
   let baseHue = +hueSlider.value;
   let strange = +weirdSlider.value;
   let showTargets = true;
+  let dotSizeMode = 'medium';
   let importedPalette = [];
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
@@ -1163,8 +1180,16 @@
       ctx.fillRect(x, y, cw+1, ch+1);
       if(z.hasTarget && showTargets){
         const cx = x + cw/2, cy = y + ch/2;
-        const targetRadius = LAST_SWATCH_DIAMETER / 2;
-        const r = Math.min(targetRadius, cw / 2, ch / 2);
+        const cellMin = Math.min(cw, ch);
+        let r;
+        if(dotSizeMode === 'large'){
+          r = cellMin * 0.45;
+        } else if(dotSizeMode === 'medium'){
+          r = cellMin * 0.25;
+        } else {
+          const targetRadius = LAST_SWATCH_DIAMETER / 2;
+          r = Math.min(targetRadius, cw / 2, ch / 2);
+        }
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
         grad.addColorStop(0, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
         grad.addColorStop(0.62, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');

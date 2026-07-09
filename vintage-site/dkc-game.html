@@ -8,18 +8,124 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
     #game { width: 100%; height: 100%; }
+    #status {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.92);
+      color: #e6e6e6;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: center;
+      z-index: 9999;
+    }
+    #status.error { color: #ff8e8e; }
+    #status.hidden { display: none; }
   </style>
 </head>
 <body>
   <div id="game"></div>
+  <div id="status">Preparing Donkey Kong Country…</div>
   <script>
-    EJS_player        = '#game';
-    EJS_core          = 'snes9x';
-    EJS_gameUrl       = '/roms/dkc.sfc';
-    EJS_pathtodata    = 'https://cdn.emulatorjs.org/latest/data/';
-    EJS_startOnLoaded = true;
-    EJS_color         = '#1a1a2e';
+    const ROM_URL = '/roms/dkc.sfc';
+    const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
+    const statusEl = document.getElementById('status');
+    const gameEl = document.getElementById('game');
+
+    const setStatus = (message, isError = false) => {
+      statusEl.textContent = message;
+      statusEl.classList.toggle('error', isError);
+      statusEl.classList.remove('hidden');
+    };
+
+    const hideStatus = () => {
+      statusEl.classList.add('hidden');
+    };
+
+    const decodeHeader = (bytes) => {
+      try {
+        return new TextDecoder('utf-8').decode(bytes).trimStart().toLowerCase();
+      } catch {
+        return '';
+      }
+    };
+
+    const HTML_FALLBACK_PREFIXES = ['<!doctype html', '<html', '<head', '<body'];
+
+    const isHtmlFallbackResponse = (contentType, bytes) => {
+      if ((contentType || '').toLowerCase().includes('text/html')) return true;
+      const header = decodeHeader(bytes);
+      return HTML_FALLBACK_PREFIXES.some((prefix) => header.startsWith(prefix));
+    };
+
+    const monitorGameBoot = () => {
+      const startedAt = Date.now();
+      const intervalId = setInterval(() => {
+        const hasCanvas = !!gameEl.querySelector('canvas');
+        if (hasCanvas) {
+          clearInterval(intervalId);
+          hideStatus();
+          return;
+        }
+        if (Date.now() - startedAt > 15000) {
+          clearInterval(intervalId);
+          setStatus('Emulator started but no frame rendered. Confirm /roms/dkc.sfc is a valid SNES ROM and EmulatorJS core assets are reachable.', true);
+        }
+      }, 500);
+    };
+
+    const loadEmulator = (romBlobUrl) => {
+      window.EJS_player = '#game';
+      window.EJS_core = 'snes9x';
+      window.EJS_gameUrl = romBlobUrl;
+      window.EJS_pathtodata = EMULATOR_DATA_BASE_URL;
+      window.EJS_startOnLoaded = true;
+      window.EJS_color = '#1a1a2e';
+
+      const loaderScript = document.createElement('script');
+      loaderScript.src = `${EMULATOR_DATA_BASE_URL}loader.js`;
+      loaderScript.onload = () => {
+        setStatus('Launching emulator…');
+        monitorGameBoot();
+      };
+      loaderScript.onerror = () => {
+        setStatus('Failed to load EmulatorJS runtime. Please retry and verify CDN access to EmulatorJS assets.', true);
+      };
+      document.body.appendChild(loaderScript);
+    };
+
+    const start = async () => {
+      try {
+        setStatus('Checking game ROM…');
+        const romResponse = await fetch(ROM_URL);
+        if (!romResponse.ok) {
+          throw new Error(`ROM request failed (${romResponse.status}).`);
+        }
+
+        const contentType = romResponse.headers.get('content-type') || '';
+        const romBytes = await romResponse.arrayBuffer();
+        const headerBytes = new Uint8Array(romBytes.slice(0, 256));
+
+        if (romBytes.byteLength < 1024) {
+          throw new Error('ROM payload is unexpectedly small.');
+        }
+        if (isHtmlFallbackResponse(contentType, headerBytes)) {
+          throw new Error('ROM URL returned HTML instead of binary data (likely routing fallback).');
+        }
+
+        setStatus('Loading emulator runtime…');
+        const romBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
+        loadEmulator(romBlobUrl);
+      } catch (error) {
+        setStatus(`Donkey Kong failed to start: ${error.message}`, true);
+      }
+    };
+
+    start();
   </script>
-  <script src="https://cdn.emulatorjs.org/latest/data/loader.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@
     --white:#ffffff;
     --navy:#000080;
     --teal:#008080;
+    --swatch-size:20px;
     --diary-grid-columns:6;
   }
   *{ box-sizing:border-box; }
@@ -188,9 +189,10 @@
   }
   .cc-lastcolor{ display:flex; align-items:center; gap:6px; }
   .cc-lastswatch{
-    width:20px; height:20px;
+    width:var(--swatch-size); height:var(--swatch-size);
     border:2px solid var(--shadow);
     background:var(--face);
+    box-sizing:border-box;
     flex:0 0 auto;
   }
   .cc-copybox{
@@ -442,24 +444,29 @@
     gap:6px;
   }
   .skew-swatch-btn{
-    padding:4px;
+    -webkit-appearance:none;
+    appearance:none;
+    width:var(--swatch-size);
+    height:var(--swatch-size);
+    padding:0;
     background:var(--face);
-    border:none;
+    border:2px solid var(--shadow);
     cursor:pointer;
     line-height:0;
-    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
-                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
-  }
-  .skew-swatch-btn:active{
-    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
-                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+    flex:0 0 auto;
+    box-sizing:border-box;
   }
   .skew-icon{
-    display:inline-block;
-    width:11px; height:11px;
-    border:1px solid var(--shadow);
+    display:block;
+    width:100%; height:100%;
+    border:none;
     background:var(--face);
-    vertical-align:middle;
+    flex:0 0 auto;
+  }
+  #cc-target-color{
+    width:var(--swatch-size);
+    height:var(--swatch-size);
+    box-sizing:border-box;
     flex:0 0 auto;
   }
   /* canvas context menu */
@@ -504,12 +511,12 @@
       </div>
     </div>
     <div class="menubar">
-      <div class="menu-item" data-menu="file">File</div>
-      <div class="menu-item" data-menu="dots">Dots</div>
-      <div class="menu-item" id="menu-diary">Diary</div>
-      <div class="menu-item" id="menu-help">Info</div>
-      <div class="menu-item" id="menu-theory">Theory</div>
-      <div class="menu-item" id="menu-about">About</div>
+      <div class="menu-item" data-menu="file" role="button" aria-haspopup="true">File</div>
+      <div class="menu-item" data-menu="dots" role="button" aria-haspopup="true">Dots</div>
+      <div class="menu-item" id="menu-diary" role="button">Diary</div>
+      <div class="menu-item" id="menu-help" role="button">Info</div>
+      <div class="menu-item" id="menu-theory" role="button">Theory</div>
+      <div class="menu-item" id="menu-about" role="button">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
@@ -550,8 +557,8 @@
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
       <div class="skew-control">
-        <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color.">Skew</button>
-        <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear."><span class="skew-icon" id="skew-icon"></span></button>
+        <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
+        <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
       </div>
       <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
       <div class="field">Last color clicked
@@ -734,7 +741,12 @@
   const MIN_COLOR_DISTANCE = 36;
   const MAX_IMPORTED_PALETTE_SIZE = 12;
   const DEFAULT_LIGHTNESS = 50;
-  const LAST_SWATCH_DIAMETER = 20;
+  const DEFAULT_DOT_SIZE_MODE = 'medium';
+  const DOT_SIZE_CONFIG = {
+    small: { radiusRatio: 0.15 },
+    medium: { radiusRatio: 0.25 },
+    large: { radiusRatio: 0.45 }
+  };
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -851,10 +863,27 @@
     });
   });
   document.addEventListener('click', closeAllMenus);
+  function activateMenuItemWithKeyboard(item){
+    item.tabIndex = 0;
+    item.addEventListener('keydown', e=>{
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      item.click();
+    });
+  }
+  menuItems.forEach(item=>{
+    activateMenuItemWithKeyboard(item);
+  });
+  ['menu-diary', 'menu-help', 'menu-theory', 'menu-about'].forEach(id=>{
+    const item = document.getElementById(id);
+    activateMenuItemWithKeyboard(item);
+  });
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
-      dotSizeMode = opt.dataset.dotSize;
+      const nextMode = opt.dataset.dotSize;
+      if(!DOT_SIZE_CONFIG[nextMode]) return;
+      dotSizeMode = nextMode;
       document.querySelectorAll('#dropdown-dots .menu-option').forEach(o=>o.classList.remove('active'));
       opt.classList.add('active');
       closeAllMenus();
@@ -1183,12 +1212,17 @@
   let baseHue = +hueSlider.value;
   let strange = +weirdSlider.value;
   let showTargets = true;
-  let dotSizeMode = 'medium';
+  let dotSizeMode = DEFAULT_DOT_SIZE_MODE;
   let importedPalette = [];
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
   let skewColor = null;
   let skewActive = false;
+  function getTargetRadius(cw, ch){
+    const cellMin = Math.min(cw, ch);
+    const ratio = (DOT_SIZE_CONFIG[dotSizeMode] || DOT_SIZE_CONFIG[DEFAULT_DOT_SIZE_MODE]).radiusRatio;
+    return cellMin * ratio;
+  }
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
@@ -1200,16 +1234,7 @@
       ctx.fillRect(x, y, cw+1, ch+1);
       if(z.hasTarget && showTargets){
         const cx = x + cw/2, cy = y + ch/2;
-        const cellMin = Math.min(cw, ch);
-        let r;
-        if(dotSizeMode === 'large'){
-          r = cellMin * 0.45;
-        } else if(dotSizeMode === 'medium'){
-          r = cellMin * 0.25;
-        } else {
-          const targetRadius = LAST_SWATCH_DIAMETER / 2;
-          r = Math.min(targetRadius, cw / 2, ch / 2);
-        }
+        const r = getTargetRadius(cw, ch);
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
         grad.addColorStop(0, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
         grad.addColorStop(0.62, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
@@ -1452,10 +1477,15 @@
   const skewSwatchBtn = document.getElementById('cc-skew-swatch');
   const skewInput = document.getElementById('cc-skew-color');
   const skewIcon = document.getElementById('skew-icon');
+  const defaultSkewHex = skewInput.value;
+  function syncSkewButtonState(){
+    skewBtn.classList.toggle('is-active', skewActive);
+    skewBtn.setAttribute('aria-pressed', skewActive ? 'true' : 'false');
+  }
   skewBtn.addEventListener('click', ()=>{
     if(skewColor !== null){
       skewActive = !skewActive;
-      skewBtn.classList.toggle('is-active', skewActive);
+      syncSkewButtonState();
       drawScene();
     }
   });
@@ -1466,8 +1496,9 @@
     e.preventDefault();
     skewColor = null;
     skewActive = false;
+    skewInput.value = defaultSkewHex;
     skewIcon.style.background = '';
-    skewBtn.classList.remove('is-active');
+    syncSkewButtonState();
     drawScene();
   }
   skewBtn.addEventListener('contextmenu', clearSkew);
@@ -1479,7 +1510,7 @@
     skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
     skewActive = true;
     skewIcon.style.background = hex;
-    skewBtn.classList.add('is-active');
+    syncSkewButtonState();
     drawScene();
   });
   // --- Diary ---

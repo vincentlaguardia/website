@@ -2936,8 +2936,9 @@ async function loadDesktopRootsFromManifest() {
             modified: e.modified || new Date().toISOString().slice(0, 10)
           };
         }
-        if (filePath === 'content/desktop/ryan_gosling_cereal.mp4') {
-          items[fileId].defaultDesktopPosition = 'center';
+        const defaultDesktopPosition = DESKTOP_FILE_DEFAULT_POSITIONS[filePath];
+        if (defaultDesktopPosition) {
+          items[fileId].defaultDesktopPosition = defaultDesktopPosition;
         }
         return fileId;
       }).filter(Boolean);
@@ -2958,6 +2959,14 @@ const FOLDER_ICON_SLOT_WIDTH = 150;
 const FOLDER_ICON_SLOT_HEIGHT = 120;
 const FOLDER_ICON_SLOT_MARGIN = 10;
 const FOLDER_ICON_JITTER = 8;
+const DESKTOP_FILE_DEFAULT_POSITIONS = {
+  'content/desktop/ryan_gosling_cereal.mp4': 'center'
+};
+const DESKTOP_ICON_WIDTH = 190;
+const DESKTOP_ICON_LABEL_HEIGHT = 56;
+const DESKTOP_ICON_MIN_MARGIN = 4;
+const DESKTOP_TASKBAR_HEIGHT = 30;
+const DESKTOP_TASKBAR_GAP = 4;
 
 function folderSlotPosition(slotIndex, seedKey, viewportEl) {
   const slotW = FOLDER_ICON_SLOT_WIDTH, slotH = FOLDER_ICON_SLOT_HEIGHT, margin = FOLDER_ICON_SLOT_MARGIN, jitter = FOLDER_ICON_JITTER;
@@ -6031,13 +6040,13 @@ function desktopSlotPosition(slotIndex, seedKey) {
 
 function desktopDefaultPosition(itemId, item, slotIndex) {
   if (item && item.defaultDesktopPosition === 'center') {
-    const iconWidth = 190;
-    const iconHeight = getDesktopIconSize(item) + 56;
-    const maxLeft = Math.max(4, window.innerWidth - iconWidth - 4);
-    const maxTop = Math.max(4, window.innerHeight - iconHeight - 34);
+    const iconWidth = DESKTOP_ICON_WIDTH;
+    const iconHeight = getDesktopIconSize(item) + DESKTOP_ICON_LABEL_HEIGHT;
+    const maxLeft = Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerWidth - iconWidth - DESKTOP_ICON_MIN_MARGIN);
+    const maxTop = Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT - DESKTOP_TASKBAR_GAP);
     return {
-      left: Math.min(Math.max(4, (window.innerWidth - iconWidth) / 2), maxLeft),
-      top: Math.min(Math.max(4, (window.innerHeight - iconHeight - 30) / 2), maxTop)
+      left: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, (window.innerWidth - iconWidth) / 2), maxLeft),
+      top: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, (window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT) / 2), maxTop)
     };
   }
   return desktopSlotPosition(slotIndex, itemId);

@@ -964,7 +964,7 @@
     const raw = window.prompt('Save palette image to virtual desktop as:', defaultName);
     if(raw === null) return;
     const trimmed = raw.trim() || defaultName;
-    const name = /\.jpe?g$/i.test(trimmed) ? trimmed : trimmed.replace(/\.[^.]*$/, '') + '.jpg';
+    const name = /\.jpe?g$/i.test(trimmed) ? trimmed : (trimmed.replace(/\.[^.]*$/, '') || defaultName.replace(/\.[^.]*$/, '')) + '.jpg';
     const dataUrl = renderPaletteJpeg();
     window.parent.postMessage({ type: 'chroma-save-to-desktop', name, dataUrl }, window.location.origin);
   }

@@ -50,12 +50,45 @@ function suggestUrlSafeTxtName(name) {
   return (safeBase || 'file') + '.txt';
 }
 
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function readUrlBackedManifestEntries(folderPath) {
+  const manifestPath = path.join(folderPath, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) return [];
+  try {
+    const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(entry => entry && entry.type === 'file' && typeof entry.url === 'string' && entry.url.trim())
+      .map(entry => {
+        const name = typeof entry.name === 'string' ? entry.name.trim() : '';
+        const url = typeof entry.url === 'string' ? entry.url.trim() : '';
+        if (!name || !url || !isHttpUrl(url)) return null;
+        const item = { type: 'file', name, url };
+        if (typeof entry.modified === 'string' && entry.modified) item.modified = entry.modified;
+        if (typeof entry.size === 'number' && Number.isFinite(entry.size)) item.size = entry.size;
+        return item;
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 // Recursively builds (and writes) a manifest.json for folderPath, after
 // first recursing into any subfolders so their own manifest.json files
 // exist too. Returns the list of entries written for this folder.
 function buildManifest(folderPath) {
   const entries = fs.readdirSync(folderPath, { withFileTypes: true });
   const result = [];
+  const existingUrlEntries = readUrlBackedManifestEntries(folderPath);
 
   entries.forEach(entry => {
     if (isHidden(entry.name)) return;
@@ -78,6 +111,22 @@ function buildManifest(folderPath) {
       }
       result.push({ type: 'file', name: entry.name, size: stat.size, modified: formatDate(stat.mtime) });
     }
+  });
+
+  const existingNames = new Set(result.map(entry => entry.name));
+  const seenUrlNames = new Set();
+  const relativeFolderPath = path.relative(__dirname, folderPath);
+  existingUrlEntries.forEach(entry => {
+    if (existingNames.has(entry.name)) {
+      console.warn('Skipping URL-backed manifest entry "' + entry.name + '" in ' + relativeFolderPath + ': filesystem entry with same name already exists.');
+      return;
+    }
+    if (seenUrlNames.has(entry.name)) {
+      console.warn('Skipping duplicate URL-backed manifest entry "' + entry.name + '" in ' + relativeFolderPath + '.');
+      return;
+    }
+    result.push(entry);
+    seenUrlNames.add(entry.name);
   });
 
   result.sort((a, b) => a.name.localeCompare(b.name));

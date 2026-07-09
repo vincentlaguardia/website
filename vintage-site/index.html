@@ -2412,6 +2412,18 @@ function toAssetUrl(path) {
     .join('/');
 }
 
+function normalizeManifestUrl(url) {
+  const trimmed = String(url || '').trim();
+  if (!trimmed) return '';
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.href;
+  } catch {
+    return '';
+  }
+}
+
 function stripExtension(name) {
   return String(name || '').replace(/\.[^.]+$/, '');
 }
@@ -2483,6 +2495,19 @@ function mpResolveSyncedAudioFile(name, size, fallbackFile) {
 }
 
 async function buildSyncedFileItem(syncFolder, entry, fallbackModified, companionThumbUrl) {
+  const manifestUrl = normalizeManifestUrl(entry.url);
+  if (manifestUrl) {
+    const isPdfManifestUrl = /\.pdf(\?[^#]*)?$/i.test(manifestUrl);
+    return {
+      type: 'shortcut',
+      name: entry.name || manifestUrl,
+      iconType: isPdfManifestUrl ? 'pdf' : 'shortcut',
+      action: isPdfManifestUrl ? 'browser-url' : 'external',
+      url: manifestUrl,
+      size: entry.size,
+      modified: entry.modified || fallbackModified
+    };
+  }
   const filePath = syncFolder + '/' + entry.name;
   const assetUrl = toAssetUrl(filePath);
   if (isInternetShortcutName(entry.name)) {

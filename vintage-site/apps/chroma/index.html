@@ -436,13 +436,30 @@
   }
   body.embedded #taskbar{ display:none; }
   /* skew button */
+  .skew-control{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .skew-swatch-btn{
+    padding:4px;
+    background:var(--face);
+    border:none;
+    cursor:pointer;
+    line-height:0;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .skew-swatch-btn:active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
   .skew-icon{
     display:inline-block;
     width:11px; height:11px;
     border:1px solid var(--shadow);
     background:var(--face);
     vertical-align:middle;
-    margin-right:3px;
     flex:0 0 auto;
   }
   /* canvas context menu */
@@ -532,7 +549,10 @@
       <button class="ctrl-btn" id="cc-match-sat" title="Set the Saturation slider to match the swatch color">Match Sat</button>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
-      <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Click to pick a skew color — palette leans toward it. When active, click again to toggle off. Right-click to clear."><span class="skew-icon" id="skew-icon"></span>Skew</button>
+      <div class="skew-control">
+        <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color.">Skew</button>
+        <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear."><span class="skew-icon" id="skew-icon"></span></button>
+      </div>
       <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
@@ -1429,6 +1449,7 @@
   });
   // --- Skew ---
   const skewBtn = document.getElementById('cc-skew-btn');
+  const skewSwatchBtn = document.getElementById('cc-skew-swatch');
   const skewInput = document.getElementById('cc-skew-color');
   const skewIcon = document.getElementById('skew-icon');
   skewBtn.addEventListener('click', ()=>{
@@ -1436,18 +1457,21 @@
       skewActive = !skewActive;
       skewBtn.classList.toggle('is-active', skewActive);
       drawScene();
-    } else {
-      skewInput.click();
     }
   });
-  skewBtn.addEventListener('contextmenu', e=>{
+  skewSwatchBtn.addEventListener('click', ()=>{
+    skewInput.click();
+  });
+  function clearSkew(e){
     e.preventDefault();
     skewColor = null;
     skewActive = false;
     skewIcon.style.background = '';
     skewBtn.classList.remove('is-active');
     drawScene();
-  });
+  }
+  skewBtn.addEventListener('contextmenu', clearSkew);
+  skewSwatchBtn.addEventListener('contextmenu', clearSkew);
   skewInput.addEventListener('input', ()=>{
     const hex = skewInput.value;
     const rgb = hexToRgbObj(hex);

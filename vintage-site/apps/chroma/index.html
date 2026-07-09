@@ -1401,12 +1401,18 @@
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;
+  const DEFAULT_DIARY_GRID_COLUMNS = 6;
   // ITU-R BT.601 luma weights keep the diary label readable against each swatch color.
   const LUM_R = 0.299;
   const LUM_G = 0.587;
   const LUM_B = 0.114;
   const LUM_THRESHOLD = 0.55;
   const EXPORT_JPEG_QUALITY = 0.92;
+  const DIARY_EXPORT_SWATCH_WIDTH = 110;
+  const DIARY_EXPORT_SWATCH_HEIGHT = 110;
+  const DIARY_EXPORT_SWATCH_GAP = 6;
+  const DIARY_EXPORT_CANVAS_PADDING = 16;
+  const DIARY_EXPORT_HEADER_HEIGHT = 36;
   let diaryGridColumns = null;
   let diaryColors = (()=>{ try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(err){ console.warn('chroma: failed to load diary from localStorage', err); return []; } })();
   const diaryDialog = document.getElementById('diary-dialog');
@@ -1429,7 +1435,7 @@
   }
   function getDiaryGridColumns(){
     if(diaryGridColumns !== null) return diaryGridColumns;
-    diaryGridColumns = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--diary-grid-columns'), 10) || 6;
+    diaryGridColumns = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--diary-grid-columns'), 10) || DEFAULT_DIARY_GRID_COLUMNS;
     return diaryGridColumns;
   }
   function renderDiary(){
@@ -1491,13 +1497,8 @@
     if(!diaryColors.length){ alert('Diary is empty.'); return; }
     const gridColumns = getDiaryGridColumns();
     const gridRows = Math.ceil(diaryColors.length / gridColumns);
-    const SWATCH_WIDTH = 110;
-    const SWATCH_HEIGHT = 110;
-    const SWATCH_GAP = 6;
-    const CANVAS_PADDING = 16;
-    const HEADER_HEIGHT = 36;
-    const cw = gridColumns * SWATCH_WIDTH + (gridColumns - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
-    const ch = gridRows * SWATCH_HEIGHT + (gridRows - 1) * SWATCH_GAP + CANVAS_PADDING * 2 + HEADER_HEIGHT;
+    const cw = gridColumns * DIARY_EXPORT_SWATCH_WIDTH + (gridColumns - 1) * DIARY_EXPORT_SWATCH_GAP + DIARY_EXPORT_CANVAS_PADDING * 2;
+    const ch = gridRows * DIARY_EXPORT_SWATCH_HEIGHT + (gridRows - 1) * DIARY_EXPORT_SWATCH_GAP + DIARY_EXPORT_CANVAS_PADDING * 2 + DIARY_EXPORT_HEADER_HEIGHT;
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
     const cx = c.getContext('2d');
@@ -1506,24 +1507,24 @@
     cx.fillStyle = '#000000';
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
-    cx.fillText('chroma.exe — Color Diary', CANVAS_PADDING, CANVAS_PADDING + 14);
+    cx.fillText('chroma.exe — Color Diary', DIARY_EXPORT_CANVAS_PADDING, DIARY_EXPORT_CANVAS_PADDING + 14);
     diaryColors.forEach((color, i)=>{
       const col = i % gridColumns;
       const row = Math.floor(i / gridColumns);
-      const x = CANVAS_PADDING + col * (SWATCH_WIDTH + SWATCH_GAP);
-      const y = CANVAS_PADDING + HEADER_HEIGHT + row * (SWATCH_HEIGHT + SWATCH_GAP);
+      const x = DIARY_EXPORT_CANVAS_PADDING + col * (DIARY_EXPORT_SWATCH_WIDTH + DIARY_EXPORT_SWATCH_GAP);
+      const y = DIARY_EXPORT_CANVAS_PADDING + DIARY_EXPORT_HEADER_HEIGHT + row * (DIARY_EXPORT_SWATCH_HEIGHT + DIARY_EXPORT_SWATCH_GAP);
       cx.fillStyle = color.hex;
-      cx.fillRect(x, y, SWATCH_WIDTH, SWATCH_HEIGHT);
+      cx.fillRect(x, y, DIARY_EXPORT_SWATCH_WIDTH, DIARY_EXPORT_SWATCH_HEIGHT);
       cx.strokeStyle = 'rgba(0,0,0,0.22)';
       cx.lineWidth = 1;
-      cx.strokeRect(x + 0.5, y + 0.5, SWATCH_WIDTH - 1, SWATCH_HEIGHT - 1);
+      cx.strokeRect(x + 0.5, y + 0.5, DIARY_EXPORT_SWATCH_WIDTH - 1, DIARY_EXPORT_SWATCH_HEIGHT - 1);
       const tc = swatchTextColor(color.r, color.g, color.b);
       cx.fillStyle = tc;
       cx.font = 'bold 10px Tahoma,Arial,sans-serif';
       cx.textAlign = 'center';
-      cx.fillText(color.hex, x + SWATCH_WIDTH / 2, y + SWATCH_HEIGHT / 2 - 6);
+      cx.fillText(color.hex, x + DIARY_EXPORT_SWATCH_WIDTH / 2, y + DIARY_EXPORT_SWATCH_HEIGHT / 2 - 6);
       cx.font = '9px Tahoma,Arial,sans-serif';
-      cx.fillText(color.r + ',' + color.g + ',' + color.b, x + SWATCH_WIDTH / 2, y + SWATCH_HEIGHT / 2 + 8);
+      cx.fillText(color.r + ',' + color.g + ',' + color.b, x + DIARY_EXPORT_SWATCH_WIDTH / 2, y + DIARY_EXPORT_SWATCH_HEIGHT / 2 + 8);
     });
     const link = document.createElement('a');
     link.download = 'chroma-diary-' + timestampTag() + '.jpg';

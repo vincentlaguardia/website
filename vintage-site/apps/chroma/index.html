@@ -1421,12 +1421,13 @@
   const diaryCtxMenu = document.getElementById('diary-ctx-menu');
   let diaryCtxIdx = -1;
   let diaryCtxColor = null;
-  function makeDialogDraggable(dialogEl){
-    const titlebar = dialogEl.querySelector('.titlebar');
+  function makeDialogDraggable(dialogElement){
+    const titlebar = dialogElement.querySelector('.titlebar');
     if(!titlebar) return;
     let dragging = false;
     let activePointerId = null;
     let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+    let dialogWidth = 0, dialogHeight = 0;
     function endDrag(){
       dragging = false;
       activePointerId = null;
@@ -1434,30 +1435,36 @@
     titlebar.addEventListener('pointerdown', e=>{
       if(e.button !== 0) return;
       if(e.target.closest('.tbtn')) return;
-      const rect = dialogEl.getBoundingClientRect();
+      const rect = dialogElement.getBoundingClientRect();
       dragging = true;
       activePointerId = e.pointerId;
       startX = e.clientX;
       startY = e.clientY;
       startLeft = rect.left;
       startTop = rect.top;
-      dialogEl.style.left = startLeft + 'px';
-      dialogEl.style.top = startTop + 'px';
-      dialogEl.style.transform = 'none';
-      titlebar.setPointerCapture(e.pointerId);
+      dialogWidth = rect.width;
+      dialogHeight = rect.height;
+      dialogElement.style.left = startLeft + 'px';
+      dialogElement.style.top = startTop + 'px';
+      dialogElement.style.transform = 'none';
+      try{
+        titlebar.setPointerCapture(e.pointerId);
+      } catch(err){
+        endDrag();
+        return;
+      }
       e.preventDefault();
     });
     titlebar.addEventListener('pointermove', e=>{
       if(!dragging || e.pointerId !== activePointerId) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
-      const rect = dialogEl.getBoundingClientRect();
-      const maxLeft = Math.max(0, window.innerWidth - rect.width);
-      const maxTop = Math.max(0, window.innerHeight - rect.height);
+      const maxLeft = Math.max(0, window.innerWidth - dialogWidth);
+      const maxTop = Math.max(0, window.innerHeight - dialogHeight);
       const nextLeft = Math.min(Math.max(0, startLeft + dx), maxLeft);
       const nextTop = Math.min(Math.max(0, startTop + dy), maxTop);
-      dialogEl.style.left = nextLeft + 'px';
-      dialogEl.style.top = nextTop + 'px';
+      dialogElement.style.left = nextLeft + 'px';
+      dialogElement.style.top = nextTop + 'px';
     });
     titlebar.addEventListener('pointerup', e=>{
       if(e.pointerId === activePointerId) endDrag();

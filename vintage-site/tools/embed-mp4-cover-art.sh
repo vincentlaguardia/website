@@ -27,7 +27,8 @@ fi
 
 input_mp4="$1"
 cover_jpg="$2"
-output_mp4="${3:-${input_mp4%.mp4}-with-cover.mp4}"
+input_mp4_stem="${input_mp4%.[Mm][Pp]4}"
+output_mp4="${3:-${input_mp4_stem}-with-cover.mp4}"
 
 shopt -s nocasematch
 if [[ ! "$input_mp4" =~ \.mp4$ ]]; then

@@ -57,7 +57,7 @@ function readUrlBackedManifestEntries(folderPath) {
     const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter(entry => entry && entry.type === 'file')
+      .filter(entry => entry && entry.type === 'file' && typeof entry.url === 'string' && entry.url.trim())
       .map(entry => {
         const name = typeof entry.name === 'string' ? entry.name.trim() : '';
         const url = typeof entry.url === 'string' ? entry.url.trim() : '';

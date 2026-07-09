@@ -13,6 +13,7 @@
     --white:#ffffff;
     --navy:#000080;
     --teal:#008080;
+    --diary-grid-columns:6;
   }
   *{ box-sizing:border-box; }
   html,body{
@@ -347,7 +348,7 @@
   }
   .diary-grid{
     display:grid;
-    grid-template-columns:repeat(6, 1fr);
+    grid-template-columns:repeat(var(--diary-grid-columns), 1fr);
     gap:4px;
     padding:4px;
     flex:1;
@@ -1400,10 +1401,12 @@
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;
-  const RED_LUMINANCE_WEIGHT = 0.299;
-  const GREEN_LUMINANCE_WEIGHT = 0.587;
-  const BLUE_LUMINANCE_WEIGHT = 0.114;
-  const DARK_TEXT_LUMINANCE_THRESHOLD = 0.55;
+  const DIARY_GRID_COLUMNS = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--diary-grid-columns'), 10) || 6;
+  const LUM_R = 0.299;
+  const LUM_G = 0.587;
+  const LUM_B = 0.114;
+  const LUM_THRESHOLD = 0.55;
+  const EXPORT_JPEG_QUALITY = 0.92;
   let diaryColors = (()=>{ try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(err){ console.warn('chroma: failed to load diary from localStorage', err); return []; } })();
   const diaryDialog = document.getElementById('diary-dialog');
   const diaryGrid = document.getElementById('diary-grid');
@@ -1421,7 +1424,7 @@
     saveDiary(); return true;
   }
   function swatchTextColor(r,g,b){
-    return (RED_LUMINANCE_WEIGHT*r + GREEN_LUMINANCE_WEIGHT*g + BLUE_LUMINANCE_WEIGHT*b)/255 > DARK_TEXT_LUMINANCE_THRESHOLD ? '#000' : '#fff';
+    return (LUM_R*r + LUM_G*g + LUM_B*b)/255 > LUM_THRESHOLD ? '#000' : '#fff';
   }
   function renderDiary(){
     diaryGrid.innerHTML = '';
@@ -1479,14 +1482,13 @@
   }
   function exportDiaryJPG(){
     if(!diaryColors.length){ alert('Diary is empty.'); return; }
-    const GRID_COLUMNS = 6;
-    const GRID_ROWS = Math.ceil(diaryColors.length / GRID_COLUMNS);
+    const GRID_ROWS = Math.ceil(diaryColors.length / DIARY_GRID_COLUMNS);
     const SWATCH_WIDTH = 110;
     const SWATCH_HEIGHT = 110;
     const SWATCH_GAP = 6;
     const CANVAS_PADDING = 16;
     const HEADER_HEIGHT = 36;
-    const cw = GRID_COLUMNS * SWATCH_WIDTH + (GRID_COLUMNS - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
+    const cw = DIARY_GRID_COLUMNS * SWATCH_WIDTH + (DIARY_GRID_COLUMNS - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
     const ch = GRID_ROWS * SWATCH_HEIGHT + (GRID_ROWS - 1) * SWATCH_GAP + CANVAS_PADDING * 2 + HEADER_HEIGHT;
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
@@ -1498,8 +1500,8 @@
     cx.textAlign = 'left';
     cx.fillText('chroma.exe — Color Diary', CANVAS_PADDING, CANVAS_PADDING + 14);
     diaryColors.forEach((color, i)=>{
-      const col = i % GRID_COLUMNS;
-      const row = Math.floor(i / GRID_COLUMNS);
+      const col = i % DIARY_GRID_COLUMNS;
+      const row = Math.floor(i / DIARY_GRID_COLUMNS);
       const x = CANVAS_PADDING + col * (SWATCH_WIDTH + SWATCH_GAP);
       const y = CANVAS_PADDING + HEADER_HEIGHT + row * (SWATCH_HEIGHT + SWATCH_GAP);
       cx.fillStyle = color.hex;
@@ -1517,7 +1519,7 @@
     });
     const link = document.createElement('a');
     link.download = 'chroma-diary-' + timestampTag() + '.jpg';
-    link.href = c.toDataURL('image/jpeg', 0.92);
+    link.href = c.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
     link.click();
   }
   document.getElementById('menu-diary').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openDiary(); });

@@ -7167,15 +7167,14 @@ window.addEventListener('message', function(e) {
   // Verify the message comes from the embedded chroma frame, not an arbitrary same-origin window
   const chromaFrame = document.querySelector('.chroma-frame');
   if (!chromaFrame || e.source !== chromaFrame.contentWindow) return;
-  const name = String(e.data.name || '').trim() || 'chroma-palette.txt';
-  const text = String(e.data.text || '');
+  const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
+  const dataUrl = String(e.data.dataUrl || '');
   const newId = 'chroma_' + Date.now();
   const newItem = {
-    type: 'text',
+    type: 'picture',
     name: name,
-    iconType: 'document',
-    customIcon: 'notepad',
-    text: text,
+    file: dataUrl,
+    thumb: dataUrl,
     modified: new Date().toISOString().slice(0, 10),
     custom: true
   };

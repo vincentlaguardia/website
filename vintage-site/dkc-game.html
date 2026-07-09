@@ -65,9 +65,9 @@
       return currentRomBlobUrl;
     };
 
-    const validateMinimumRomSize = (romBytes, message) => {
+    const validateMinimumRomSize = (romBytes, errorMessagePrefix) => {
       if (romBytes.byteLength < MIN_VALID_ROM_SIZE_BYTES) {
-        throw new Error(`${message} (minimum: ${MIN_VALID_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
+        throw new Error(`${errorMessagePrefix} (minimum: ${MIN_VALID_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
       }
     };
 
@@ -165,6 +165,12 @@
         loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (currentRomBlobUrl) {
+        URL.revokeObjectURL(currentRomBlobUrl);
       }
     });
 

@@ -64,11 +64,8 @@
       return currentRomBlobUrl;
     };
 
-    const validateMinimumRomSize = (romBytes, errorMessagePrefix, includeDiagnostics = true) => {
+    const validateMinimumRomSize = (romBytes, errorMessagePrefix) => {
       if (romBytes.byteLength < MIN_ROM_SIZE_BYTES) {
-        if (!includeDiagnostics) {
-          throw new Error(errorMessagePrefix);
-        }
         throw new Error(`${errorMessagePrefix} (minimum: ${MIN_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
       }
     };
@@ -163,7 +160,7 @@
 
       try {
         const romBytes = await selectedFile.arrayBuffer();
-        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small', false);
+        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small');
         loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);

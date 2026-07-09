@@ -2891,6 +2891,9 @@ async function loadDesktopRootsFromManifest() {
     // Build a companion-thumbnail map: when a picture file shares the same base
     // name as a video file it becomes the video's thumbnail preview and is hidden
     // as a separate desktop item, matching the behaviour of synced sub-folders.
+    // Two-pass approach: collect all video base names first, then map pictures to
+    // them so that the picture-hiding step below can rely on a fully-built map
+    // regardless of the order files appear in the manifest.
     const desktopFileEntries = entries.filter(e => e.type === 'file');
     const desktopVideoBaseNames = new Set(
       desktopFileEntries

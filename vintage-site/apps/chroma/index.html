@@ -582,7 +582,7 @@
       <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
       <div class="picker-with-hex">
         <input type="color" id="cc-target-color" value="#968296">
-        <input type="text" id="cc-target-hex" class="hex-input" value="#968296" maxlength="7" spellcheck="false" aria-label="Dot color hex">
+        <input type="text" id="cc-target-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Target dot color hex code">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
@@ -596,7 +596,7 @@
             <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
             <input type="color" id="cc-skew-color" value="#ff0000" aria-hidden="true" tabindex="-1">
           </div>
-          <input type="text" id="cc-skew-hex" class="hex-input" value="#FF0000" maxlength="7" spellcheck="false" aria-label="Skew color hex">
+          <input type="text" id="cc-skew-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Skew color hex code">
         </div>
       </div>
       <div class="field">Last color clicked
@@ -774,7 +774,7 @@
   function normalizeHexInputValue(value){
     const cleaned = value.trim().replace(/^#/, '');
     if(!/^[0-9a-fA-F]{6}$/.test(cleaned)) return null;
-    return ('#' + cleaned).toLowerCase();
+    return '#' + cleaned.toUpperCase();
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
   const DOWNLOAD_REVOKE_TIMEOUT = 1000;
@@ -1437,14 +1437,13 @@
   });
   function applyTargetHex(hex){
     targetColorInput.value = hex;
-    if(targetHexInput) targetHexInput.value = hex.toUpperCase();
+    targetHexInput.value = hex.toUpperCase();
     importedMode = false;
     TARGET = hexToRgbObj(hex);
     drawScene();
   }
   targetColorInput.addEventListener('input', ()=>{ applyTargetHex(targetColorInput.value); });
   function commitTargetHexInput(){
-    if(!targetHexInput) return;
     const normalized = normalizeHexInputValue(targetHexInput.value);
     if(!normalized){
       targetHexInput.value = targetColorInput.value.toUpperCase();
@@ -1641,7 +1640,7 @@
     skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
     skewActive = true;
     skewIcon.style.background = hex;
-    if(skewHexInput) skewHexInput.value = hex.toUpperCase();
+    skewHexInput.value = hex.toUpperCase();
     syncSkewButtonState();
     drawScene();
   }
@@ -1658,8 +1657,10 @@
   });
   skewSwatchBtn.addEventListener('click', ()=>{
     if(typeof skewInput.showPicker === 'function'){
-      skewInput.showPicker();
-      return;
+      try{
+        skewInput.showPicker();
+        return;
+      }catch(err){}
     }
     skewInput.click();
   });
@@ -1679,7 +1680,6 @@
     applySkewHex(skewInput.value);
   });
   function commitSkewHexInput(){
-    if(!skewHexInput) return;
     const normalized = normalizeHexInputValue(skewHexInput.value);
     if(!normalized){
       skewHexInput.value = skewInput.value.toUpperCase();

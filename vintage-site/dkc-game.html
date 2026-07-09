@@ -25,35 +25,56 @@
     }
     #status.error { color: #ff8e8e; }
     #status.hidden { display: none; }
+    #rom-btn {
+      display: none;
+      margin-top: 16px;
+      padding: 10px 22px;
+      background: #c0392b;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #rom-btn:hover { background: #e74c3c; }
   </style>
 </head>
 <body>
   <div id="game"></div>
-  <div id="status">Preparing Donkey Kong Country…</div>
-  <input id="rom-picker" type="file" accept=".sfc,.smc,.fig,.swc,.zip,application/octet-stream" hidden>
+  <div id="status">
+    <div>
+      <span id="status-text">Preparing Donkey Kong Country…</span>
+      <br>
+      <button id="rom-btn">Browse for ROM file…</button>
+    </div>
+  </div>
+  <input id="rom-picker" type="file" accept=".sfc,.smc,.fig,.swc,.zip,application/octet-stream" aria-label="ROM file picker" hidden>
   <script>
     const ROM_URL = '/roms/dkc.sfc';
     const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
     const MIN_ROM_SIZE_BYTES = 1024;
     const statusEl = document.getElementById('status');
+    const statusTextEl = document.getElementById('status-text');
     const gameEl = document.getElementById('game');
     const romPickerEl = document.getElementById('rom-picker');
+    const romBtnEl = document.getElementById('rom-btn');
+    romBtnEl.addEventListener('click', () => romPickerEl.click());
     let currentRomBlobUrl = null;
 
-    const setStatus = (message, isError = false) => {
-      statusEl.textContent = message;
+    const setStatus = (message, isError = false, showPickerBtn = false) => {
+      statusTextEl.textContent = message;
       statusEl.classList.toggle('error', isError);
       statusEl.classList.remove('hidden');
+      romBtnEl.style.display = showPickerBtn ? 'inline-block' : 'none';
     };
 
     const hideStatus = () => {
       statusEl.classList.add('hidden');
+      romBtnEl.style.display = 'none';
     };
 
-    const promptForLocalRom = () => {
-      setStatus('ROM not available on server. Select your local ROM file.', true);
-      romPickerEl.value = '';
-      romPickerEl.click();
+    const showRomPickerOption = () => {
+      setStatus('ROM file not found. Please click the button below to select your local ROM file.', true, true);
     };
 
     const createRomBlobUrl = (romBytes) => {
@@ -133,7 +154,7 @@
         const romResponse = await fetch(ROM_URL);
         if (!romResponse.ok) {
           if (romResponse.status === 404) {
-            promptForLocalRom();
+            showRomPickerOption();
             return;
           }
           throw new Error(`ROM request failed (${romResponse.status}).`);

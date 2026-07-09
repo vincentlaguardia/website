@@ -5299,7 +5299,8 @@ function openNotepadWindow(initialText, initialFilename) {
   function doNew() {
     if (modified) {
       const choice = window.confirm('Save changes to ' + (currentFilename || 'Untitled') + '?');
-      if (choice) { doSaveAs(); return; }
+      if (choice) doSaveAs();
+      // Whether saved or discarded, clear and start fresh
     }
     ta.value = '';
     currentFilename = null;

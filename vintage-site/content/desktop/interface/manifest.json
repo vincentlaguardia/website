@@ -3,5 +3,11 @@
     "type": "folder",
     "name": "issues 1",
     "modified": "2026-07-09"
+  },
+  {
+    "type": "file",
+    "name": "visitor.gif",
+    "size": 36922,
+    "modified": "2026-07-09"
   }
 ]

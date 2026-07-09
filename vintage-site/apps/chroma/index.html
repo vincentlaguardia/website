@@ -480,11 +480,11 @@
   /* dr pastrami mode */
   #pastrami-btn{
     background:var(--face);
-    font-weight:bold;
+    font-weight:400;
     letter-spacing:.2px;
   }
   #pastrami-btn.is-active{
-    background: linear-gradient(105deg,#00ffff 0%,#ffff00 35%,#ff00ff 65%,#00ff88 100%);
+    background: var(--pastrami-active-gradient, linear-gradient(105deg,#00ffff 0%,#ffff00 35%,#ff00ff 65%,#00ff88 100%));
     box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
@@ -601,6 +601,7 @@
       <p class="lead">complementary pairs opposite hues for clear contrast.</p>
       <p class="lead">split complementary uses two colors near the opposite hue, keeping contrast while feeling a little softer.</p>
       <p class="lead">triadic spaces three hues evenly around the wheel.</p>
+      <p class="lead">diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
       <p class="lead">tetradic uses four positions, giving the palette more energy and variety.</p>
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
@@ -886,7 +887,11 @@
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
-  function openHelp(){ helpDialog.classList.add('show'); }
+  function openHelp(){
+    closeAbout();
+    closeTheory();
+    helpDialog.classList.add('show');
+  }
   function closeHelp(){
     helpDialog.classList.remove('show');
     if(helpContent.contentEditable === 'true'){
@@ -894,9 +899,17 @@
       setHelpEditing(false);
     }
   }
-  function openAbout(){ aboutDialog.classList.add('show'); }
+  function openAbout(){
+    closeHelp();
+    closeTheory();
+    aboutDialog.classList.add('show');
+  }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
-  function openTheory(){ theoryDialog.classList.add('show'); }
+  function openTheory(){
+    closeHelp();
+    closeAbout();
+    theoryDialog.classList.add('show');
+  }
   function closeTheory(){ theoryDialog.classList.remove('show'); }
   const helpContent = document.getElementById('help-content');
   const helpEditBtn = document.getElementById('help-edit');
@@ -926,11 +939,20 @@
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('theory-close').addEventListener('click', closeTheory);
   document.getElementById('theory-ok').addEventListener('click', closeTheory);
+  // Capture phase ensures outside clicks close open dialogs even when nested handlers stop propagation.
   document.addEventListener('click', function(e){
-    if(aboutDialog.classList.contains('show') && !aboutDialog.contains(e.target)) closeAbout();
-    if(helpDialog.classList.contains('show') && !helpDialog.contains(e.target)) closeHelp();
-    if(theoryDialog.classList.contains('show') && !theoryDialog.contains(e.target)) closeTheory();
-  });
+    [
+      { dialog: aboutDialog, close: closeAbout },
+      { dialog: helpDialog, close: closeHelp },
+      { dialog: theoryDialog, close: closeTheory }
+    ].forEach(({ dialog, close })=>{
+      if(!dialog.classList.contains('show')) return;
+      const contentPanel = dialog.querySelector('.content-panel');
+      // Fallback keeps outside-click close behavior resilient if a dialog lacks a content panel wrapper.
+      const clickedInside = contentPanel ? contentPanel.contains(e.target) : dialog.contains(e.target);
+      if(!clickedInside) close();
+    });
+  }, true);
   document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
     e.stopPropagation();
     closeAllMenus();
@@ -1219,6 +1241,7 @@
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
+    syncPastramiButtonGradient();
     ctx.clearRect(0,0,size,size);
     const cw = size/COLS, ch = size/ROWS;
     zones.forEach(z=>{
@@ -1276,9 +1299,74 @@
     });
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
+  const MAX_PASTRAMI_GRADIENT_COLORS = 5;
+  const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
+  const GRADIENT_KEY_PRECISION = 1000;
+  const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
+  let pastramiButtonGradientKey = '';
+  function shouldSkipPastramiGradient(){
+    return !pastramiMode || importedMode || !zones.length;
+  }
+  function roundToGradientPrecision(value){
+    return Math.round(value * GRADIENT_KEY_PRECISION) / GRADIENT_KEY_PRECISION;
+  }
+  function getPastramiButtonGradientKey(){
+    if(shouldSkipPastramiGradient()) return '';
+    const roundedBaseHue = roundToGradientPrecision(baseHue);
+    const roundedGlobalSatMul = roundToGradientPrecision(globalSatMul);
+    const skewPart = skewColor
+      ? [skewColor.h, skewColor.s, skewColor.l].map(roundToGradientPrecision).join(',')
+      : 'none';
+    return [
+      zones.length,
+      philoIdx,
+      roundedBaseHue,
+      roundedGlobalSatMul,
+      strange,
+      seed.repeats,
+      seed.angle.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
+      seed.phase.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
+      skewActive ? 1 : 0,
+      skewPart
+    ].join('|');
+  }
+  function buildPastramiButtonGradient(){
+    if(shouldSkipPastramiGradient()) return '';
+    const colorCount = Math.min(MAX_PASTRAMI_GRADIENT_COLORS, zones.length);
+    const sampled = [];
+    if(colorCount <= 1){
+      sampled.push(zoneHex(zones[0]));
+    } else {
+      // colorCount > 1 here, so denominator (colorCount - 1) is always non-zero.
+      for(let i=0; i<colorCount; i++){
+        const idx = Math.floor((i * (zones.length - 1)) / (colorCount - 1));
+        sampled.push(zoneHex(zones[idx]));
+      }
+    }
+    const unique = [...new Set(sampled)];
+    if(unique.length === 1) return unique[0];
+    // unique.length > 1 here, so denominator (unique.length - 1) is always non-zero.
+    const stops = unique.map((hex, idx)=>{
+      const pct = Math.round((idx * 100) / (unique.length - 1));
+      return hex + ' ' + pct + '%';
+    });
+    return `linear-gradient(${PASTRAMI_BUTTON_GRADIENT_ANGLE},${stops.join(',')})`;
+  }
+  function syncPastramiButtonGradient(){
+    const nextGradientKey = getPastramiButtonGradientKey();
+    if(nextGradientKey === pastramiButtonGradientKey) return;
+    pastramiButtonGradientKey = nextGradientKey;
+    const gradient = buildPastramiButtonGradient();
+    if(gradient){
+      pastramiBtn.style.setProperty('--pastrami-active-gradient', gradient);
+    } else {
+      pastramiBtn.style.removeProperty('--pastrami-active-gradient');
+    }
+  }
   function syncPastramiButtonState(){
     pastramiBtn.classList.toggle('is-active', pastramiMode);
     pastramiBtn.setAttribute('aria-pressed', String(pastramiMode));
+    syncPastramiButtonGradient();
   }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;

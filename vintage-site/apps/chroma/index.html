@@ -490,6 +490,7 @@
       <div class="menu-item" data-menu="file">File</div>
       <div class="menu-item" id="menu-diary">Diary</div>
       <div class="menu-item" id="menu-help">Help</div>
+      <div class="menu-item" id="menu-theory">Theory</div>
       <div class="menu-item" id="menu-about">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
@@ -594,6 +595,29 @@
     </div>
   </div>
 </div>
+<div id="theory-dialog" class="dialog">
+  <div class="titlebar">
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Dr. Pastrami Theory</span></div>
+    <div class="titlebar-btns"><div class="tbtn" id="theory-close">X</div></div>
+  </div>
+  <div class="winbody">
+    <div class="content-panel sunken">
+      <div id="theory-content">
+        <p class="lead" style="margin-top:0;">dr. pastrami mode starts with an underlying color rule, then deliberately introduces controlled deviation.</p>
+        <p class="lead">it still uses a base hue, a palette structure, and grouped color relationships. the composition is not random. nearby cells are organized so the image maintains coherence.</p>
+        <p class="lead">the difference is that harmony is no longer the main objective. the system is designed to increase perceptual tension.</p>
+        <p class="lead">the palette is divided into contrasting color behaviors. some colors are shifted toward lighter, lower-saturation pastel values. others are pushed toward brighter, higher-saturation neon values. these groups are placed in close contact so their boundaries produce stronger visual interaction.</p>
+        <p class="lead">the result is structured conflict. colors remain part of a system, but their perceived behavior becomes less stable.</p>
+        <p class="lead">hue, saturation, and lightness are allowed to drift beyond the normal limits of the original palette rule. certain palette philosophies are too orderly to support this level of disruption, so dr. pastrami mode excludes them.</p>
+        <p class="lead">what remains is a color system with a clear internal logic and an unstable perceptual surface. it keeps enough structure for the image to hold together, while introducing enough contrast for the palette to feel synthetic, pressurized, or difficult to classify.</p>
+        <p class="lead">the colors are not random. they are being tested against their surroundings.</p>
+      </div>
+      <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
+        <button class="win-btn" id="theory-ok">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="diary-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary — chroma.exe</span></div>
@@ -627,6 +651,7 @@
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Help</div>
+  <div class="sm-item" id="sm-theory">Theory</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
   <div class="sm-item" id="sm-shutdown">Shut Down...</div>
@@ -801,6 +826,7 @@
   document.addEventListener('click', closeAllMenus);
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
+  const theoryDialog = document.getElementById('theory-dialog');
   function openHelp(){ helpDialog.classList.add('show'); }
   function closeHelp(){
     helpDialog.classList.remove('show');
@@ -811,6 +837,8 @@
   }
   function openAbout(){ aboutDialog.classList.add('show'); }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
+  function openTheory(){ theoryDialog.classList.add('show'); }
+  function closeTheory(){ theoryDialog.classList.remove('show'); }
   const helpContent = document.getElementById('help-content');
   const helpEditBtn = document.getElementById('help-edit');
   const helpSaveBtn = document.getElementById('help-save');
@@ -832,13 +860,17 @@
   helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
   helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
   document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
+  document.getElementById('menu-theory').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheory(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
+  document.getElementById('theory-close').addEventListener('click', closeTheory);
+  document.getElementById('theory-ok').addEventListener('click', closeTheory);
   document.addEventListener('click', function(e){
     if(aboutDialog.classList.contains('show') && !aboutDialog.contains(e.target)) closeAbout();
     if(helpDialog.classList.contains('show') && !helpDialog.contains(e.target)) closeHelp();
+    if(theoryDialog.classList.contains('show') && !theoryDialog.contains(e.target)) closeTheory();
   });
   document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -931,6 +963,7 @@
   document.getElementById('sm-programs').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#programs'; });
   document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
   document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
+  document.getElementById('sm-theory').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheory(); });
   document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
   document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   function doShutdown(){ document.getElementById('shutdown-overlay').classList.add('show'); }

@@ -507,6 +507,74 @@
       inset -2px -2px 0 #dfdfdf;
   }
 
+  /* ---- system volume button ---- */
+  #vol-btn {
+    height: 24px; padding: 0 6px; display: flex; align-items: center; cursor: pointer;
+    box-shadow:
+      inset  1px  1px 0 #0a0a0a,
+      inset -1px -1px 0 #ffffff,
+      inset  2px  2px 0 #808080,
+      inset -2px -2px 0 #dfdfdf;
+    user-select: none;
+  }
+  #vol-btn:active { box-shadow: inset -1px -1px 0 #0a0a0a, inset 1px 1px 0 #ffffff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf; }
+  #vol-btn svg { width: 16px; height: 16px; }
+  #vol-popup {
+    position: fixed;
+    bottom: 34px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px 8px;
+    background: #c0c0c0;
+    box-shadow:
+      inset -1px -1px 0 #0a0a0a,
+      inset  1px  1px 0 #ffffff,
+      inset -2px -2px 0 #808080,
+      inset  2px  2px 0 #dfdfdf;
+    z-index: 6100;
+    width: 44px;
+    font-size: 11px;
+    font-family: 'MS Sans Serif', Tahoma, sans-serif;
+  }
+  #vol-popup.open { display: flex; }
+  #vol-popup-label { font-size: 10px; color: #333; white-space: nowrap; }
+  #vol-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 20px;
+    height: 80px;
+    accent-color: #000080;
+    cursor: pointer;
+    appearance: slider-vertical;
+    -webkit-appearance: slider-vertical;
+    outline: none;
+  }
+  #vol-percent { font-size: 10px; color: #333; }
+  #vol-mute-btn {
+    margin-top: 2px;
+    width: 28px; height: 20px;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    background: #c0c0c0;
+    box-shadow:
+      inset -1px -1px 0 #0a0a0a,
+      inset  1px  1px 0 #ffffff,
+      inset -2px -2px 0 #808080,
+      inset  2px  2px 0 #dfdfdf;
+    border: none;
+    user-select: none;
+  }
+  #vol-mute-btn:active {
+    box-shadow:
+      inset  1px  1px 0 #0a0a0a,
+      inset -1px -1px 0 #ffffff,
+      inset  2px  2px 0 #808080,
+      inset -2px -2px 0 #dfdfdf;
+  }
+
   /* ---- start menu ---- */
   #start-menu {
     position: fixed; left: 3px; bottom: 32px;
@@ -850,7 +918,22 @@
     </div>
     <div id="taskbar-sep"></div>
     <div id="taskbar-windows"></div>
+    <div id="vol-btn" title="Volume">
+      <svg id="vol-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="3,5 7,5 11,2 11,14 7,11 3,11" fill="#000"/>
+        <text id="vol-x" x="12" y="13" font-size="9" fill="#000" font-weight="bold" display="none">x</text>
+        <path id="vol-wave1" d="M12.5 5.5 Q14.5 8 12.5 10.5" stroke="#000" stroke-width="1.2" fill="none"/>
+        <path id="vol-wave2" d="M13.5 3.5 Q16.5 8 13.5 12.5" stroke="#000" stroke-width="1.2" fill="none"/>
+      </svg>
+    </div>
     <div id="clock">12:00 PM</div>
+  </div>
+
+  <div id="vol-popup">
+    <div id="vol-popup-label">Volume</div>
+    <input type="range" id="vol-slider" min="0" max="100" value="100">
+    <div id="vol-percent">100%</div>
+    <button id="vol-mute-btn" title="Mute">🔊</button>
   </div>
 
   <div id="start-menu">
@@ -6092,6 +6175,79 @@ document.getElementById('login-hint').addEventListener('click', () => {
 document.getElementById('password-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') tryLogin();
 });
+
+/* ---------- system volume ---------- */
+(function() {
+  let sysMuted = false;
+  let sysVol = 100; // 0-100
+
+  const btn    = document.getElementById('vol-btn');
+  const popup  = document.getElementById('vol-popup');
+  const slider = document.getElementById('vol-slider');
+  const pct    = document.getElementById('vol-percent');
+  const muteBtn = document.getElementById('vol-mute-btn');
+  const wave1  = document.getElementById('vol-wave1');
+  const wave2  = document.getElementById('vol-wave2');
+  const volX   = document.getElementById('vol-x');
+
+  function getEffectiveVol() { return sysMuted ? 0 : sysVol / 100; }
+
+  function applyVolume() {
+    const v = getEffectiveVol();
+    document.querySelectorAll('audio, video').forEach(el => { el.volume = v; });
+  }
+
+  function updateIcon() {
+    const v = sysMuted ? 0 : sysVol;
+    if (v === 0) {
+      wave1.style.display = 'none';
+      wave2.style.display = 'none';
+      volX.setAttribute('display', '');
+    } else if (v < 50) {
+      wave1.style.display = '';
+      wave2.style.display = 'none';
+      volX.setAttribute('display', 'none');
+    } else {
+      wave1.style.display = '';
+      wave2.style.display = '';
+      volX.setAttribute('display', 'none');
+    }
+  }
+
+  function positionPopup() {
+    const rect = btn.getBoundingClientRect();
+    popup.style.right = (window.innerWidth - rect.right) + 'px';
+  }
+
+  btn.addEventListener('click', () => {
+    const open = popup.classList.toggle('open');
+    if (open) positionPopup();
+  });
+
+  slider.addEventListener('input', () => {
+    sysVol = parseInt(slider.value, 10);
+    if (sysMuted && sysVol > 0) { sysMuted = false; muteBtn.textContent = '🔊'; }
+    pct.textContent = sysVol + '%';
+    updateIcon();
+    applyVolume();
+  });
+
+  muteBtn.addEventListener('click', () => {
+    sysMuted = !sysMuted;
+    muteBtn.textContent = sysMuted ? '🔇' : '🔊';
+    updateIcon();
+    applyVolume();
+  });
+
+  // Close popup when clicking outside
+  document.addEventListener('mousedown', e => {
+    if (!popup.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      popup.classList.remove('open');
+    }
+  });
+
+  updateIcon();
+})();
 </script>
 </body>
 </html>

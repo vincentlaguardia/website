@@ -219,6 +219,11 @@
     display:flex;
     flex-direction:column;
   }
+  .content-panel.drop-active{
+    background:#dcecff;
+    outline:2px dashed var(--navy);
+    outline-offset:-4px;
+  }
   .cc-wrap{
     position:relative;
     flex:1;
@@ -379,6 +384,9 @@
       <div class="menu-item" id="menu-help">Help</div>
       <div class="menu-item" id="menu-about">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
+        <div class="menu-option" data-action="import-photo">Import Photo...</div>
+        <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
+        <div class="menu-sep"></div>
         <div class="menu-option" data-action="save">Save Image...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="exit">Exit</div>
@@ -411,6 +419,7 @@
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
+          <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
         </div>
       </div>
     </div>
@@ -447,7 +456,7 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;save to export your colors.</p></div>
+      <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -489,6 +498,7 @@
     <button class="win-btn" id="restart-btn">Restart chroma.exe</button>
   </div>
 </div>
+<input type="file" id="cc-photo-import" accept="image/*" style="display:none;">
 <script>
 (function(){
   function hslToHex(h,s,l){
@@ -524,6 +534,95 @@
       h *= 60;
     }
     return { h, s: s*100, l: l*100 };
+  }
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+  const DOWNLOAD_REVOKE_TIMEOUT = 1000;
+  const MAX_SAMPLE_DIMENSION = 180;
+  const MIN_ALPHA_THRESHOLD = 24;
+  const MIN_COLOR_OCCURRENCES = 2;
+  const MAX_RANKED_COLORS = 64;
+  const MIN_COLOR_DISTANCE = 36;
+  const MAX_IMPORTED_PALETTE_SIZE = 12;
+  const DEFAULT_LIGHTNESS = 50;
+  function downloadTextFile(filename, text){
+    const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_TIMEOUT);
+  }
+  function readImageFile(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=> resolve(img);
+        img.onerror = ()=> reject(new Error('Unable to load image.'));
+        img.src = reader.result;
+      };
+      reader.onerror = ()=> reject(new Error('Unable to read file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+  function timestampTag(){
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const dd = String(now.getDate()).padStart(2,'0');
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mi = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+  }
+  function distillPaletteFromImage(img, limit){
+    const avgFromEntry = binEntry => ({ r: binEntry.r/binEntry.count, g: binEntry.g/binEntry.count, b: binEntry.b/binEntry.count });
+    const scale = Math.min(1, MAX_SAMPLE_DIMENSION / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const tmp = document.createElement('canvas');
+    tmp.width = w;
+    tmp.height = h;
+    const tmpCtx = tmp.getContext('2d');
+    tmpCtx.drawImage(img, 0, 0, w, h);
+    const pixels = tmpCtx.getImageData(0, 0, w, h).data;
+    const bins = new Map();
+    for(let i=0; i<pixels.length; i+=4){
+      const a = pixels[i+3];
+      if(a < MIN_ALPHA_THRESHOLD) continue;
+      const r = pixels[i], g = pixels[i+1], b = pixels[i+2];
+      const key = ((r>>4)<<8) | ((g>>4)<<4) | (b>>4);
+      const entry = bins.get(key) || { count:0, r:0, g:0, b:0 };
+      entry.count += 1;
+      entry.r += r;
+      entry.g += g;
+      entry.b += b;
+      bins.set(key, entry);
+    }
+    const ranked = [...bins.values()]
+      .filter(v=>v.count >= MIN_COLOR_OCCURRENCES)
+      .sort((a,b)=>b.count-a.count)
+      .slice(0, MAX_RANKED_COLORS);
+    const picked = [];
+    ranked.forEach(v=>{
+      const avgColor = avgFromEntry(v);
+      const keep = picked.every(p=>{
+        const dr = p.r-avgColor.r, dg = p.g-avgColor.g, db = p.b-avgColor.b;
+        return Math.sqrt(dr*dr + dg*dg + db*db) >= MIN_COLOR_DISTANCE;
+      });
+      if(keep && picked.length < limit){ picked.push(avgColor); }
+    });
+    if(!picked.length && ranked.length){
+      picked.push(avgFromEntry(ranked[0]));
+    }
+    return picked
+      .map(c=>{
+        const r = Math.round(c.r), g = Math.round(c.g), b = Math.round(c.b);
+        const hsl = rgbToHsl(r,g,b);
+        return { r, g, b, h: hsl.h, s: hsl.s, l: hsl.l, hex: rgbToHex(r,g,b).toUpperCase() };
+      })
+      .sort((a,b)=>a.h-b.h || a.l-b.l);
   }
   function copyText(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -599,6 +698,16 @@
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('about-ok').addEventListener('click', closeAbout);
+  document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
+    e.stopPropagation();
+    closeAllMenus();
+    document.getElementById('cc-photo-import').click();
+  });
+  document.querySelector('[data-action="export-palette"]').addEventListener('click', e=>{
+    e.stopPropagation();
+    closeAllMenus();
+    document.getElementById('cc-export-palette').click();
+  });
   document.querySelector('[data-action="exit"]').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   document.querySelector('[data-action="save"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -697,6 +806,9 @@
   const lastSwatchEl = document.getElementById('cc-lastswatch');
   const hexBoxEl = document.getElementById('cc-hexbox');
   const rgbBoxEl = document.getElementById('cc-rgbbox');
+  const exportPaletteBtn = document.getElementById('cc-export-palette');
+  const importInput = document.getElementById('cc-photo-import');
+  const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
   let TARGET = hexToRgbObj(targetColorInput.value);
   const TARGET_CELLS = [
@@ -746,7 +858,42 @@
     const hue = (hues[role] + (jitterC-0.5)*hueRange + 360) % 360;
     const sat = BASE_SAT + (jitterA-0.5)*satRange;
     const light = BASE_LIGHT + lightOffset + (jitterB-0.5)*lightRange;
-    return { h: hue, s: Math.max(10, Math.min(97, sat)), l: Math.max(12, Math.min(88, light)) };
+    return { h: hue, s: clamp(sat, 10, 97), l: clamp(light, 12, 88) };
+  }
+  function resolveImportedZoneColor(zone, palette, seed, strange){
+    if(!palette.length) return { h:0, s:0, l:DEFAULT_LIGHTNESS };
+    const paletteIndex = bandIndexFor(zone, palette.length, seed);
+    const src = palette[paletteIndex];
+    const jitterA = hashZone(zone.col+43, zone.row+89);
+    const jitterB = hashZone(zone.col+11, zone.row+61);
+    const jitterC = hashZone(zone.col+97, zone.row+7);
+    const w = clamp(strange, 0, 100) / 100;
+    return {
+      h: (src.h + (jitterC-0.5)*(8 + w*30) + 360) % 360,
+      s: clamp(src.s + (jitterA-0.5)*(8 + w*22), 8, 98),
+      l: clamp(src.l + (jitterB-0.5)*(10 + w*24), 8, 92)
+    };
+  }
+  function zoneHex(zone){
+    const sourceColor = importedMode
+      ? resolveImportedZoneColor(zone, importedPalette, seed, strange)
+      : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
+    return hslToHex(sourceColor.h, clamp(sourceColor.s * globalSatMul, 0, 100), sourceColor.l).toUpperCase();
+  }
+  function exportPaletteText(){
+    const unique = [];
+    const seen = new Set();
+    zones.forEach(z=>{
+      const hex = zoneHex(z);
+      if(seen.has(hex)) return;
+      seen.add(hex);
+      unique.push(hex);
+    });
+    if(!unique.length){
+      alert('No palette colors were found to export.');
+      return;
+    }
+    downloadTextFile('chroma-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
@@ -758,15 +905,15 @@
   let baseHue = +hueSlider.value;
   let strange = +weirdSlider.value;
   let showTargets = true;
+  let importedPalette = [];
+  let importedMode = false;
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
     ctx.clearRect(0,0,size,size);
     const cw = size/COLS, ch = size/ROWS;
     zones.forEach(z=>{
-      const c = resolveZoneColor(z, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
-      const s = Math.max(0, Math.min(100, c.s * globalSatMul));
-      ctx.fillStyle = hslToHex(c.h, s, c.l);
+      ctx.fillStyle = zoneHex(z);
       const x = z.col*cw, y = z.row*ch;
       ctx.fillRect(x, y, cw+1, ch+1);
       if(z.hasTarget && showTargets){
@@ -795,6 +942,7 @@
     opt.addEventListener('click', e=>{
       e.stopPropagation();
       const isRandom = opt.dataset.idx === 'random';
+      importedMode = false;
       randomStyle = isRandom;
       philoIdx = isRandom ? randomPhiloIdx() : +opt.dataset.idx;
       styleBtn.innerHTML = (isRandom ? 'Random' : PHILOSOPHIES[philoIdx].name) + ' &#9662;';
@@ -806,12 +954,13 @@
     });
   });
   rerollHueBtn.addEventListener('click', ()=>{
+    importedMode = false;
     baseHue = Math.random()*360;
     hueSlider.value = Math.round(baseHue);
     if(randomStyle){ philoIdx = randomPhiloIdx(); seed = randomSeed(); }
     drawScene();
   });
-  targetColorInput.addEventListener('input', ()=>{ TARGET = hexToRgbObj(targetColorInput.value); drawScene(); });
+  targetColorInput.addEventListener('input', ()=>{ importedMode = false; TARGET = hexToRgbObj(targetColorInput.value); drawScene(); });
   hideTargetsBtn.addEventListener('click', ()=>{
     showTargets = !showTargets;
     hideTargetsBtn.textContent = showTargets ? 'Hide' : 'Show';
@@ -827,8 +976,62 @@
     globalSatMul = pct/100;
     drawScene();
   });
-  hueSlider.addEventListener('input', ()=>{ baseHue = +hueSlider.value; drawScene(); });
+  hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
+  exportPaletteBtn.addEventListener('click', exportPaletteText);
+  async function processImportedPhotoFile(file){
+    if(!file || !file.type.startsWith('image/')) return;
+    const img = await readImageFile(file);
+    const palette = distillPaletteFromImage(img, MAX_IMPORTED_PALETTE_SIZE);
+    if(!palette.length) return;
+    importedPalette = palette;
+    importedMode = true;
+    randomStyle = false;
+    styleBtn.innerHTML = 'Photo Palette &#9662;';
+    styleOptions.forEach(o=>o.classList.remove('active'));
+    seed = randomSeed();
+    drawScene();
+  }
+  function handleImportError(err){
+    const detail = err && err.message ? ': ' + err.message : '';
+    console.warn('Photo import failed.', err);
+    alert('Photo import failed' + detail + '. Please choose a valid image file (JPEG, PNG, GIF, WebP, etc.) and try again.');
+  }
+  importInput.addEventListener('change', async ()=>{
+    const file = importInput.files && importInput.files[0];
+    try{
+      await processImportedPhotoFile(file);
+    } catch(err){
+      handleImportError(err);
+    } finally {
+      importInput.value = '';
+    }
+  });
+  function dropImport(file){
+    processImportedPhotoFile(file).catch(err=>{
+      handleImportError(err);
+    });
+  }
+  let dragEnterCount = 0;
+  ['dragenter','dragover'].forEach(evt=>{
+    contentPanel.addEventListener(evt, e=>{
+      e.preventDefault();
+      if(evt === 'dragenter') dragEnterCount += 1;
+      if(!contentPanel.classList.contains('drop-active')) contentPanel.classList.add('drop-active');
+    });
+  });
+  contentPanel.addEventListener('dragleave', e=>{
+    e.preventDefault();
+    dragEnterCount = Math.max(0, dragEnterCount - 1);
+    if(dragEnterCount === 0) contentPanel.classList.remove('drop-active');
+  });
+  contentPanel.addEventListener('drop', e=>{
+    e.preventDefault();
+    dragEnterCount = 0;
+    contentPanel.classList.remove('drop-active');
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    dropImport(file);
+  });
   function resizeCanvas(){
     const rect = ccWrap.getBoundingClientRect();
     const size = Math.max(60, Math.floor(Math.min(rect.width, rect.height)) - 2);

@@ -3242,10 +3242,18 @@ function applyScheme(hex) {
   root.style.setProperty('--acc-card2', card2);
   localStorage.setItem('site-scheme-hex', hex);
 }
+function getSchemeHexFromCurrentStyles() {
+  const current = getComputedStyle(document.documentElement).getPropertyValue('--acc-mid').trim();
+  return /^#[0-9a-fA-F]{6}$/.test(current) ? current.toLowerCase() : '';
+}
 // Restore saved scheme on load
 (function() {
   const saved = localStorage.getItem('site-scheme-hex');
   if (saved) applyScheme(saved);
+  else {
+    const current = getSchemeHexFromCurrentStyles();
+    if (current) localStorage.setItem('site-scheme-hex', current);
+  }
 })();
 
 function openSchemeWindow() {
@@ -3285,7 +3293,7 @@ function openSchemeWindow() {
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,18px);grid-auto-rows:18px;gap:3px;';
 
-  const savedHex = localStorage.getItem('site-scheme-hex') || '';
+  const savedHex = localStorage.getItem('site-scheme-hex') || getSchemeHexFromCurrentStyles();
   PAINT_PALETTE.forEach(color => {
     const sw = document.createElement('div');
     sw.style.cssText = 'width:18px;height:18px;cursor:pointer;outline:1px solid #808080;outline-offset:-1px;box-sizing:border-box;';

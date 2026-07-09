@@ -459,6 +459,10 @@
     align-items:center;
     gap:6px;
   }
+  #cc-skew-btn.is-active{
+    background:var(--skew-active-color, var(--face));
+    color:var(--skew-active-text, #000);
+  }
   .skew-swatch-wrap{
     position:relative;
     width:var(--swatch-size);
@@ -594,7 +598,7 @@
         <div class="picker-with-hex">
           <div class="skew-swatch-wrap">
             <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
-            <input type="color" id="cc-skew-color" value="#ff0000" aria-hidden="true" tabindex="-1">
+            <input type="color" id="cc-skew-color" value="#ff0000">
           </div>
           <input type="text" id="cc-skew-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Skew color hex code">
         </div>
@@ -774,6 +778,7 @@
   function normalizeHexInputValue(value){
     const cleaned = value.trim().replace(/^#/, '');
     if(!/^[0-9a-fA-F]{6}$/.test(cleaned)) return null;
+    // Returns uppercase #RRGGBB on success, null when invalid.
     return '#' + cleaned.toUpperCase();
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
@@ -1451,17 +1456,15 @@
     }
     applyTargetHex(normalized);
   }
-  if(targetHexInput){
-    targetHexInput.value = targetColorInput.value.toUpperCase();
-    targetHexInput.addEventListener('change', commitTargetHexInput);
-    targetHexInput.addEventListener('blur', commitTargetHexInput);
-    targetHexInput.addEventListener('keydown', e=>{
-      if(e.key === 'Enter'){
-        e.preventDefault();
-        commitTargetHexInput();
-      }
-    });
-  }
+  targetHexInput.value = targetColorInput.value.toUpperCase();
+  targetHexInput.addEventListener('change', commitTargetHexInput);
+  targetHexInput.addEventListener('blur', commitTargetHexInput);
+  targetHexInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      commitTargetHexInput();
+    }
+  });
   hideTargetsBtn.addEventListener('click', ()=>{
     showTargets = !showTargets;
     hideTargetsBtn.textContent = showTargets ? 'Hide' : 'Show';
@@ -1635,6 +1638,7 @@
   const skewIcon = document.getElementById('skew-icon');
   const defaultSkewHex = skewInput.value;
   function applySkewHex(hex){
+    skewInput.value = hex;
     const rgb = hexToRgbObj(hex);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
     skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
@@ -1647,6 +1651,17 @@
   function syncSkewButtonState(){
     skewBtn.classList.toggle('is-active', skewActive);
     skewBtn.setAttribute('aria-pressed', String(skewActive));
+    if(skewActive && skewColor !== null){
+      const activeHex = skewInput.value;
+      const rgb = hexToRgbObj(activeHex);
+      // ITU-R BT.601 luma keeps label text readable over the active skew color.
+      const luma = (0.299*rgb.r + 0.587*rgb.g + 0.114*rgb.b) / 255;
+      skewBtn.style.setProperty('--skew-active-color', activeHex);
+      skewBtn.style.setProperty('--skew-active-text', luma > 0.6 ? '#000' : '#fff');
+    } else {
+      skewBtn.style.removeProperty('--skew-active-color');
+      skewBtn.style.removeProperty('--skew-active-text');
+    }
   }
   skewBtn.addEventListener('click', ()=>{
     if(skewColor !== null){
@@ -1660,7 +1675,9 @@
       try{
         skewInput.showPicker();
         return;
-      }catch(err){}
+      }catch(err){
+        console.warn('chroma: skew picker showPicker failed', err);
+      }
     }
     skewInput.click();
   });
@@ -1685,7 +1702,6 @@
       skewHexInput.value = skewInput.value.toUpperCase();
       return;
     }
-    skewInput.value = normalized;
     applySkewHex(normalized);
   }
   if(skewHexInput){

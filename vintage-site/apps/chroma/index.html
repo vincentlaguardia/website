@@ -165,6 +165,26 @@
   input[type=color]::-webkit-color-swatch-wrapper{ padding:0; background:var(--face); }
   input[type=color]::-webkit-color-swatch{ border:none; border-radius:0; background:var(--face); }
   input[type=color]::-moz-color-swatch{ border:none; border-radius:0; background:var(--face); }
+  .picker-with-hex{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .hex-input{
+    width:78px;
+    height:20px;
+    padding:0 4px;
+    border:1px solid var(--shadow);
+    background:var(--face);
+    color:#000;
+    font-family:inherit;
+    font-size:11px;
+    text-transform:uppercase;
+  }
+  .hex-label{
+    font-size:10px;
+    color:#222;
+  }
   input[type=range]{
     -webkit-appearance:none;
     width:110px;
@@ -443,6 +463,16 @@
     align-items:center;
     gap:6px;
   }
+  #cc-skew-btn.is-active{
+    background:var(--skew-active-color, var(--face));
+    color:var(--skew-active-text, #000);
+  }
+  .skew-swatch-wrap{
+    position:relative;
+    width:var(--swatch-size);
+    height:var(--swatch-size);
+    flex:0 0 auto;
+  }
   .skew-swatch-btn{
     -webkit-appearance:none;
     appearance:none;
@@ -455,6 +485,14 @@
     line-height:0;
     flex:0 0 auto;
     box-sizing:border-box;
+  }
+  #cc-skew-color{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    pointer-events:none;
   }
   .skew-icon{
     display:block;
@@ -477,7 +515,7 @@
     padding:2px;
     display:none;
   }
-  /* dr pastrami mode */
+  /* techno mode */
   #pastrami-btn{
     background:var(--face);
     font-weight:400;
@@ -550,7 +588,11 @@
         </div>
       </div>
       <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
-      <input type="color" id="cc-target-color" value="#968296">
+      <div class="picker-with-hex">
+        <input type="color" id="cc-target-color" value="#968296">
+        <span class="hex-label">Hex</span>
+        <input type="text" id="cc-target-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Target dot color hex code">
+      </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
       <button class="ctrl-btn" id="cc-match-sat" title="Set the Saturation slider to match the swatch color">Match Sat</button>
@@ -558,9 +600,15 @@
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
-        <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
+        <div class="picker-with-hex">
+          <div class="skew-swatch-wrap">
+            <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
+            <input type="color" id="cc-skew-color" value="#ff0000">
+          </div>
+          <span class="hex-label">Hex</span>
+          <input type="text" id="cc-skew-hex" class="hex-input" maxlength="7" spellcheck="false" aria-label="Skew color hex code">
+        </div>
       </div>
-      <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
@@ -568,7 +616,7 @@
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Dr Pastrami Mode" aria-pressed="false">Dr Pastrami Mode</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
         </div>
       </div>
     </div>
@@ -607,7 +655,7 @@
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
       <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
-      <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">dr pastrami mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name. use it carefully.</p></div>
+      <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">techno mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name. use it carefully.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -631,18 +679,18 @@
 </div>
 <div id="theory-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Dr. Pastrami Theory</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno Mode Theory</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="theory-close">X</div></div>
   </div>
   <div class="winbody">
     <div class="content-panel sunken">
       <div id="theory-content">
-        <p class="lead" style="margin-top:0;">dr. pastrami mode starts with an underlying color rule, then deliberately introduces controlled deviation.</p>
+        <p class="lead" style="margin-top:0;">techno mode starts with an underlying color rule, then deliberately introduces controlled deviation.</p>
         <p class="lead">it still uses a base hue, a palette structure, and grouped color relationships. the composition is not random. nearby cells are organized so the image maintains coherence.</p>
         <p class="lead">the difference is that harmony is no longer the main objective. the system is designed to increase perceptual tension.</p>
         <p class="lead">the palette is divided into contrasting color behaviors. some colors are shifted toward lighter, lower-saturation pastel values. others are pushed toward brighter, higher-saturation neon values. these groups are placed in close contact so their boundaries produce stronger visual interaction.</p>
         <p class="lead">the result is structured conflict. colors remain part of a system, but their perceived behavior becomes less stable.</p>
-        <p class="lead">hue, saturation, and lightness are allowed to drift beyond the normal limits of the original palette rule. certain palette philosophies are too orderly to support this level of disruption, so dr. pastrami mode excludes them.</p>
+        <p class="lead">hue, saturation, and lightness are allowed to drift beyond the normal limits of the original palette rule. certain palette philosophies are too orderly to support this level of disruption, so techno mode excludes them.</p>
         <p class="lead">what remains is a color system with a clear internal logic and an unstable perceptual surface. it keeps enough structure for the image to hold together, while introducing enough contrast for the palette to feel synthetic, pressurized, or difficult to classify.</p>
         <p class="lead">the colors are not random. they are being tested against their surroundings.</p>
       </div>
@@ -732,6 +780,12 @@
       h *= 60;
     }
     return { h, s: s*100, l: l*100 };
+  }
+  function normalizeHexInputValue(value){
+    const cleaned = value.trim().replace(/^#/, '');
+    if(!/^[0-9a-fA-F]{6}$/.test(cleaned)) return null;
+    // Returns uppercase #RRGGBB for valid input, null otherwise.
+    return '#' + cleaned.toUpperCase();
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
   const DOWNLOAD_REVOKE_TIMEOUT = 1000;
@@ -1063,6 +1117,7 @@
   const canvas = document.getElementById('cc-canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const targetColorInput = document.getElementById('cc-target-color');
+  const targetHexInput = document.getElementById('cc-target-hex');
   const hideTargetsBtn = document.getElementById('cc-hide-targets');
   const satSlider = document.getElementById('cc-sat');
   const matchSatBtn = document.getElementById('cc-match-sat');
@@ -1301,6 +1356,10 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
+  const SKEW_ACTIVE_LUMA_R = 0.299;
+  const SKEW_ACTIVE_LUMA_G = 0.587;
+  const SKEW_ACTIVE_LUMA_B = 0.114;
+  const SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD = 0.6;
   const GRADIENT_KEY_PRECISION = 1000;
   const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
   let pastramiButtonGradientKey = '';
@@ -1382,7 +1441,7 @@
     pastramiMode = !pastramiMode;
     syncPastramiButtonState();
     applyPastramiDropdown();
-    // If current philosophy is not allowed in Pastrami mode, switch it
+    // If current philosophy is not allowed in Techno mode, switch it
     if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){
       philoIdx = randomPastramiPhiloIdx();
       styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
@@ -1401,7 +1460,31 @@
     if(randomStyle){ philoIdx = pastramiMode ? randomPastramiPhiloIdx() : randomPhiloIdx(); seed = randomSeed(); }
     drawScene();
   });
-  targetColorInput.addEventListener('input', ()=>{ importedMode = false; TARGET = hexToRgbObj(targetColorInput.value); drawScene(); });
+  function applyTargetHex(hex){
+    targetColorInput.value = hex;
+    targetHexInput.value = hex.toUpperCase();
+    importedMode = false;
+    TARGET = hexToRgbObj(hex);
+    drawScene();
+  }
+  targetColorInput.addEventListener('input', ()=>{ applyTargetHex(targetColorInput.value); });
+  function commitTargetHexInput(){
+    const normalized = normalizeHexInputValue(targetHexInput.value);
+    if(!normalized){
+      targetHexInput.value = targetColorInput.value.toUpperCase();
+      return;
+    }
+    applyTargetHex(normalized);
+  }
+  targetHexInput.value = targetColorInput.value.toUpperCase();
+  targetHexInput.addEventListener('change', commitTargetHexInput);
+  targetHexInput.addEventListener('blur', commitTargetHexInput);
+  targetHexInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      commitTargetHexInput();
+    }
+  });
   hideTargetsBtn.addEventListener('click', ()=>{
     showTargets = !showTargets;
     hideTargetsBtn.textContent = showTargets ? 'Hide' : 'Show';
@@ -1571,11 +1654,34 @@
   const skewBtn = document.getElementById('cc-skew-btn');
   const skewSwatchBtn = document.getElementById('cc-skew-swatch');
   const skewInput = document.getElementById('cc-skew-color');
+  const skewHexInput = document.getElementById('cc-skew-hex');
   const skewIcon = document.getElementById('skew-icon');
   const defaultSkewHex = skewInput.value;
+  function applySkewHex(hex){
+    skewInput.value = hex;
+    const rgb = hexToRgbObj(hex);
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
+    skewActive = true;
+    skewIcon.style.background = hex;
+    skewHexInput.value = hex.toUpperCase();
+    syncSkewButtonState();
+    drawScene();
+  }
   function syncSkewButtonState(){
     skewBtn.classList.toggle('is-active', skewActive);
     skewBtn.setAttribute('aria-pressed', String(skewActive));
+    if(skewActive && skewColor !== null){
+      const activeHex = skewInput.value;
+      const rgb = hexToRgbObj(activeHex);
+      // ITU-R BT.601 luma keeps label text readable over the active skew color.
+      const luma = (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
+      skewBtn.style.setProperty('--skew-active-color', activeHex);
+      skewBtn.style.setProperty('--skew-active-text', luma > SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+    } else {
+      skewBtn.style.removeProperty('--skew-active-color');
+      skewBtn.style.removeProperty('--skew-active-text');
+    }
   }
   skewBtn.addEventListener('click', ()=>{
     if(skewColor !== null){
@@ -1585,6 +1691,15 @@
     }
   });
   skewSwatchBtn.addEventListener('click', ()=>{
+    if(typeof skewInput.showPicker === 'function'){
+      try{
+        skewInput.showPicker();
+        return;
+      }catch(err){
+        console.warn('chroma: skew picker showPicker failed', err);
+      }
+    }
+    // Fallback for browsers without showPicker support or when showPicker fails.
     skewInput.click();
   });
   function clearSkew(e){
@@ -1593,20 +1708,31 @@
     skewActive = false;
     skewInput.value = defaultSkewHex;
     skewIcon.style.background = 'var(--face)';
+    skewHexInput.value = defaultSkewHex.toUpperCase();
     syncSkewButtonState();
     drawScene();
   }
   skewBtn.addEventListener('contextmenu', clearSkew);
   skewSwatchBtn.addEventListener('contextmenu', clearSkew);
   skewInput.addEventListener('input', ()=>{
-    const hex = skewInput.value;
-    const rgb = hexToRgbObj(hex);
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
-    skewActive = true;
-    skewIcon.style.background = hex;
-    syncSkewButtonState();
-    drawScene();
+    applySkewHex(skewInput.value);
+  });
+  function commitSkewHexInput(){
+    const normalized = normalizeHexInputValue(skewHexInput.value);
+    if(!normalized){
+      skewHexInput.value = skewInput.value.toUpperCase();
+      return;
+    }
+    applySkewHex(normalized);
+  }
+  skewHexInput.value = skewInput.value.toUpperCase();
+  skewHexInput.addEventListener('change', commitSkewHexInput);
+  skewHexInput.addEventListener('blur', commitSkewHexInput);
+  skewHexInput.addEventListener('keydown', e=>{
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      commitSkewHexInput();
+    }
   });
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';

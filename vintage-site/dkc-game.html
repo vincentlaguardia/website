@@ -52,7 +52,7 @@
       const canPickFile = typeof romPickerEl?.click === 'function';
       if (!canPickFile) return;
 
-      setStatus('ROM not found at /roms/dkc.sfc. Select a local Donkey Kong ROM file to continue, then add vintage-site/roms/dkc.sfc and redeploy for permanent hosting.', true);
+      setStatus('ROM not found at /roms/dkc.sfc. Select a local ROM to continue. For permanent hosting, add vintage-site/roms/dkc.sfc and redeploy.', true);
       romPickerEl.value = '';
       romPickerEl.click();
     };
@@ -116,6 +116,7 @@
         if (!romResponse.ok) {
           if (romResponse.status === 404) {
             promptForLocalRom();
+            return;
           }
           throw new Error(`ROM request failed (${romResponse.status}).`);
         }

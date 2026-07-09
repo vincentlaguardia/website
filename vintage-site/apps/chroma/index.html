@@ -605,7 +605,7 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
+      <p class="lead">Diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
       <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
       <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">dr pastrami mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name. use it carefully.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -1337,6 +1337,7 @@
     if(colorCount <= 1){
       sampled.push(zoneHex(zones[0]));
     } else {
+      // colorCount > 1 here, so denominator (colorCount - 1) is always non-zero.
       for(let i=0; i<colorCount; i++){
         const idx = Math.floor((i * (zones.length - 1)) / (colorCount - 1));
         sampled.push(zoneHex(zones[idx]));
@@ -1344,6 +1345,7 @@
     }
     const unique = [...new Set(sampled)];
     if(unique.length === 1) return unique[0];
+    // unique.length > 1 here, so denominator (unique.length - 1) is always non-zero.
     const stops = unique.map((hex, idx)=>{
       const pct = Math.round((idx * 100) / (unique.length - 1));
       return hex + ' ' + pct + '%';

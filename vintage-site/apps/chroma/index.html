@@ -407,13 +407,6 @@
     padding:2px;
     display:none;
   }
-  #help-content[contenteditable="true"]{
-    background:#fff;
-    outline:none;
-    padding:8px;
-    box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--hi),
-                inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--white);
-  }
   #shutdown-overlay{
     position:fixed; inset:0; background:#000; color:#fff;
     display:none; align-items:center; justify-content:center;
@@ -550,7 +543,6 @@
       <div class="menu-item" data-menu="file" tabindex="0" aria-haspopup="menu">File</div>
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
-      <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Info</div>
       <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Theory</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
@@ -634,40 +626,6 @@
     <div class="resize-handle" id="resize-handle" title="Drag to resize"></div>
   </div>
 </div>
-<div id="help-dialog" class="dialog">
-  <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Help</span></div>
-    <div class="titlebar-btns"><div class="tbtn" id="help-close">X</div></div>
-  </div>
-  <div class="winbody">
-    <div class="content-panel sunken">
-      <div id="help-content"><p class="lead" style="margin-top:0;">this app is a color study</p>
-      <p class="lead">nine circles share one color. same hex, same value. but each one appears to change because it sits inside a different palette.</p>
-      <p class="lead">that trick is called simultaneous contrast. a color is never only itself, it is shaped by the colors around it.</p>
-      <p class="lead">every hue lives somewhere on a circle from 0 to 360 degrees. red is near 0, yellow near 60, green near 120, cyan near 180, blue near 240, magenta near 300, then back to red again.</p>
-      <p class="lead">a palette philosophy is a rule for choosing colors from that circle.</p>
-      <p class="lead">monochromatic stays with one hue, changing only lightness and saturation.</p>
-      <p class="lead">analogous uses nearby hues, so the palette feels close and natural.</p>
-      <p class="lead">complementary pairs opposite hues for clear contrast.</p>
-      <p class="lead">split complementary uses two colors near the opposite hue, keeping contrast while feeling a little softer.</p>
-      <p class="lead">triadic spaces three hues evenly around the wheel.</p>
-      <p class="lead">diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
-      <p class="lead">tetradic uses four positions, giving the palette more energy and variety.</p>
-      <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
-      <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
-      <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
-      <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">techno mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name. use it carefully.</p></div>
-      <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="win-btn" id="help-edit">Edit</button>
-        <button class="win-btn" id="help-save" style="display:none;">Save</button>
-        <button class="win-btn" id="help-cancel" style="display:none;">Cancel</button>
-        <button class="win-btn" id="help-reset">Reset to Default</button>
-        <button class="win-btn" id="help-ok" style="margin-left:auto;">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div id="about-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>About</span></div>
@@ -681,19 +639,32 @@
 </div>
 <div id="theory-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno Mode Theory</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Theory</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="theory-close">X</div></div>
   </div>
   <div class="winbody">
     <div class="content-panel sunken">
       <div id="theory-content">
-        <p class="lead" style="margin-top:0;">techno mode starts with an underlying color rule, then deliberately introduces controlled deviation.</p>
-        <p class="lead">it still uses a base hue, a palette structure, and grouped color relationships. the composition is not random. nearby cells are organized so the image maintains coherence.</p>
-        <p class="lead">the difference is that harmony is no longer the main objective. the system is designed to increase perceptual tension.</p>
-        <p class="lead">the palette is divided into contrasting color behaviors. some colors are shifted toward lighter, lower-saturation pastel values. others are pushed toward brighter, higher-saturation neon values. these groups are placed in close contact so their boundaries produce stronger visual interaction.</p>
+        <p class="lead" style="margin-top:0;">this is a color study.</p>
+        <p class="lead">the nine circles are the same color, but each one appears to change because it sits inside a different palette.</p>
+        <p class="lead">that effect is called simultaneous contrast. a color is never only itself. it is shaped by the colors around it.</p>
+        <p class="lead">every hue lives somewhere on a circle from 0 to 360 degrees. red is near 0, yellow near 60, green near 120, cyan near 180, blue near 240, magenta near 300, then back to red again.</p>
+        <p class="lead">a palette philosophy is a rule for choosing colors from that circle.</p>
+        <p class="lead">monochromatic stays with one hue, changing only lightness and saturation.</p>
+        <p class="lead">analogous uses nearby hues, so the palette feels close and natural.</p>
+        <p class="lead">complementary pairs opposite hues for clear contrast.</p>
+        <p class="lead">split complementary uses two colors near the opposite hue, keeping contrast while feeling a little softer.</p>
+        <p class="lead">triadic spaces three hues evenly around the wheel.</p>
+        <p class="lead">tetradic uses four positions, giving the palette more energy and variety.</p>
+        <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
+        <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
+        <p class="lead">the grid is not scattered at random. it is arranged in grouped diagonal bands, so nearby cells inherit related color roles. this keeps the image coherent even when the palette becomes more unstable.</p>
+        <p class="lead">each zone belongs to a local structure before it becomes a local surprise. that is why the image can feel varied without falling apart.</p>
+        <p class="lead">techno mode begins from that same structure. it still uses a base hue, a palette logic, and grouped color relationships. the composition is not random. nearby cells are organized so the image maintains coherence.</p>
+        <p class="lead">the difference is that harmony is no longer the main objective. techno mode is designed to increase perceptual tension.</p>
+        <p class="lead">the palette is divided into contrasting color behaviors. some colors shift toward lighter, lower-saturation pastel values. others push toward brighter, higher-saturation neon values. these groups are placed in close contact so their boundaries produce stronger visual interaction.</p>
         <p class="lead">the result is structured conflict. colors remain part of a system, but their perceived behavior becomes less stable.</p>
-        <p class="lead">hue, saturation, and lightness are allowed to drift beyond the normal limits of the original palette rule. certain palette philosophies are too orderly to support this level of disruption, so techno mode excludes them.</p>
-        <p class="lead">what remains is a color system with a clear internal logic and an unstable perceptual surface. it keeps enough structure for the image to hold together, while introducing enough contrast for the palette to feel synthetic, pressurized, or difficult to classify.</p>
+        <p class="lead">hue, saturation, and lightness are allowed to drift beyond the normal limits of the original palette rule. what remains is a color system with a clear internal logic and an unstable perceptual surface.</p>
         <p class="lead">the colors are not random. they are being tested against their surroundings.</p>
       </div>
       <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
@@ -734,7 +705,6 @@
 <div id="start-menu" class="raised">
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
-  <div class="sm-item" id="sm-help">Info</div>
   <div class="sm-item" id="sm-theory">Theory</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
@@ -922,7 +892,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-theory', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -935,58 +905,20 @@
       drawScene();
     });
   });
-  const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
-  function openHelp(){
-    closeAbout();
-    closeTheory();
-    helpDialog.classList.add('show');
-  }
-  function closeHelp(){
-    helpDialog.classList.remove('show');
-    if(helpContent.contentEditable === 'true'){
-      helpContent.innerHTML = helpDraftHtml;
-      setHelpEditing(false);
-    }
-  }
   function openAbout(){
-    closeHelp();
     closeTheory();
     aboutDialog.classList.add('show');
   }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
   function openTheory(){
-    closeHelp();
     closeAbout();
     theoryDialog.classList.add('show');
   }
   function closeTheory(){ theoryDialog.classList.remove('show'); }
-  const helpContent = document.getElementById('help-content');
-  const helpEditBtn = document.getElementById('help-edit');
-  const helpSaveBtn = document.getElementById('help-save');
-  const helpCancelBtn = document.getElementById('help-cancel');
-  const helpResetBtn = document.getElementById('help-reset');
-  const HELP_STORAGE_KEY = 'chromaCamouflage.helpHtml';
-  const DEFAULT_HELP_HTML = helpContent.innerHTML;
-  let helpDraftHtml = '';
-  const savedHelp = localStorage.getItem(HELP_STORAGE_KEY);
-  if(savedHelp) helpContent.innerHTML = savedHelp;
-  function setHelpEditing(on){
-    helpContent.contentEditable = on ? 'true' : 'false';
-    helpEditBtn.style.display = on ? 'none' : '';
-    helpSaveBtn.style.display = on ? '' : 'none';
-    helpCancelBtn.style.display = on ? '' : 'none';
-  }
-  helpEditBtn.addEventListener('click', ()=>{ helpDraftHtml = helpContent.innerHTML; setHelpEditing(true); helpContent.focus(); });
-  helpSaveBtn.addEventListener('click', ()=>{ localStorage.setItem(HELP_STORAGE_KEY, helpContent.innerHTML); setHelpEditing(false); });
-  helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
-  helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
-  document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
   document.getElementById('menu-theory').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheory(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
-  document.getElementById('help-close').addEventListener('click', closeHelp);
-  document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('theory-close').addEventListener('click', closeTheory);
   document.getElementById('theory-ok').addEventListener('click', closeTheory);
@@ -994,7 +926,6 @@
   document.addEventListener('click', function(e){
     [
       { dialog: aboutDialog, close: closeAbout },
-      { dialog: helpDialog, close: closeHelp },
       { dialog: theoryDialog, close: closeTheory }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
@@ -1094,7 +1025,6 @@
   document.addEventListener('click', closeStartMenu);
   document.getElementById('sm-programs').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#programs'; });
   document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
-  document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
   document.getElementById('sm-theory').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheory(); });
   document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
   document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });

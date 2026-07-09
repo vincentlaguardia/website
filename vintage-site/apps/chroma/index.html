@@ -537,7 +537,7 @@
     return { h, s: s*100, l: l*100 };
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
-  const DOWNLOAD_REVOKE_DELAY_MS = 100;
+  const DOWNLOAD_REVOKE_DELAY_MS = 1000;
   const MAX_SAMPLE_DIMENSION = 180;
   const MIN_ALPHA_THRESHOLD = 24;
   const MIN_COLOR_OCCURRENCES = 2;
@@ -574,7 +574,7 @@
     const hh = String(now.getHours()).padStart(2,'0');
     const mi = String(now.getMinutes()).padStart(2,'0');
     const ss = String(now.getSeconds()).padStart(2,'0');
-    return '' + yyyy + mm + dd + '-' + hh + mi + ss;
+    return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
   }
   function distillPaletteFromImage(img, limit){
     const scale = Math.min(1, MAX_SAMPLE_DIMENSION / Math.max(img.width, img.height));
@@ -992,12 +992,18 @@
     const file = importInput.files && importInput.files[0];
     try{
       await processImportedPhotoFile(file);
+    } catch(err){
+      console.warn('Photo import failed.', err);
+      alert('Photo import failed. Please choose a valid image file and try again.');
     } finally {
       importInput.value = '';
     }
   });
   function dropImport(file){
-    processImportedPhotoFile(file).catch(err=>{ console.warn('Photo import failed.', err); });
+    processImportedPhotoFile(file).catch(err=>{
+      console.warn('Photo import failed.', err);
+      alert('Photo import failed. Please choose a valid image file and try again.');
+    });
   }
   ['dragenter','dragover'].forEach(evt=>{
     contentPanel.addEventListener(evt, e=>{

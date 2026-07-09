@@ -34,7 +34,7 @@
   <script>
     const ROM_URL = '/roms/dkc.sfc';
     const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
-    const MIN_ROM_BYTES = 1024;
+    const MIN_VALID_ROM_SIZE_BYTES = 1024;
     const statusEl = document.getElementById('status');
     const gameEl = document.getElementById('game');
     const romPickerEl = document.getElementById('rom-picker');
@@ -51,7 +51,7 @@
     };
 
     const promptForLocalRom = () => {
-      setStatus('ROM not found at /roms/dkc.sfc. Please select a local ROM file when prompted.', true);
+      setStatus('ROM not found at /roms/dkc.sfc. A file picker will open - please select your local Donkey Kong Country ROM file.', true);
       console.info('To host Donkey Kong permanently, add vintage-site/roms/dkc.sfc and redeploy.');
       romPickerEl.value = '';
       romPickerEl.click();
@@ -66,8 +66,8 @@
     };
 
     const validateMinimumRomSize = (romBytes, message) => {
-      if (romBytes.byteLength < MIN_ROM_BYTES) {
-        throw new Error(message);
+      if (romBytes.byteLength < MIN_VALID_ROM_SIZE_BYTES) {
+        throw new Error(`${message} (minimum: ${MIN_VALID_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes).`);
       }
     };
 

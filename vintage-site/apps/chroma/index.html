@@ -1032,6 +1032,34 @@
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     dropImport(file);
   });
+  window.addEventListener('message', async function(e){
+    if(!e.data || e.data.type !== 'chroma-desktop-drop') return;
+    if(e.origin !== window.location.origin) return;
+    const rawUrl = String(e.data.url || '').trim();
+    if(!rawUrl) return;
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(rawUrl, window.location.href);
+    } catch(_) {
+      handleImportError(new Error('Invalid image URL from desktop: ' + rawUrl));
+      return;
+    }
+    try {
+      if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
+      const res = await fetch(parsedUrl.href);
+      if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
+      const blob = await res.blob();
+      if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
+      const rawName = parsedUrl.pathname.split('/').pop().split('?')[0] || 'image';
+      const name = (() => { try { return decodeURIComponent(rawName); } catch(_) { return rawName; } })();
+      const file = new File([blob], name, { type: blob.type });
+      contentPanel.classList.add('drop-active');
+      await processImportedPhotoFile(file).catch(handleImportError);
+      contentPanel.classList.remove('drop-active');
+    } catch(err) {
+      handleImportError(err);
+    }
+  });
   function resizeCanvas(){
     const rect = ccWrap.getBoundingClientRect();
     const size = Math.max(60, Math.floor(Math.min(rect.width, rect.height)) - 2);

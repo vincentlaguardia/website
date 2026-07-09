@@ -249,6 +249,7 @@
   .ie-window, .chroma-window { resize: both; overflow: hidden; }
   .chroma-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
+  .desktop-icon-item.chroma-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
 
   .folder-grid {
     display: grid;
@@ -6295,26 +6296,73 @@ function desktopDefaultPosition(itemId, item, slotIndex) {
 function setChromaDragHover(x, y, itemId) {
   const isPicture = itemId && items[itemId] && items[itemId].type === 'picture';
   const win = document.querySelector('.chroma-window');
-  if (!win) return;
-  const frame = win.querySelector('.chroma-frame');
-  if (!frame) return;
-  const r = frame.getBoundingClientRect();
-  win.classList.toggle('chroma-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  if (win) {
+    const frame = win.querySelector('.chroma-frame');
+    if (frame) {
+      const r = frame.getBoundingClientRect();
+      win.classList.toggle('chroma-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+    }
+  }
+  // Highlight the chroma desktop shortcut icon as a drop target when hovering with a picture,
+  // including when the chroma window is not yet open.
+  const iconEl = document.querySelector('.desktop-icon-item[data-item-id="chromashortcut"]');
+  if (iconEl) {
+    const r = iconEl.getBoundingClientRect();
+    iconEl.classList.toggle('chroma-drop-target', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  }
 }
 function tryDropImageToChroma(x, y, itemId) {
   const item = itemId && items[itemId];
   if (!item || item.type !== 'picture') return false;
-  const frame = document.querySelector('.chroma-frame');
-  if (!frame) return false;
-  const r = frame.getBoundingClientRect();
-  if (x < r.left || x > r.right || y < r.top || y > r.bottom) return false;
   const rawUrl = item.file || (item.filePath ? toAssetUrl(item.filePath) : null);
   if (!rawUrl) return false;
   let absoluteUrl;
   try { absoluteUrl = new URL(rawUrl, window.location.href).href; } catch(_) { return false; }
-  frame.contentWindow.postMessage({ type: 'chroma-desktop-drop', url: absoluteUrl }, window.location.origin);
-  document.querySelectorAll('.chroma-window').forEach(function(w) { w.classList.remove('chroma-drag-over'); });
-  return true;
+  function sendToFrame(frame) {
+    frame.contentWindow.postMessage({ type: 'chroma-desktop-drop', url: absoluteUrl }, window.location.origin);
+    document.querySelectorAll('.chroma-window').forEach(function(w) { w.classList.remove('chroma-drag-over'); });
+  }
+  // Check if cursor is over the open chroma frame.
+  const existingFrame = document.querySelector('.chroma-frame');
+  if (existingFrame) {
+    const fr = existingFrame.getBoundingClientRect();
+    if (x >= fr.left && x <= fr.right && y >= fr.top && y <= fr.bottom) {
+      sendToFrame(existingFrame);
+      return true;
+    }
+  }
+  // Check if cursor is over the chroma shortcut icon on the desktop.
+  // This supports dropping when the chroma window is closed, or as a convenient
+  // alternative to targeting the open window directly.
+  const iconEl = document.querySelector('.desktop-icon-item[data-item-id="chromashortcut"]');
+  if (iconEl) {
+    const ir = iconEl.getBoundingClientRect();
+    if (x >= ir.left && x <= ir.right && y >= ir.top && y <= ir.bottom) {
+      iconEl.classList.remove('chroma-drop-target');
+      if (existingFrame) {
+        // Window already open — bring to front and import.
+        openChromaWindow();
+        sendToFrame(existingFrame);
+      } else {
+        // Window not yet open — open it and deliver the drop once the iframe loads.
+        openChromaWindow();
+        (function pollForFrame(attempt) {
+          const f = document.querySelector('.chroma-frame');
+          if (!f) {
+            if (attempt < 20) setTimeout(function() { pollForFrame(attempt + 1); }, 100);
+            return;
+          }
+          if (f.contentDocument && f.contentDocument.readyState === 'complete') {
+            sendToFrame(f);
+          } else {
+            f.addEventListener('load', function() { sendToFrame(f); }, { once: true });
+          }
+        }(0));
+      }
+      return true;
+    }
+  }
+  return false;
 }
 function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, itemId, parentId) {
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;

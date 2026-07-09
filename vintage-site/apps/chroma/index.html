@@ -948,7 +948,8 @@
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
       const contentPanel = dialog.querySelector('.content-panel');
-      if(contentPanel && !contentPanel.contains(e.target)) close();
+      const clickedInside = contentPanel ? contentPanel.contains(e.target) : dialog.contains(e.target);
+      if(!clickedInside) close();
     });
   }, true);
   document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
@@ -1298,24 +1299,25 @@
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
   const GRADIENT_KEY_PRECISION = 1000;
+  const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
   let pastramiButtonGradientKey = '';
-  function roundGradientKeyValue(value){
+  function roundToGradientPrecision(value){
     return Math.round(value*GRADIENT_KEY_PRECISION)/GRADIENT_KEY_PRECISION;
   }
   function getPastramiButtonGradientKey(){
     if(!pastramiMode || importedMode || !zones.length) return '';
     const skewPart = skewColor
-      ? [skewColor.h, skewColor.s, skewColor.l].map(roundGradientKeyValue).join(',')
+      ? [skewColor.h, skewColor.s, skewColor.l].map(roundToGradientPrecision).join(',')
       : 'none';
     return [
       zones.length,
       philoIdx,
-      roundGradientKeyValue(baseHue),
-      roundGradientKeyValue(globalSatMul),
+      roundToGradientPrecision(baseHue),
+      roundToGradientPrecision(globalSatMul),
       strange,
       seed.repeats,
-      seed.angle.toFixed(6),
-      seed.phase.toFixed(6),
+      seed.angle.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
+      seed.phase.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
       skewActive ? 1 : 0,
       skewPart
     ].join('|');
@@ -1333,6 +1335,7 @@
       }
     }
     const unique = [...new Set(sampled)];
+    if(unique.length === 1) return unique[0];
     if(unique.length < 2) return '';
     const stops = unique.map((hex, idx)=>{
       const pct = Math.round((idx*100)/(unique.length-1));

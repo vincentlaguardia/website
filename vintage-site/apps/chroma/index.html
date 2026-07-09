@@ -831,6 +831,27 @@
       lightDrift: 0.58
     }
   };
+  const TECHNO_GROUP_SIZE = 2;
+  const TECHNO_HASH_MIX = {
+    branchPhase: 17,
+    branchRepeat: 19,
+    branchRole: 5,
+    branchBand: 3,
+    huePhase: 29,
+    hueRepeat: 11,
+    hueRole: 7,
+    hueBand: 5,
+    satPhase: 13,
+    satRole: 3,
+    satOffset: 41,
+    satRepeat: 23,
+    satRowOffset: 67,
+    lightPhase: 31,
+    lightRole: 11,
+    lightOffset: 79,
+    lightRepeat: 7,
+    lightRowOffset: 97
+  };
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1225,13 +1246,25 @@
     const jitterA = hashZone(zone.col, zone.row);
     const jitterB = hashZone(zone.col+91, zone.row+37);
     const jitterC = hashZone(zone.col+53, zone.row+17);
-    const groupCol = Math.floor(zone.col / 2);
-    const groupRow = Math.floor(zone.row / 2);
+    const groupCol = Math.floor(zone.col / TECHNO_GROUP_SIZE);
+    const groupRow = Math.floor(zone.row / TECHNO_GROUP_SIZE);
     const config = TECHNO_LEVEL_CONFIG[technoLevel] || TECHNO_LEVEL_CONFIG[1];
-    const branchRoll = hashZone(groupCol + seed.phase*17 + role*5, groupRow + seed.repeats*19 + bandIdx*3);
-    const groupHue = hashZone(groupCol + seed.phase*29 + role*7, groupRow + seed.repeats*11 + bandIdx*5);
-    const groupSat = hashZone(groupCol + seed.phase*13 + role*3 + 41, groupRow + seed.repeats*23 + 67);
-    const groupLight = hashZone(groupCol + seed.phase*31 + role*11 + 79, groupRow + seed.repeats*7 + 97);
+    const branchRoll = hashZone(
+      groupCol + seed.phase * TECHNO_HASH_MIX.branchPhase + role * TECHNO_HASH_MIX.branchRole,
+      groupRow + seed.repeats * TECHNO_HASH_MIX.branchRepeat + bandIdx * TECHNO_HASH_MIX.branchBand
+    );
+    const groupHue = hashZone(
+      groupCol + seed.phase * TECHNO_HASH_MIX.huePhase + role * TECHNO_HASH_MIX.hueRole,
+      groupRow + seed.repeats * TECHNO_HASH_MIX.hueRepeat + bandIdx * TECHNO_HASH_MIX.hueBand
+    );
+    const groupSat = hashZone(
+      groupCol + seed.phase * TECHNO_HASH_MIX.satPhase + role * TECHNO_HASH_MIX.satRole + TECHNO_HASH_MIX.satOffset,
+      groupRow + seed.repeats * TECHNO_HASH_MIX.satRepeat + TECHNO_HASH_MIX.satRowOffset
+    );
+    const groupLight = hashZone(
+      groupCol + seed.phase * TECHNO_HASH_MIX.lightPhase + role * TECHNO_HASH_MIX.lightRole + TECHNO_HASH_MIX.lightOffset,
+      groupRow + seed.repeats * TECHNO_HASH_MIX.lightRepeat + TECHNO_HASH_MIX.lightRowOffset
+    );
     const w = Math.max(0, Math.min(100, strange)) / 100;
     const isPastel = branchRoll < config.pastelProbability;
     const range = isPastel ? config.pastel : config.neon;

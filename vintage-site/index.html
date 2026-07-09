@@ -2296,9 +2296,9 @@ const WALLPAPER_VERSION_KEY  = 'site-wallpaper-version';
 // fit: 'fill' (cover) | 'stretch' | 'tile'
 function applyWallpaperFitStyle(desktopEl, fit) {
   if (fit === 'tile') {
-    desktopEl.style.backgroundSize = 'auto';
     desktopEl.style.backgroundRepeat = 'repeat';
     desktopEl.style.backgroundPosition = '0 0';
+    // backgroundSize is set asynchronously in applyWallpaper once image dimensions are known
   } else if (fit === 'stretch') {
     desktopEl.style.backgroundSize = '100% 100%';
     desktopEl.style.backgroundRepeat = 'no-repeat';
@@ -2319,15 +2319,25 @@ function applyWallpaper(src, fit, persist) {
   const desktopEl = document.getElementById('desktop');
   const resolvedFit = fit || localStorage.getItem('site-wallpaper-fit') || 'fill';
   applyWallpaperFitStyle(desktopEl, resolvedFit);
+  const resolvedSrc = src ? toAssetUrl(src) : toAssetUrl(DEFAULT_WALLPAPER_SRC);
+  desktopEl.style.backgroundImage = 'url(' + resolvedSrc + ')';
+  if (resolvedFit === 'tile') {
+    // Shrink the image to 10% of its natural size and tile it across the desktop
+    const tmpImg = new Image();
+    tmpImg.onload = function() {
+      desktopEl.style.backgroundSize =
+        Math.round(tmpImg.naturalWidth * 0.1) + 'px ' +
+        Math.round(tmpImg.naturalHeight * 0.1) + 'px';
+    };
+    tmpImg.src = resolvedSrc;
+  }
   if (src) {
-    desktopEl.style.backgroundImage = 'url(' + toAssetUrl(src) + ')';
     if (persist !== false) {
       localStorage.setItem('site-wallpaper-src', src);
       localStorage.setItem('site-wallpaper-fit', resolvedFit);
       localStorage.setItem(WALLPAPER_VERSION_KEY, String(WALLPAPER_PREF_VERSION));
     }
   } else {
-    desktopEl.style.backgroundImage = 'url(' + toAssetUrl(DEFAULT_WALLPAPER_SRC) + ')';
     if (persist !== false) {
       localStorage.removeItem('site-wallpaper-src');
       localStorage.removeItem('site-wallpaper-fit');

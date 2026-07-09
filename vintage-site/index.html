@@ -1091,6 +1091,7 @@ Object.keys(childrenOverrides).forEach(pid => {
 const FOLDER_ICON_POS_KEY = 'site-folder-icon-positions';
 let folderIconPositions = {};
 try { folderIconPositions = JSON.parse(localStorage.getItem(FOLDER_ICON_POS_KEY) || '{}'); } catch (e) { folderIconPositions = {}; }
+const DEFAULT_NEW_FOLDER_NAME_RE = /^New Folder(?: \(\d+\))?$/;
 
 function saveCustomFolders() {
   localStorage.setItem('site-custom-folders', JSON.stringify(customFolders));
@@ -1155,6 +1156,42 @@ function setFolderIconPosition(parentId, itemId, left, top) {
       localStorage.setItem('site-custom-folders', JSON.stringify(cf));
     }
   } catch (e) {}
+})();
+
+(function sanitizeStaleDesktopNewFolders() {
+  if (!items.desktop || !Array.isArray(items.desktop.children)) return;
+
+  const staleDesktopFolderIds = items.desktop.children.filter(id => {
+    const item = items[id];
+    return item &&
+      item.custom &&
+      item.type === 'folder' &&
+      DEFAULT_NEW_FOLDER_NAME_RE.test(item.name || '') &&
+      Array.isArray(item.children) &&
+      item.children.length === 0;
+  });
+  if (!staleDesktopFolderIds.length) return;
+
+  const staleDesktopFolderIdSet = new Set(staleDesktopFolderIds);
+  items.desktop.children = items.desktop.children.filter(id => !staleDesktopFolderIdSet.has(id));
+
+  if (Array.isArray(childrenOverrides.desktop)) {
+    childrenOverrides.desktop = childrenOverrides.desktop.filter(id => !staleDesktopFolderIdSet.has(id));
+  } else if (childrenOverrides.desktop && Array.isArray(childrenOverrides.desktop.children)) {
+    childrenOverrides.desktop.children = childrenOverrides.desktop.children.filter(id => !staleDesktopFolderIdSet.has(id));
+  }
+
+  staleDesktopFolderIds.forEach(id => {
+    delete items[id];
+    delete customFolders[id];
+    delete childrenOverrides[id];
+    try { localStorage.removeItem('desktop-icon-pos-' + id); } catch (e) {}
+    if (folderIconPositions.desktop) delete folderIconPositions.desktop[id];
+  });
+
+  saveCustomFolders();
+  localStorage.setItem('site-children-overrides', JSON.stringify(childrenOverrides));
+  saveFolderIconPositions();
 })();
 
 /* ---------- per-folder view mode (List vs Thumbnail), persisted ---------- */

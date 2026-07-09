@@ -1277,6 +1277,7 @@
     });
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
+  let activePastramiButtonGradient = '';
   function buildPastramiButtonGradient(){
     if(!pastramiMode || importedMode || !zones.length) return '';
     const colorCount = Math.min(5, zones.length);
@@ -1288,13 +1289,15 @@
     const unique = sampled.filter((hex, idx, arr)=>arr.indexOf(hex) === idx);
     if(unique.length < 2) return '';
     const stops = unique.map((hex, idx)=>{
-      const pct = unique.length === 1 ? 0 : Math.round((idx*100)/(unique.length-1));
+      const pct = Math.round((idx*100)/(unique.length-1));
       return hex + ' ' + pct + '%';
     });
     return 'linear-gradient(105deg,' + stops.join(',') + ')';
   }
   function syncPastramiButtonGradient(){
     const gradient = buildPastramiButtonGradient();
+    if(gradient === activePastramiButtonGradient) return;
+    activePastramiButtonGradient = gradient;
     if(gradient){
       pastramiBtn.style.setProperty('--pastrami-active-gradient', gradient);
     } else {

@@ -605,7 +605,7 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">Diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
+      <p class="lead">Diary + saves the last sampled color into your color diary. Open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
       <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
       <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">dr pastrami mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name. use it carefully.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -939,6 +939,7 @@
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('theory-close').addEventListener('click', closeTheory);
   document.getElementById('theory-ok').addEventListener('click', closeTheory);
+  // Capture phase ensures outside clicks close open dialogs even when nested handlers stop propagation.
   document.addEventListener('click', function(e){
     [
       { dialog: aboutDialog, close: closeAbout },
@@ -1298,16 +1299,19 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   const GRADIENT_KEY_PRECISION = 1000;
   let pastramiButtonGradientKey = '';
+  function roundGradientKeyValue(value){
+    return Math.round(value*GRADIENT_KEY_PRECISION)/GRADIENT_KEY_PRECISION;
+  }
   function getPastramiButtonGradientKey(){
     if(!pastramiMode || importedMode || !zones.length) return '';
     const skewPart = skewColor
-      ? [skewColor.h, skewColor.s, skewColor.l].map(v=>Math.round(v*GRADIENT_KEY_PRECISION)/GRADIENT_KEY_PRECISION).join(',')
+      ? [skewColor.h, skewColor.s, skewColor.l].map(roundGradientKeyValue).join(',')
       : 'none';
     return [
       zones.length,
       philoIdx,
-      Math.round(baseHue*GRADIENT_KEY_PRECISION)/GRADIENT_KEY_PRECISION,
-      Math.round(globalSatMul*GRADIENT_KEY_PRECISION)/GRADIENT_KEY_PRECISION,
+      roundGradientKeyValue(baseHue),
+      roundGradientKeyValue(globalSatMul),
       strange,
       seed.repeats,
       seed.angle.toFixed(6),

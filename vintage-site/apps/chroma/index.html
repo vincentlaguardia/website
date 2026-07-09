@@ -784,7 +784,7 @@
     return { h, s: s*100, l: l*100 };
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
-  function lerp(a, b, t){ return a + (b - a) * t; }
+  function lerp(a, b, factor){ return a + (b - a) * factor; }
   const DOWNLOAD_REVOKE_TIMEOUT = 1000;
   const MAX_SAMPLE_DIMENSION = 180;
   const MIN_ALPHA_THRESHOLD = 24;

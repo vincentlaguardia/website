@@ -2936,6 +2936,10 @@ async function loadDesktopRootsFromManifest() {
             modified: e.modified || new Date().toISOString().slice(0, 10)
           };
         }
+        const defaultDesktopPosition = DESKTOP_FILE_DEFAULT_POSITIONS[filePath];
+        if (defaultDesktopPosition) {
+          items[fileId].defaultDesktopPosition = defaultDesktopPosition;
+        }
         return fileId;
       }).filter(Boolean);
 
@@ -2955,6 +2959,14 @@ const FOLDER_ICON_SLOT_WIDTH = 150;
 const FOLDER_ICON_SLOT_HEIGHT = 120;
 const FOLDER_ICON_SLOT_MARGIN = 10;
 const FOLDER_ICON_JITTER = 8;
+const DESKTOP_FILE_DEFAULT_POSITIONS = {
+  'content/desktop/ryan_gosling_cereal.mp4': 'center'
+};
+const DESKTOP_ICON_WIDTH = 190;
+const DESKTOP_ICON_LABEL_HEIGHT = 56;
+const DESKTOP_ICON_MIN_MARGIN = 4;
+const DESKTOP_TASKBAR_HEIGHT = 30;
+const DESKTOP_TASKBAR_GAP = 4;
 
 function folderSlotPosition(slotIndex, seedKey, viewportEl) {
   const slotW = FOLDER_ICON_SLOT_WIDTH, slotH = FOLDER_ICON_SLOT_HEIGHT, margin = FOLDER_ICON_SLOT_MARGIN, jitter = FOLDER_ICON_JITTER;
@@ -6026,6 +6038,20 @@ function desktopSlotPosition(slotIndex, seedKey) {
   return { left: Math.max(4, left), top: Math.max(4, top) };
 }
 
+function desktopDefaultPosition(itemId, item, slotIndex) {
+  if (item && item.defaultDesktopPosition === 'center') {
+    const iconWidth = DESKTOP_ICON_WIDTH;
+    const iconHeight = getDesktopIconSize(item) + DESKTOP_ICON_LABEL_HEIGHT;
+    const maxLeft = Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerWidth - iconWidth - DESKTOP_ICON_MIN_MARGIN);
+    const maxTop = Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT - DESKTOP_TASKBAR_GAP);
+    return {
+      left: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, (window.innerWidth - iconWidth) / 2), maxLeft),
+      top: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, (window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT) / 2), maxTop)
+    };
+  }
+  return desktopSlotPosition(slotIndex, itemId);
+}
+
 function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, itemId, parentId) {
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
   el.setAttribute('draggable', 'false');
@@ -6130,7 +6156,7 @@ function buildDesktopIcons() {
     el.dataset.parentId = 'desktop';
     el.innerHTML = getIcon(item, getDesktopIconSize(item)) + '<div class="label">' + item.name + '</div>';
     const savedPos = JSON.parse(localStorage.getItem('desktop-icon-pos-' + itemId) || 'null');
-    const defaultPos = desktopSlotPosition(index + 1, itemId);
+    const defaultPos = desktopDefaultPosition(itemId, item, index + 1);
     el.style.left = (savedPos ? savedPos.left : defaultPos.left) + 'px';
     el.style.top = (savedPos ? savedPos.top : defaultPos.top) + 'px';
     makeDesktopIconDraggable(el, 'desktop-icon-pos-' + itemId, () => openChildItem(itemId, item, 'desktop'), () => deleteItem(itemId, 'desktop'), itemId, 'desktop');

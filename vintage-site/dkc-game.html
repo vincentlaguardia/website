@@ -51,7 +51,7 @@
     };
 
     const promptForLocalRom = () => {
-      setStatus('ROM not found at /roms/dkc.sfc. Select a local ROM to continue.', true);
+      setStatus('ROM not found at /roms/dkc.sfc. Please select a local ROM file when prompted.', true);
       console.info('To host Donkey Kong permanently, add vintage-site/roms/dkc.sfc and redeploy.');
       romPickerEl.value = '';
       romPickerEl.click();
@@ -63,6 +63,12 @@
       }
       currentRomBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
       return currentRomBlobUrl;
+    };
+
+    const assertMinimumRomSize = (romBytes, message) => {
+      if (romBytes.byteLength < MIN_ROM_BYTES) {
+        throw new Error(message);
+      }
     };
 
     const decodeHeader = (bytes) => {
@@ -133,9 +139,7 @@
         const romBytes = await romResponse.arrayBuffer();
         const headerBytes = new Uint8Array(romBytes.slice(0, 256));
 
-        if (romBytes.byteLength < MIN_ROM_BYTES) {
-          throw new Error('ROM payload is unexpectedly small.');
-        }
+        assertMinimumRomSize(romBytes, 'ROM payload is unexpectedly small.');
         if (isHtmlFallbackResponse(contentType, headerBytes)) {
           throw new Error('ROM URL returned HTML instead of binary data (likely routing fallback).');
         }
@@ -153,9 +157,7 @@
 
       try {
         const romBytes = await selectedFile.arrayBuffer();
-        if (romBytes.byteLength < MIN_ROM_BYTES) {
-          throw new Error('Selected ROM payload is unexpectedly small.');
-        }
+        assertMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small.');
         setStatus('Loading emulator runtime…');
         loadEmulator(createRomBlobUrl(romBytes));
       } catch (error) {

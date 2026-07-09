@@ -1980,15 +1980,18 @@ function applyBackgroundChoice(choice) {
 // Allowed image extensions for the backgrounds manifest.
 const WALLPAPER_IMG_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg']);
 
+// Default wallpaper shown when no custom wallpaper has been chosen.
+const DEFAULT_WALLPAPER_SRC = 'content/_backgrounds/trinityneo.jpg';
+
 // Apply a wallpaper from the _backgrounds folder (src is a relative URL like
-// "content/_backgrounds/photo.jpg"). Passing null/empty clears back to default.
+// "content/_backgrounds/photo.jpg"). Passing null/empty resets to the default.
 function applyWallpaper(src) {
   const desktopEl = document.getElementById('desktop');
   if (src) {
     desktopEl.style.backgroundImage = 'url(' + toAssetUrl(src) + ')';
     localStorage.setItem('site-wallpaper-src', src);
   } else {
-    desktopEl.style.backgroundImage = '';
+    desktopEl.style.backgroundImage = 'url(' + toAssetUrl(DEFAULT_WALLPAPER_SRC) + ')';
     localStorage.removeItem('site-wallpaper-src');
   }
 }
@@ -1996,7 +1999,7 @@ function applyWallpaper(src) {
 // Restore persisted wallpaper. Called from tryLogin() after the desktop is shown.
 function initWallpaper() {
   const saved = localStorage.getItem('site-wallpaper-src');
-  if (saved) applyWallpaper(saved);
+  applyWallpaper(saved || null);
 }
 
 async function openBackgroundPickerWindow() {

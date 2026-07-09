@@ -164,9 +164,15 @@
   .menu-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; }
   .menu-option:hover{ background:var(--navy); color:#fff; }
   .menu-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 var(--white); margin:3px 2px; }
+  /* embedded mode: loaded inside an iframe in the virtual desktop */
+  html.embedded, body.embedded{ background:var(--face); }
+  body.embedded #desktop{ height:100vh; padding:0; align-items:stretch; justify-content:stretch; }
+  body.embedded .window{ width:100%; max-width:100%; min-width:0; min-height:0; flex:1; box-shadow:none; }
+  body.embedded .titlebar{ display:none; }
 </style>
 </head>
 <body>
+<script>if(window.self !== window.top){ document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
 <div id="desktop">
   <div class="window">
     <div class="titlebar">
@@ -184,6 +190,7 @@
         <span id="diary-count" style="font-size:11px;">0 / 36</span>
         <button class="win-btn" id="diary-clear" style="margin-left:auto;">Clear All</button>
         <button class="win-btn" id="diary-export">Export JPG</button>
+        <button class="win-btn" id="diary-save-desktop">Save to Desktop</button>
       </div>
     </div>
   </div>
@@ -316,13 +323,68 @@
   }
 
   // Close button
-  document.getElementById('btn-close').addEventListener('click', ()=> window.close());
+  document.getElementById('btn-close').addEventListener('click', ()=>{
+    if(window.self !== window.top){
+      window.parent.postMessage({ type: 'chroma-diary-close' }, window.location.origin);
+    } else {
+      window.close();
+    }
+  });
 
   // Clear All
   document.getElementById('diary-clear').addEventListener('click', clearAll);
 
   // Export JPG
   document.getElementById('diary-export').addEventListener('click', exportDiaryJPG);
+
+  // Save to Desktop
+  function saveToDesktop(){
+    if(window.self === window.top){
+      alert('Save to Desktop is only available when the Color Diary is open inside the virtual desktop.');
+      return;
+    }
+    const colors = loadDiary();
+    if(!colors.length){ alert('Diary is empty.'); return; }
+    const COLS = 6;
+    const ROWS = Math.ceil(colors.length / COLS);
+    const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
+    const cw = COLS * SW + (COLS - 1) * GAP + PAD * 2;
+    const ch = ROWS * SH + (ROWS - 1) * GAP + PAD * 2 + HEADER;
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#c0c0c0';
+    cx.fillRect(0, 0, cw, ch);
+    cx.fillStyle = '#000000';
+    cx.font = 'bold 13px Tahoma,Arial,sans-serif';
+    cx.textAlign = 'left';
+    cx.fillText('chroma.exe \u2014 Color Diary', PAD, PAD + 14);
+    colors.forEach((color, i)=>{
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = PAD + col * (SW + GAP);
+      const y = PAD + HEADER + row * (SH + GAP);
+      cx.fillStyle = color.hex;
+      cx.fillRect(x, y, SW, SH);
+      cx.strokeStyle = 'rgba(0,0,0,0.22)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
+      const tc = swatchTextColor(color.r, color.g, color.b);
+      cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(color.hex, x + SW / 2, y + SH / 2 - 6);
+      cx.font = '9px Tahoma,Arial,sans-serif';
+      cx.fillText(color.r + ',' + color.g + ',' + color.b, x + SW / 2, y + SH / 2 + 8);
+    });
+    const defaultName = 'chroma-diary-' + timestampTag() + '.jpg';
+    const raw = window.prompt('Save diary to virtual desktop as:', defaultName);
+    if(raw === null) return;
+    let fname = raw.trim() || defaultName;
+    if(!/\.(jpe?g)$/i.test(fname)) fname = fname.replace(/\.[a-zA-Z0-9]+$/, '') + '.jpg';
+    window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl: c.toDataURL('image/jpeg', 0.92) }, window.location.origin);
+  }
+  document.getElementById('diary-save-desktop').addEventListener('click', saveToDesktop);
 
   // Context menu
   const ctxMenu = document.getElementById('diary-ctx-menu');

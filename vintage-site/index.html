@@ -251,6 +251,8 @@
   .chroma-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
   .desktop-icon-item.chroma-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
+  .chroma-diary-window { resize: both; overflow: hidden; }
+  .chroma-diary-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
 
   .folder-grid {
     display: grid;
@@ -6144,6 +6146,52 @@ function openChromaWindow() {
   bringToFront(id);
 }
 
+function openChromaDiaryWindow() {
+  const id = 'chroma_diary';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out chroma-diary-window';
+  const openW = 420, openH = 500;
+  win.style.left = Math.max(0, Math.round((window.innerWidth - openW) / 2)) + 'px';
+  win.style.top = Math.max(0, Math.round((window.innerHeight - openH) / 2)) + 'px';
+  win.style.width = openW + 'px';
+  win.style.height = openH + 'px';
+  win.style.minWidth = '300px';
+  win.style.minHeight = '260px';
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">Color Diary — chroma.exe</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
+  content.innerHTML = `<iframe class="chroma-diary-frame" src="apps/chroma/diary.html" title="Color Diary — chroma.exe"></iframe>`;
+
+  win.appendChild(titlebar);
+  win.appendChild(content);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  makeDraggable(win, titlebar);
+
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  addTaskbarEntry(id, 'Color Diary', imgIcon(CHROMA_SHORTCUT_ICON, 14));
+  bringToFront(id);
+}
+
 function openSolitaireWindow(startInProgress) {
   console.log('%c[SOLITAIRE CODE VERSION: geometry-hit-test-v3]', 'color:#0f0;font-weight:bold;font-size:14px;');
   const id = 'solitaire';
@@ -7185,32 +7233,45 @@ document.getElementById('password-input').addEventListener('keydown', e => {
   updateIcon();
 })();
 
-// Handle messages from chroma.exe iframe
+// Handle messages from chroma.exe iframe and Color Diary iframe
 window.addEventListener('message', function(e) {
-  if (!e.data || e.data.type !== 'chroma-save-to-desktop') return;
+  if (!e.data || !e.data.type) return;
   if (e.origin !== window.location.origin) return;
-  // Verify the message comes from the embedded chroma frame, not an arbitrary same-origin window
+
   const chromaFrame = document.querySelector('.chroma-frame');
-  if (!chromaFrame || e.source !== chromaFrame.contentWindow) return;
-  const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
-  const dataUrl = String(e.data.dataUrl || '');
-  const newId = 'chroma_' + Date.now();
-  const newItem = {
-    type: 'picture',
-    name: name,
-    file: dataUrl,
-    thumb: dataUrl,
-    modified: new Date().toISOString().slice(0, 10),
-    custom: true
-  };
-  items[newId] = newItem;
-  customFolders[newId] = newItem;
-  saveCustomFolders();
-  if (!items.desktop.children.includes(newId)) {
-    items.desktop.children.push(newId);
-    persistFolderChildren('desktop');
+  const diaryFrame = document.querySelector('.chroma-diary-frame');
+  const isFromChroma = chromaFrame && e.source === chromaFrame.contentWindow;
+  const isFromDiary = diaryFrame && e.source === diaryFrame.contentWindow;
+
+  if (e.data.type === 'chroma-open-diary' && isFromChroma) {
+    openChromaDiaryWindow();
+    return;
   }
-  buildDesktopIcons();
+  if (e.data.type === 'chroma-diary-close' && isFromDiary) {
+    closeWindow('chroma_diary');
+    return;
+  }
+  if (e.data.type === 'chroma-save-to-desktop' && (isFromChroma || isFromDiary)) {
+    const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
+    const dataUrl = String(e.data.dataUrl || '');
+    const newId = 'chroma_' + Date.now();
+    const newItem = {
+      type: 'picture',
+      name: name,
+      file: dataUrl,
+      thumb: dataUrl,
+      modified: new Date().toISOString().slice(0, 10),
+      custom: true
+    };
+    items[newId] = newItem;
+    customFolders[newId] = newItem;
+    saveCustomFolders();
+    if (!items.desktop.children.includes(newId)) {
+      items.desktop.children.push(newId);
+      persistFolderChildren('desktop');
+    }
+    buildDesktopIcons();
+  }
 });
 </script>
 </body>

@@ -1539,6 +1539,10 @@
     hideDiaryCtxMenu();
   }
   function openDiary(){
+    if (window.self !== window.top) {
+      window.parent.postMessage({ type: 'chroma-open-diary' }, window.location.origin);
+      return;
+    }
     renderDiary();
     diaryDialog.classList.add('show');
   }

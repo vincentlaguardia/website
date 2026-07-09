@@ -41,6 +41,18 @@
     "modified": "2026-07-09"
   },
   {
+    "type": "file",
+    "name": "ryan_gosling_cereal.jpg",
+    "size": 874340,
+    "modified": "2026-07-09"
+  },
+  {
+    "type": "file",
+    "name": "ryan_gosling_cereal.mp4",
+    "size": 3437369,
+    "modified": "2026-07-09"
+  },
+  {
     "type": "folder",
     "name": "thoughts",
     "modified": "2026-07-09"

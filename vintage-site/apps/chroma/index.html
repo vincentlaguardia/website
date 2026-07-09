@@ -454,7 +454,6 @@
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
       <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Click to pick a skew color — palette leans toward it. When active, click again to toggle off. Right-click to clear."><span class="skew-icon" id="skew-icon"></span>Skew</button>
       <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
-      <button class="ctrl-btn" id="pastrami-btn" type="button" title="Activates Dr Pastrami Mode — a forbidden color palette.">Dr Pastrami Mode</button>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
@@ -462,6 +461,7 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="Activates Dr Pastrami Mode — a forbidden color palette.">Dr Pastrami Mode</button>
         </div>
       </div>
     </div>
@@ -518,7 +518,6 @@
   <div class="winbody">
     <div class="content-panel sunken" style="text-align:left;">
       <p class="lead" style="text-align:center; margin-top:0;">created by dr vincent j pastrami</p>
-      <button class="win-btn" id="about-ok">OK</button>
     </div>
   </div>
 </div>
@@ -746,7 +745,6 @@
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
-  document.getElementById('about-ok').addEventListener('click', closeAbout);
   document.addEventListener('click', function(e){
     if(aboutDialog.classList.contains('show') && !aboutDialog.contains(e.target)) closeAbout();
     if(helpDialog.classList.contains('show') && !helpDialog.contains(e.target)) closeHelp();
@@ -948,8 +946,8 @@
     const hue = applySkewToHue((hues[role] + hueJitter + 3600) % 360);
     let sat, light;
     if(isPastel){
-      sat  = 3  + jitterA * 20;        // deeply unsaturated: 3–23%
-      light = 80 + jitterB * 15;       // very light: 80–95%
+      sat  = 50 + jitterA * 30;        // soft pastel: 50–80%
+      light = 72 + jitterB * 16;       // light: 72–88%
     } else {
       sat  = 92 + jitterA * 8;         // extreme neon: 92–100%
       light = 47 + jitterB * 20;       // vivid mid: 47–67%

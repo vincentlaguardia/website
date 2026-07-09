@@ -67,7 +67,7 @@
 
     const validateMinimumRomSize = (romBytes, message) => {
       if (romBytes.byteLength < MIN_VALID_ROM_SIZE_BYTES) {
-        throw new Error(`${message} (minimum: ${MIN_VALID_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes).`);
+        throw new Error(`${message} (minimum: ${MIN_VALID_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
       }
     };
 
@@ -144,7 +144,7 @@
         const romBytes = await romResponse.arrayBuffer();
         const headerBytes = new Uint8Array(romBytes.slice(0, 256));
 
-        validateMinimumRomSize(romBytes, 'ROM payload is unexpectedly small.');
+        validateMinimumRomSize(romBytes, 'ROM payload is unexpectedly small');
         if (isHtmlFallbackResponse(contentType, headerBytes)) {
           throw new Error('ROM URL returned HTML instead of binary data (likely routing fallback).');
         }
@@ -161,7 +161,7 @@
 
       try {
         const romBytes = await selectedFile.arrayBuffer();
-        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small.');
+        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small');
         loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);

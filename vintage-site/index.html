@@ -2888,20 +2888,47 @@ async function loadDesktopRootsFromManifest() {
     // decision to remove it).
     const fixedFilePaths = new Set(fixed.map(id => items[id] && items[id].file).filter(Boolean));
     const trashedFilePaths = new Set(trashItems.map(t => items[t.id] && items[t.id].file).filter(Boolean));
-    const fileIds = entries
-      .filter(e => e.type === 'file')
+    // Build a companion-thumbnail map: when a picture file shares the same base
+    // name as a video file it becomes the video's thumbnail preview and is hidden
+    // as a separate desktop item, matching the behaviour of synced sub-folders.
+    const desktopFileEntries = entries.filter(e => e.type === 'file');
+    const desktopVideoBaseNames = new Set(
+      desktopFileEntries
+        .filter(e => inferTypeFromExt(e.name) === 'video')
+        .map(e => stripExtension(e.name).toLowerCase())
+    );
+    const desktopCompanionThumb = Object.create(null);
+    for (const e of desktopFileEntries) {
+      if (inferTypeFromExt(e.name) !== 'picture') continue;
+      const baseName = stripExtension(e.name).toLowerCase();
+      if (!desktopVideoBaseNames.has(baseName)) continue;
+      if (!desktopCompanionThumb[baseName]) {
+        desktopCompanionThumb[baseName] = toAssetUrl('content/desktop/' + e.name);
+      }
+    }
+    const fileIds = desktopFileEntries
       .map(e => {
         const filePath = 'content/desktop/' + e.name;
         if (fixedFilePaths.has(filePath) || trashedFilePaths.has(filePath)) return null;
+        // A picture that is a companion thumbnail for a same-base-name video is
+        // hidden from the desktop — it shows up only as the video's preview image.
+        if (inferTypeFromExt(e.name) === 'picture') {
+          const baseName = stripExtension(e.name).toLowerCase();
+          if (desktopCompanionThumb[baseName]) return null;
+        }
         const fileId = 'content__' + slugifyPath(e.name);
         if (!items[fileId]) {
           const type = inferTypeFromExt(e.name);
+          const companionThumbUrl = type === 'video'
+            ? (desktopCompanionThumb[stripExtension(e.name).toLowerCase()] || '')
+            : '';
           items[fileId] = {
             type,
             name: e.name,
             iconType: type,
             filePath,
             file: toAssetUrl(filePath),
+            thumb: companionThumbUrl,
             size: e.size,
             modified: e.modified || new Date().toISOString().slice(0, 10)
           };

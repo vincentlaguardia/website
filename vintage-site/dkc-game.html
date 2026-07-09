@@ -65,10 +65,15 @@
       return currentRomBlobUrl;
     };
 
-    const assertMinimumRomSize = (romBytes, message) => {
+    const validateMinimumRomSize = (romBytes, message) => {
       if (romBytes.byteLength < MIN_ROM_BYTES) {
         throw new Error(message);
       }
+    };
+
+    const loadRomFromBytes = (romBytes) => {
+      setStatus('Loading emulator runtime…');
+      loadEmulator(createRomBlobUrl(romBytes));
     };
 
     const decodeHeader = (bytes) => {
@@ -139,13 +144,12 @@
         const romBytes = await romResponse.arrayBuffer();
         const headerBytes = new Uint8Array(romBytes.slice(0, 256));
 
-        assertMinimumRomSize(romBytes, 'ROM payload is unexpectedly small.');
+        validateMinimumRomSize(romBytes, 'ROM payload is unexpectedly small.');
         if (isHtmlFallbackResponse(contentType, headerBytes)) {
           throw new Error('ROM URL returned HTML instead of binary data (likely routing fallback).');
         }
 
-        setStatus('Loading emulator runtime…');
-        loadEmulator(createRomBlobUrl(romBytes));
+        loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
       }
@@ -157,9 +161,8 @@
 
       try {
         const romBytes = await selectedFile.arrayBuffer();
-        assertMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small.');
-        setStatus('Loading emulator runtime…');
-        loadEmulator(createRomBlobUrl(romBytes));
+        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small.');
+        loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
       }

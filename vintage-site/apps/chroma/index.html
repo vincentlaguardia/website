@@ -480,11 +480,11 @@
   /* dr pastrami mode */
   #pastrami-btn{
     background:var(--face);
-    font-weight:bold;
+    font-weight:400;
     letter-spacing:.2px;
   }
   #pastrami-btn.is-active{
-    background: linear-gradient(105deg,#00ffff 0%,#ffff00 35%,#ff00ff 65%,#00ff88 100%);
+    background: var(--pastrami-active-gradient, linear-gradient(105deg,#00ffff 0%,#ffff00 35%,#ff00ff 65%,#00ff88 100%));
     box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
@@ -1219,6 +1219,7 @@
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
+    syncPastramiButtonGradient();
     ctx.clearRect(0,0,size,size);
     const cw = size/COLS, ch = size/ROWS;
     zones.forEach(z=>{
@@ -1276,9 +1277,34 @@
     });
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
+  function buildPastramiButtonGradient(){
+    if(!pastramiMode || importedMode || !zones.length) return '';
+    const colorCount = Math.min(5, zones.length);
+    const sampled = [];
+    for(let i=0; i<colorCount; i++){
+      const idx = colorCount === 1 ? 0 : Math.floor((i*(zones.length-1))/(colorCount-1));
+      sampled.push(zoneHex(zones[idx]));
+    }
+    const unique = sampled.filter((hex, idx, arr)=>arr.indexOf(hex) === idx);
+    if(unique.length < 2) return '';
+    const stops = unique.map((hex, idx)=>{
+      const pct = unique.length === 1 ? 0 : Math.round((idx*100)/(unique.length-1));
+      return hex + ' ' + pct + '%';
+    });
+    return 'linear-gradient(105deg,' + stops.join(',') + ')';
+  }
+  function syncPastramiButtonGradient(){
+    const gradient = buildPastramiButtonGradient();
+    if(gradient){
+      pastramiBtn.style.setProperty('--pastrami-active-gradient', gradient);
+    } else {
+      pastramiBtn.style.removeProperty('--pastrami-active-gradient');
+    }
+  }
   function syncPastramiButtonState(){
     pastramiBtn.classList.toggle('is-active', pastramiMode);
     pastramiBtn.setAttribute('aria-pressed', String(pastramiMode));
+    syncPastramiButtonGradient();
   }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;

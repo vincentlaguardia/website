@@ -1530,8 +1530,8 @@
   function syncTechnoLevelButtonState(){
     const config = TECHNO_LEVEL_CONFIG[technoLevel] || TECHNO_LEVEL_CONFIG[1];
     pastramiLevelBtn.textContent = config.label;
-    pastramiLevelBtn.title = 'Techno Level ' + config.label;
-    pastramiLevelBtn.setAttribute('aria-label', 'Techno Level ' + config.label);
+    pastramiLevelBtn.title = 'Select Techno Level (current: ' + config.label + ')';
+    pastramiLevelBtn.setAttribute('aria-label', 'Select Techno Level');
   }
   syncTechnoLevelButtonState();
   pastramiLevelBtn.addEventListener('click', e=>{

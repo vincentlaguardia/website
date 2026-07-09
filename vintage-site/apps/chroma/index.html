@@ -456,7 +456,7 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo to distill an image into chroma's color energy, then export unique palette hex values from file&gt;export palette or the export palette button.</p></div>
+      <p class="lead">file&gt;import photo to distill an image into Chroma's color energy, then export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -536,6 +536,13 @@
     return { h, s: s*100, l: l*100 };
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+  const DOWNLOAD_REVOKE_DELAY_MS = 100;
+  const MAX_SAMPLE_DIMENSION = 180;
+  const MIN_ALPHA_THRESHOLD = 24;
+  const MIN_COLOR_OCCURRENCES = 2;
+  const MAX_RANKED_COLORS = 64;
+  const MIN_COLOR_DISTANCE = 36;
+  const MAX_IMPORTED_PALETTE_SIZE = 12;
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -543,7 +550,7 @@
     link.href = url;
     link.download = filename;
     link.click();
-    setTimeout(()=> URL.revokeObjectURL(url), 0);
+    setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_DELAY_MS);
   }
   function readImageFile(file){
     return new Promise((resolve, reject)=>{
@@ -558,21 +565,30 @@
       reader.readAsDataURL(file);
     });
   }
+  function timestampTag(){
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const dd = String(now.getDate()).padStart(2,'0');
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mi = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    return '' + yyyy + mm + dd + '-' + hh + mi + ss;
+  }
   function distillPaletteFromImage(img, limit){
-    const maxSide = 180;
-    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const scale = Math.min(1, MAX_SAMPLE_DIMENSION / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
     const tmp = document.createElement('canvas');
     tmp.width = w;
     tmp.height = h;
-    const tmpCtx = tmp.getContext('2d', { willReadFrequently: true });
+    const tmpCtx = tmp.getContext('2d');
     tmpCtx.drawImage(img, 0, 0, w, h);
     const pixels = tmpCtx.getImageData(0, 0, w, h).data;
     const bins = new Map();
     for(let i=0; i<pixels.length; i+=4){
       const a = pixels[i+3];
-      if(a < 24) continue;
+      if(a < MIN_ALPHA_THRESHOLD) continue;
       const r = pixels[i], g = pixels[i+1], b = pixels[i+2];
       const key = ((r>>4)<<8) | ((g>>4)<<4) | (b>>4);
       const entry = bins.get(key) || { count:0, r:0, g:0, b:0 };
@@ -583,16 +599,15 @@
       bins.set(key, entry);
     }
     const ranked = [...bins.values()]
-      .filter(v=>v.count > 1)
+      .filter(v=>v.count >= MIN_COLOR_OCCURRENCES)
       .sort((a,b)=>b.count-a.count)
-      .slice(0, 64)
-      .map(v=>({ r: v.r/v.count, g: v.g/v.count, b: v.b/v.count }));
+      .slice(0, MAX_RANKED_COLORS);
     const picked = [];
-    const minDistance = 36;
-    ranked.forEach(c=>{
+    ranked.forEach(v=>{
+      const c = { r: v.r/v.count, g: v.g/v.count, b: v.b/v.count };
       const keep = picked.every(p=>{
         const dr = p.r-c.r, dg = p.g-c.g, db = p.b-c.b;
-        return Math.sqrt(dr*dr + dg*dg + db*db) >= minDistance;
+        return Math.sqrt(dr*dr + dg*dg + db*db) >= MIN_COLOR_DISTANCE;
       });
       if(keep && picked.length < limit){ picked.push(c); }
     });
@@ -871,7 +886,7 @@
       unique.push(hex);
     });
     if(!unique.length) return;
-    downloadTextFile('chroma-palette.txt', unique.join('\n') + '\n');
+    downloadTextFile('chroma-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
@@ -957,30 +972,29 @@
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);
+  async function processImportedPhotoFile(file){
+    if(!file || !file.type.startsWith('image/')) return;
+    const img = await readImageFile(file);
+    const palette = distillPaletteFromImage(img, MAX_IMPORTED_PALETTE_SIZE);
+    if(!palette.length) return;
+    importedPalette = palette;
+    importedMode = true;
+    randomStyle = false;
+    styleBtn.innerHTML = 'Photo Palette &#9662;';
+    styleOptions.forEach(o=>o.classList.remove('active'));
+    seed = randomSeed();
+    drawScene();
+  }
   importInput.addEventListener('change', async ()=>{
     const file = importInput.files && importInput.files[0];
-    if(!file || !file.type.startsWith('image/')) return;
     try{
-      const img = await readImageFile(file);
-      const palette = distillPaletteFromImage(img, 12);
-      if(!palette.length) return;
-      importedPalette = palette;
-      importedMode = true;
-      randomStyle = false;
-      styleBtn.innerHTML = 'Photo Palette &#9662;';
-      styleOptions.forEach(o=>o.classList.remove('active'));
-      seed = randomSeed();
-      drawScene();
+      await processImportedPhotoFile(file);
     } finally {
       importInput.value = '';
     }
   });
   function dropImport(file){
-    if(!file || !file.type.startsWith('image/')) return;
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    importInput.files = dt.files;
-    importInput.dispatchEvent(new Event('change'));
+    processImportedPhotoFile(file).catch(()=>{});
   }
   ['dragenter','dragover'].forEach(evt=>{
     contentPanel.addEventListener(evt, e=>{

@@ -1401,12 +1401,12 @@
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;
-  const DIARY_GRID_COLUMNS = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--diary-grid-columns'), 10) || 6;
   const LUM_R = 0.299;
   const LUM_G = 0.587;
   const LUM_B = 0.114;
   const LUM_THRESHOLD = 0.55;
   const EXPORT_JPEG_QUALITY = 0.92;
+  let diaryGridColumns = null;
   let diaryColors = (()=>{ try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(err){ console.warn('chroma: failed to load diary from localStorage', err); return []; } })();
   const diaryDialog = document.getElementById('diary-dialog');
   const diaryGrid = document.getElementById('diary-grid');
@@ -1425,6 +1425,11 @@
   }
   function swatchTextColor(r,g,b){
     return (LUM_R*r + LUM_G*g + LUM_B*b)/255 > LUM_THRESHOLD ? '#000' : '#fff';
+  }
+  function getDiaryGridColumns(){
+    if(diaryGridColumns !== null) return diaryGridColumns;
+    diaryGridColumns = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--diary-grid-columns'), 10) || 6;
+    return diaryGridColumns;
   }
   function renderDiary(){
     diaryGrid.innerHTML = '';
@@ -1476,19 +1481,21 @@
     diaryDialog.classList.add('show');
   }
   function clearDiary(){
-    if(!diaryColors.length || !confirm('Clear all diary colors?')) return;
+    if(!diaryColors.length) return;
+    if(!confirm('Clear all diary colors?')) return;
     diaryColors = [];
     saveDiary();
   }
   function exportDiaryJPG(){
     if(!diaryColors.length){ alert('Diary is empty.'); return; }
-    const GRID_ROWS = Math.ceil(diaryColors.length / DIARY_GRID_COLUMNS);
+    const gridColumns = getDiaryGridColumns();
+    const GRID_ROWS = Math.ceil(diaryColors.length / gridColumns);
     const SWATCH_WIDTH = 110;
     const SWATCH_HEIGHT = 110;
     const SWATCH_GAP = 6;
     const CANVAS_PADDING = 16;
     const HEADER_HEIGHT = 36;
-    const cw = DIARY_GRID_COLUMNS * SWATCH_WIDTH + (DIARY_GRID_COLUMNS - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
+    const cw = gridColumns * SWATCH_WIDTH + (gridColumns - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
     const ch = GRID_ROWS * SWATCH_HEIGHT + (GRID_ROWS - 1) * SWATCH_GAP + CANVAS_PADDING * 2 + HEADER_HEIGHT;
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
@@ -1500,8 +1507,8 @@
     cx.textAlign = 'left';
     cx.fillText('chroma.exe — Color Diary', CANVAS_PADDING, CANVAS_PADDING + 14);
     diaryColors.forEach((color, i)=>{
-      const col = i % DIARY_GRID_COLUMNS;
-      const row = Math.floor(i / DIARY_GRID_COLUMNS);
+      const col = i % gridColumns;
+      const row = Math.floor(i / gridColumns);
       const x = CANVAS_PADDING + col * (SWATCH_WIDTH + SWATCH_GAP);
       const y = CANVAS_PADDING + HEADER_HEIGHT + row * (SWATCH_HEIGHT + SWATCH_GAP);
       cx.fillStyle = color.hex;

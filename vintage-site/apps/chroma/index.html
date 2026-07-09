@@ -13,6 +13,7 @@
     --white:#ffffff;
     --navy:#000080;
     --teal:#008080;
+    --swatch-size:20px;
     --diary-grid-columns:6;
   }
   *{ box-sizing:border-box; }
@@ -161,9 +162,9 @@
     border-radius:0;
     background:var(--face);
   }
-  input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
-  input[type=color]::-webkit-color-swatch{ border:none; border-radius:0; }
-  input[type=color]::-moz-color-swatch{ border:none; border-radius:0; }
+  input[type=color]::-webkit-color-swatch-wrapper{ padding:0; background:var(--face); }
+  input[type=color]::-webkit-color-swatch{ border:none; border-radius:0; background:var(--face); }
+  input[type=color]::-moz-color-swatch{ border:none; border-radius:0; background:var(--face); }
   input[type=range]{
     -webkit-appearance:none;
     width:110px;
@@ -188,9 +189,10 @@
   }
   .cc-lastcolor{ display:flex; align-items:center; gap:6px; }
   .cc-lastswatch{
-    width:20px; height:20px;
+    width:var(--swatch-size); height:var(--swatch-size);
     border:2px solid var(--shadow);
     background:var(--face);
+    box-sizing:border-box;
     flex:0 0 auto;
   }
   .cc-copybox{
@@ -436,13 +438,35 @@
   }
   body.embedded #taskbar{ display:none; }
   /* skew button */
-  .skew-icon{
-    display:inline-block;
-    width:11px; height:11px;
-    border:1px solid var(--shadow);
+  .skew-control{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .skew-swatch-btn{
+    -webkit-appearance:none;
+    appearance:none;
+    width:var(--swatch-size);
+    height:var(--swatch-size);
+    padding:0;
     background:var(--face);
-    vertical-align:middle;
-    margin-right:3px;
+    border:2px solid var(--shadow);
+    cursor:pointer;
+    line-height:0;
+    flex:0 0 auto;
+    box-sizing:border-box;
+  }
+  .skew-icon{
+    display:block;
+    width:100%; height:100%;
+    border:none;
+    background:var(--face);
+    flex:0 0 auto;
+  }
+  #cc-target-color{
+    width:var(--swatch-size);
+    height:var(--swatch-size);
+    box-sizing:border-box;
     flex:0 0 auto;
   }
   /* canvas context menu */
@@ -455,7 +479,7 @@
   }
   /* dr pastrami mode */
   #pastrami-btn{
-    background: linear-gradient(105deg,#ff00ff 0%,#c0c0c0 38%,#c0c0c0 62%,#00ffff 100%);
+    background:var(--face);
     font-weight:bold;
     letter-spacing:.2px;
   }
@@ -487,11 +511,12 @@
       </div>
     </div>
     <div class="menubar">
-      <div class="menu-item" data-menu="file">File</div>
-      <div class="menu-item" id="menu-diary">Diary</div>
-      <div class="menu-item" id="menu-help">Info</div>
-      <div class="menu-item" id="menu-theory">Theory</div>
-      <div class="menu-item" id="menu-about">About</div>
+      <div class="menu-item" data-menu="file" tabindex="0" aria-haspopup="menu">File</div>
+      <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
+      <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
+      <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Info</div>
+      <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Theory</div>
+      <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
@@ -502,6 +527,11 @@
         <div class="menu-option" data-action="save-as">Save As JPG...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="exit">Exit</div>
+      </div>
+      <div class="menu-dropdown raised" id="dropdown-dots">
+        <div class="menu-option" data-dot-size="small">Small</div>
+        <div class="menu-option active" data-dot-size="medium">Medium</div>
+        <div class="menu-option" data-dot-size="large">Large</div>
       </div>
     </div>
     <div class="ctrlbar sunken">
@@ -526,7 +556,10 @@
       <button class="ctrl-btn" id="cc-match-sat" title="Set the Saturation slider to match the swatch color">Match Sat</button>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
-      <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Click to pick a skew color — palette leans toward it. When active, click again to toggle off. Right-click to clear."><span class="skew-icon" id="skew-icon"></span>Skew</button>
+      <div class="skew-control">
+        <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
+        <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
+      </div>
       <input type="color" id="cc-skew-color" value="#ff0000" style="display:none;">
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
@@ -535,7 +568,7 @@
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Dr Pastrami Mode">Dr Pastrami Mode</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Dr Pastrami Mode" aria-pressed="false">Dr Pastrami Mode</button>
         </div>
       </div>
     </div>
@@ -708,7 +741,12 @@
   const MIN_COLOR_DISTANCE = 36;
   const MAX_IMPORTED_PALETTE_SIZE = 12;
   const DEFAULT_LIGHTNESS = 50;
-  const LAST_SWATCH_DIAMETER = 20;
+  const DEFAULT_DOT_SIZE_MODE = 'medium';
+  const DOT_SIZE_CONFIG = {
+    small: { radiusRatio: 0.15 },
+    medium: { radiusRatio: 0.25 },
+    large: { radiusRatio: 0.45 }
+  };
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -805,7 +843,7 @@
     document.body.removeChild(ta);
   }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
-  const dropdowns = { file: document.getElementById('dropdown-file') };
+  const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };
   function closeAllMenus(){
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
@@ -825,6 +863,26 @@
     });
   });
   document.addEventListener('click', closeAllMenus);
+  function activateMenuItemWithKeyboard(item){
+    item.addEventListener('keydown', e=>{
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      item.click();
+    });
+  }
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
+    opt.addEventListener('click', e=>{
+      e.stopPropagation();
+      const nextMode = opt.dataset.dotSize;
+      if(!DOT_SIZE_CONFIG[nextMode]) return;
+      dotSizeMode = nextMode;
+      document.querySelectorAll('#dropdown-dots .menu-option').forEach(o=>o.classList.remove('active'));
+      opt.classList.add('active');
+      closeAllMenus();
+      drawScene();
+    });
+  });
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
@@ -1147,11 +1205,17 @@
   let baseHue = +hueSlider.value;
   let strange = +weirdSlider.value;
   let showTargets = true;
+  let dotSizeMode = DEFAULT_DOT_SIZE_MODE;
   let importedPalette = [];
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
   let skewColor = null;
   let skewActive = false;
+  function getTargetRadius(cw, ch){
+    const cellMin = Math.min(cw, ch);
+    const ratio = (DOT_SIZE_CONFIG[dotSizeMode] || DOT_SIZE_CONFIG[DEFAULT_DOT_SIZE_MODE]).radiusRatio;
+    return cellMin * ratio;
+  }
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
@@ -1163,8 +1227,7 @@
       ctx.fillRect(x, y, cw+1, ch+1);
       if(z.hasTarget && showTargets){
         const cx = x + cw/2, cy = y + ch/2;
-        const targetRadius = LAST_SWATCH_DIAMETER / 2;
-        const r = Math.min(targetRadius, cw / 2, ch / 2);
+        const r = getTargetRadius(cw, ch);
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
         grad.addColorStop(0, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
         grad.addColorStop(0.62, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
@@ -1213,9 +1276,13 @@
     });
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
+  function syncPastramiButtonState(){
+    pastramiBtn.classList.toggle('is-active', pastramiMode);
+    pastramiBtn.setAttribute('aria-pressed', String(pastramiMode));
+  }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;
-    pastramiBtn.classList.toggle('is-active', pastramiMode);
+    syncPastramiButtonState();
     applyPastramiDropdown();
     // If current philosophy is not allowed in Pastrami mode, switch it
     if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){
@@ -1404,25 +1471,35 @@
   });
   // --- Skew ---
   const skewBtn = document.getElementById('cc-skew-btn');
+  const skewSwatchBtn = document.getElementById('cc-skew-swatch');
   const skewInput = document.getElementById('cc-skew-color');
   const skewIcon = document.getElementById('skew-icon');
+  const defaultSkewHex = skewInput.value;
+  function syncSkewButtonState(){
+    skewBtn.classList.toggle('is-active', skewActive);
+    skewBtn.setAttribute('aria-pressed', String(skewActive));
+  }
   skewBtn.addEventListener('click', ()=>{
     if(skewColor !== null){
       skewActive = !skewActive;
-      skewBtn.classList.toggle('is-active', skewActive);
+      syncSkewButtonState();
       drawScene();
-    } else {
-      skewInput.click();
     }
   });
-  skewBtn.addEventListener('contextmenu', e=>{
+  skewSwatchBtn.addEventListener('click', ()=>{
+    skewInput.click();
+  });
+  function clearSkew(e){
     e.preventDefault();
     skewColor = null;
     skewActive = false;
-    skewIcon.style.background = '';
-    skewBtn.classList.remove('is-active');
+    skewInput.value = defaultSkewHex;
+    skewIcon.style.background = 'var(--face)';
+    syncSkewButtonState();
     drawScene();
-  });
+  }
+  skewBtn.addEventListener('contextmenu', clearSkew);
+  skewSwatchBtn.addEventListener('contextmenu', clearSkew);
   skewInput.addEventListener('input', ()=>{
     const hex = skewInput.value;
     const rgb = hexToRgbObj(hex);
@@ -1430,7 +1507,7 @@
     skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
     skewActive = true;
     skewIcon.style.background = hex;
-    skewBtn.classList.add('is-active');
+    syncSkewButtonState();
     drawScene();
   });
   // --- Diary ---

@@ -6294,12 +6294,12 @@ function desktopDefaultPosition(itemId, item, slotIndex) {
 
 function setChromaDragHover(x, y, itemId) {
   const isPicture = itemId && items[itemId] && items[itemId].type === 'picture';
-  document.querySelectorAll('.chroma-window').forEach(function(win) {
-    const frame = win.querySelector('.chroma-frame');
-    if (!frame) return;
-    const r = frame.getBoundingClientRect();
-    win.classList.toggle('chroma-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
-  });
+  const win = document.querySelector('.chroma-window');
+  if (!win) return;
+  const frame = win.querySelector('.chroma-frame');
+  if (!frame) return;
+  const r = frame.getBoundingClientRect();
+  win.classList.toggle('chroma-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
 }
 function tryDropImageToChroma(x, y, itemId) {
   const item = itemId && items[itemId];

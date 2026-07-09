@@ -1037,21 +1037,21 @@
     if(e.origin !== window.location.origin) return;
     const rawUrl = String(e.data.url || '').trim();
     if(!rawUrl) return;
-    let absoluteUrl;
+    let parsedUrl;
     try {
-      absoluteUrl = new URL(rawUrl, window.location.href).href;
+      parsedUrl = new URL(rawUrl, window.location.href);
     } catch(_) {
-      handleImportError(new Error('Invalid image URL from desktop.'));
+      handleImportError(new Error('Invalid image URL from desktop: ' + rawUrl));
       return;
     }
     try {
-      const parsed = new URL(absoluteUrl);
-      if(parsed.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
-      const res = await fetch(absoluteUrl);
+      if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
+      const res = await fetch(parsedUrl.href);
       if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
       const blob = await res.blob();
       if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
-      const name = rawUrl.split('/').pop().split('?')[0] || 'image';
+      const rawName = parsedUrl.pathname.split('/').pop().split('?')[0] || 'image';
+      const name = (() => { try { return decodeURIComponent(rawName); } catch(_) { return rawName; } })();
       const file = new File([blob], name, { type: blob.type });
       contentPanel.classList.add('drop-active');
       await processImportedPhotoFile(file).catch(handleImportError);

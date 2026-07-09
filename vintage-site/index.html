@@ -947,6 +947,7 @@
         <div class="menu-item" id="menu-browser">Internet Explorer</div>
         <div class="menu-item" id="menu-paint">Paint</div>
         <div class="menu-item" id="menu-chroma">chroma.exe</div>
+        <div class="menu-item" id="menu-notepad">Notepad</div>
       </div>
     </div>
     <div class="menu-item" id="menu-documents">Documents</div>
@@ -1005,6 +1006,7 @@ function getIcon(item, size) {
   if (item && item.customIcon === 'watchthisbaby') return imgIcon(WATCHTHISBABY_ICON, size);
   if (item && item.customIcon === 'paintshortcut') return imgIcon(PAINT_SHORTCUT_ICON, size);
   if (item && item.customIcon === 'chromashortcut') return imgIcon(CHROMA_SHORTCUT_ICON, size);
+  if (item && item.customIcon === 'notepadshortcut') return imgIcon(NOTEPAD_ICON, size * 2);
   if (item && item.type === 'text') return imgIcon(NOTEPAD_ICON, size * 2);
   if (item && item.type === 'audio') return imgIcon(MP3_ICON, size);
   if (item && item.type === 'shortcut' && item.thumb) return imgIcon(item.thumb, size);
@@ -1026,7 +1028,7 @@ function getDesktopIconSize(item) {
 const items = {
   // Content-synced root folders are no longer hardcoded here; they are
   // populated at startup by loadDesktopRootsFromManifest() from content/desktop/manifest.json.
-  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'desktoppic'], modified: '2026-06-01' },
+  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['notepadshortcut', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'desktoppic'], modified: '2026-06-01' },
   desktoppic:   { type: 'picture', name: 'photo.jpeg', file: 'https://github.com/user-attachments/assets/56d6bb03-3c28-4279-90a1-65c07adc874b', modified: '2026-07-08' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
@@ -1040,6 +1042,7 @@ const items = {
   solitaireshortcut: { type: 'shortcut', name: 'Solitaire', customIcon: 'solitaireshortcut', action: 'solitaire', modified: '2026-07-07' },
   paintshortcut: { type: 'shortcut', name: 'Paint', customIcon: 'paintshortcut', action: 'paint', modified: '2026-07-07' },
   chromashortcut: { type: 'shortcut', name: 'chroma.exe', customIcon: 'chromashortcut', action: 'chroma', iconSize: 96, modified: '2026-07-09' },
+  notepadshortcut: { type: 'shortcut', name: 'Notepad', customIcon: 'notepadshortcut', action: 'notepad', modified: '2026-07-09' },
 
   // Fully GitHub-driven: nothing under here is hardcoded. Adding an album
   // is just making a new folder inside content/desktop/easy/albums/ on GitHub;
@@ -2694,6 +2697,7 @@ function openChildItem(childId, child, parentId) {
   else if (child.type === 'shortcut' && child.action === 'solitaire') openSolitaireWindow();
   else if (child.type === 'shortcut' && child.action === 'paint') openPaintWindow();
   else if (child.type === 'shortcut' && child.action === 'chroma') openChromaWindow();
+  else if (child.type === 'shortcut' && child.action === 'notepad') openNotepadWindow();
   else if (child.type === 'shortcut' && child.action === 'browser-url' && child.url) openBrowserWindow(child.url);
   else if (child.type === 'shortcut' && child.action === 'external' && child.url) window.open(child.url, '_blank', 'noopener');
   else if (child.type === 'picture') openPictureWindow(childId, parentId);
@@ -5181,6 +5185,318 @@ function openPaintWindow() {
   bringToFront(id);
 }
 
+
+/* ================= NOTEPAD ================= */
+function openNotepadWindow(initialText, initialFilename) {
+  const id = 'notepad';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+
+  let currentFilename = initialFilename || null;
+  let modified = false;
+  let wordWrap = false;
+
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out notepad-window';
+  cascade = (cascade + 1) % 8;
+  win.style.left = (80 + cascade * 24) + 'px';
+  win.style.top = (60 + cascade * 22) + 'px';
+  win.style.width = '600px';
+  win.style.height = '450px';
+  win.style.minWidth = '300px';
+  win.style.minHeight = '200px';
+  win.style.resize = 'both';
+  win.style.overflow = 'hidden';
+
+  function getTitle() {
+    return (modified ? '*' : '') + (currentFilename || 'Untitled') + ' - Notepad';
+  }
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">${getTitle()}</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  function updateTitle() {
+    titlebar.querySelector('.title-text').textContent = getTitle();
+    const tbItem = document.querySelector('.taskbar-item[data-id="notepad"] span');
+    if (tbItem) tbItem.textContent = getTitle();
+  }
+
+  const menubar = document.createElement('div');
+  menubar.className = 'win98-menubar';
+  menubar.innerHTML = `
+    <span class="np-menu-item np-menu-file">File</span>
+    <span class="np-menu-item np-menu-edit">Edit</span>
+    <span class="np-menu-item np-menu-format">Format</span>
+    <span class="np-menu-item np-menu-view">View</span>
+    <span class="np-menu-item np-menu-help">Help</span>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.padding = '0';
+  content.style.flex = '1';
+  content.style.minHeight = '0';
+
+  const ta = document.createElement('textarea');
+  ta.style.cssText = 'width:100%;height:100%;box-sizing:border-box;border:none;outline:none;resize:none;padding:4px;margin:0;background:#fff;color:#000;font-family:"Courier New",monospace;font-size:13px;white-space:pre;overflow-x:auto;overflow-y:auto;box-shadow:inset 1px 1px 0 #808080,inset -1px -1px 0 #fff;display:block;';
+  ta.spellcheck = false;
+  ta.value = initialText || '';
+  content.appendChild(ta);
+
+  const statusbar = document.createElement('div');
+  statusbar.className = 'win98-statusbar';
+  statusbar.style.display = 'flex';
+  statusbar.style.justifyContent = 'space-between';
+  const statusLeft = document.createElement('span');
+  statusLeft.textContent = 'Ln 1, Col 1';
+  const statusRight = document.createElement('span');
+  statusRight.textContent = 'UTF-8';
+  statusbar.appendChild(statusLeft);
+  statusbar.appendChild(statusRight);
+
+  function updateStatus() {
+    const pos = ta.selectionStart;
+    const before = ta.value.substring(0, pos);
+    const lines = before.split('\n');
+    statusLeft.textContent = 'Ln ' + lines.length + ', Col ' + (lines[lines.length - 1].length + 1);
+  }
+  ta.addEventListener('click', updateStatus);
+  ta.addEventListener('keyup', updateStatus);
+
+  ta.addEventListener('input', () => {
+    if (!modified) { modified = true; updateTitle(); }
+    updateStatus();
+  });
+
+  // --- File operations ---
+  function downloadTxt(filename, text) {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function addTxtExtension(name) {
+    return name && name.trim() && !name.endsWith('.txt') ? name.trim() + '.txt' : (name || 'Untitled.txt').trim();
+  }
+
+  function doNew() {
+    if (modified) {
+      const choice = window.confirm('Save changes to ' + (currentFilename || 'Untitled') + '?');
+      if (choice) { doSaveAs(); return; }
+    }
+    ta.value = '';
+    currentFilename = null;
+    modified = false;
+    updateTitle();
+    updateStatus();
+    ta.focus();
+  }
+
+  function doOpenFromComputer() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.txt,text/plain';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      document.body.removeChild(input);
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        ta.value = ev.target.result;
+        currentFilename = file.name;
+        modified = false;
+        updateTitle();
+        updateStatus();
+        ta.focus();
+      };
+      reader.readAsText(file);
+    });
+    input.click();
+  }
+
+  function buildSiteTxtEntries() {
+    const entries = Object.entries(items).filter(([, it]) => it.type === 'text');
+    if (!entries.length) return [{ label: '(no .txt files on site)', onClick: () => {} }];
+    return entries.map(([iid, it]) => ({
+      label: it.name,
+      onClick: () => {
+        const load = text => {
+          ta.value = text;
+          currentFilename = it.name;
+          modified = false;
+          updateTitle();
+          updateStatus();
+          ta.focus();
+        };
+        if (it.file && !it._textLoaded) {
+          fetch(it.file, { cache: 'no-store' }).then(r => r.text()).then(load).catch(() => load(it.text || ''));
+        } else {
+          load(it.text || '');
+        }
+      }
+    }));
+  }
+
+  function doSave() {
+    const fname = addTxtExtension(currentFilename);
+    downloadTxt(fname, ta.value);
+    currentFilename = fname;
+    modified = false;
+    updateTitle();
+  }
+
+  function doSaveAs() {
+    const raw = window.prompt('Save As:', currentFilename || 'Untitled.txt');
+    if (raw === null) return;
+    const fname = addTxtExtension(raw);
+    downloadTxt(fname, ta.value);
+    currentFilename = fname;
+    modified = false;
+    updateTitle();
+  }
+
+  function doSaveToDesktop() {
+    const raw = window.prompt('Save to virtual desktop as:', currentFilename || 'Untitled.txt');
+    if (raw === null) return;
+    const fname = addTxtExtension(raw);
+    const newId = 'note_' + Date.now();
+    const newItem = {
+      type: 'text',
+      name: fname,
+      iconType: 'document',
+      customIcon: 'notepad',
+      text: ta.value,
+      modified: new Date().toISOString().slice(0, 10),
+      custom: true
+    };
+    items[newId] = newItem;
+    customFolders[newId] = newItem;
+    saveCustomFolders();
+    if (!items.desktop.children.includes(newId)) {
+      items.desktop.children.push(newId);
+      persistFolderChildren('desktop');
+    }
+    buildDesktopIcons();
+    currentFilename = fname;
+    modified = false;
+    updateTitle();
+  }
+
+  // --- Menu handlers ---
+  menubar.querySelectorAll('.np-menu-item').forEach(s => {
+    s.style.cursor = 'pointer';
+    s.style.padding = '0 2px';
+    s.addEventListener('mouseenter', () => { s.style.background = '#000080'; s.style.color = '#fff'; });
+    s.addEventListener('mouseleave', () => { s.style.background = ''; s.style.color = ''; });
+  });
+
+  menubar.querySelector('.np-menu-file').addEventListener('click', e => {
+    e.stopPropagation();
+    const r = e.target.getBoundingClientRect();
+    showContextMenu(r.left, r.bottom, [
+      { label: 'New',                onClick: doNew },
+      { label: 'Open...',            onClick: doOpenFromComputer },
+      { label: 'Open from site...',  onClick: () => {
+          const sub = buildSiteTxtEntries();
+          showContextMenu(r.right, r.bottom, sub);
+      }},
+      { label: 'Save',               onClick: doSave },
+      { label: 'Save As...',         onClick: doSaveAs },
+      { label: 'Save to Desktop',    onClick: doSaveToDesktop },
+      { label: 'Exit',               onClick: () => closeWindow(id) }
+    ]);
+  });
+
+  menubar.querySelector('.np-menu-edit').addEventListener('click', e => {
+    e.stopPropagation();
+    const r = e.target.getBoundingClientRect();
+    showContextMenu(r.left, r.bottom, [
+      { label: 'Undo',       onClick: () => { ta.focus(); document.execCommand('undo'); } },
+      { label: 'Cut',        onClick: () => { ta.focus(); document.execCommand('cut'); } },
+      { label: 'Copy',       onClick: () => { ta.focus(); document.execCommand('copy'); } },
+      { label: 'Paste',      onClick: () => { ta.focus(); document.execCommand('paste'); } },
+      { label: 'Delete',     onClick: () => {
+          const s = ta.selectionStart, e2 = ta.selectionEnd;
+          if (s !== e2) { ta.setRangeText('', s, e2, 'end'); ta.dispatchEvent(new Event('input')); }
+          ta.focus();
+      }},
+      { label: 'Select All', onClick: () => { ta.focus(); ta.select(); } }
+    ]);
+  });
+
+  menubar.querySelector('.np-menu-format').addEventListener('click', e => {
+    e.stopPropagation();
+    const r = e.target.getBoundingClientRect();
+    showContextMenu(r.left, r.bottom, [
+      { label: (wordWrap ? '\u2713 ' : '    ') + 'Word Wrap', onClick: () => {
+          wordWrap = !wordWrap;
+          ta.style.whiteSpace = wordWrap ? 'pre-wrap' : 'pre';
+          ta.style.overflowX = wordWrap ? 'hidden' : 'auto';
+      }}
+    ]);
+  });
+
+  menubar.querySelector('.np-menu-view').addEventListener('click', e => {
+    e.stopPropagation();
+    const r = e.target.getBoundingClientRect();
+    showContextMenu(r.left, r.bottom, [
+      { label: '\u2713 Status Bar', onClick: () => {} }
+    ]);
+  });
+
+  menubar.querySelector('.np-menu-help').addEventListener('click', e => {
+    e.stopPropagation();
+    const r = e.target.getBoundingClientRect();
+    showContextMenu(r.left, r.bottom, [
+      { label: 'About Notepad', onClick: () => {
+          window.alert(
+            'Notepad\n\n' +
+            'File \u25b6 Open\u2026           open a .txt from your computer\n' +
+            'File \u25b6 Open from site\u2026  open a .txt hosted on this site\n' +
+            'File \u25b6 Save / Save As\u2026  download as .txt to your computer\n' +
+            'File \u25b6 Save to Desktop    add as an icon on the virtual desktop'
+          );
+      }}
+    ]);
+  });
+
+  win.appendChild(titlebar);
+  win.appendChild(menubar);
+  win.appendChild(content);
+  win.appendChild(statusbar);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  attachMaximizeHandlers(titlebar, id);
+  makeDraggable(win, titlebar);
+
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  addTaskbarEntry(id, getTitle(), imgIcon(NOTEPAD_ICON, 14));
+  bringToFront(id);
+  setTimeout(() => ta.focus(), 0);
+}
+
 /* ================= SOLITAIRE ================= */
 const SOL_SUITS = ['spades', 'hearts', 'diamonds', 'clubs'];
 const SOL_SUIT_SYMBOL = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' };
@@ -6535,6 +6851,11 @@ document.getElementById('menu-chroma').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';
   document.getElementById('start-button').classList.remove('pressed');
   openChromaWindow();
+});
+document.getElementById('menu-notepad').addEventListener('click', () => {
+  document.getElementById('start-menu').style.display = 'none';
+  document.getElementById('start-button').classList.remove('pressed');
+  openNotepadWindow();
 });
 /* ---------- login ---------- */
 let loginInProgress = false;

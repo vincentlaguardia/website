@@ -1023,27 +1023,27 @@ function getDesktopIconSize(item) {
 /* ---------- site map ---------- */
 const items = {
   // Content-synced root folders are no longer hardcoded here; they are
-  // populated at startup by loadDesktopRootsFromManifest() from content/manifest.json.
+  // populated at startup by loadDesktopRootsFromManifest() from content/desktop/manifest.json.
   desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'dkcshortcut', 'desktoppic'], modified: '2026-06-01' },
   desktoppic:   { type: 'picture', name: 'photo.jpeg', file: 'https://github.com/user-attachments/assets/56d6bb03-3c28-4279-90a1-65c07adc874b', modified: '2026-07-08' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
-  catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/catscans', children: [], modified: '2026-07-08' },
-  miscbooks:    { type: 'folder', name: 'misc books',     iconType: 'document', syncFolder: 'content/miscbooks', children: [], modified: '2026-07-08' },
+  catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/desktop/catscans', children: [], modified: '2026-07-08' },
+  miscbooks:    { type: 'folder', name: 'misc books',     iconType: 'document', syncFolder: 'content/desktop/miscbooks', children: [], modified: '2026-07-08' },
   coolstuff:    { type: 'folder', name: 'cool stuff',     iconType: 'picture',  syncFolder: 'content/coolstuff', children: [], modified: '2026-07-08' },
   readme:       { type: 'text',   name: 'ABOUTME.txt',     iconType: 'document', customIcon: 'notepad', text: 'vincent laguarda is real person from brooklyn new yourk\n\nContact: q7mxf4k2pazn6vtrcdj9hslbeyw3u5g8o0i2n4x@protonmail.com', modified: '2026-05-14' },
 
-  miscinfo:     { type: 'folder', name: 'misc info',       iconType: 'folder',   syncFolder: 'content/miscinfo', children: [], modified: '2026-07-08' },
+  miscinfo:     { type: 'folder', name: 'misc info',       iconType: 'folder',   syncFolder: 'content/desktop/miscinfo', children: [], modified: '2026-07-08' },
   ieshortcut:   { type: 'shortcut', name: 'Internet Explorer', customIcon: 'ieshortcut', action: 'browser', modified: '2026-07-07' },
   solitaireshortcut: { type: 'shortcut', name: 'Solitaire', customIcon: 'solitaireshortcut', action: 'solitaire', modified: '2026-07-07' },
   paintshortcut: { type: 'shortcut', name: 'Paint', customIcon: 'paintshortcut', action: 'paint', modified: '2026-07-07' },
   dkcshortcut:   { type: 'shortcut', name: 'Donkey Kong Country', customIcon: 'dkcshortcut', action: 'dkc', modified: '2026-07-09' },
 
   // Fully GitHub-driven: nothing under here is hardcoded. Adding an album
-  // is just making a new folder inside content/easy/albums/ on GitHub;
+  // is just making a new folder inside content/desktop/easy/albums/ on GitHub;
   // adding a track is dropping an mp3 into ".../tracks/". See
   // loadSyncChildren() / openSyncFolder() for how this recurses.
-  easy:         { type: 'folder', name: 'easy',            iconType: 'folder',   syncFolder: 'content/easy', children: [], modified: '2026-06-12' },
+  easy:         { type: 'folder', name: 'easy',            iconType: 'folder',   syncFolder: 'content/desktop/easy', children: [], modified: '2026-06-12' },
   audio:        { type: 'folder', name: 'audio',           iconType: 'folder',   children: ['audio_monday', 'audio_tuesday', 'audio_wednesday', 'audio_thursday', 'audio_friday'], modified: '2026-07-08' },
   audio_monday:    { type: 'audio', name: 'monday.mp3',    iconType: 'audio', file: 'audio/monday.mp3', modified: '2026-07-08' },
   audio_tuesday:   { type: 'audio', name: 'tuesday.mp3',   iconType: 'audio', file: 'audio/tuesday.mp3', modified: '2026-07-08' },
@@ -1054,13 +1054,13 @@ const items = {
   // Default Songs Player startup source: loads tracks from /audio only.
   mpaudio:      { type: 'folder', name: 'audio',           iconType: 'folder',   syncFolder: 'audio', children: [], modified: '2026-07-08' },
 
-  watchthisbabyyyyyyyy: { type: 'folder', name: 'watch this babyyyyyyyy', iconType: 'folder', syncFolder: 'content/watchthisbabyyyyyyyy', children: [], modified: '2026-07-08' },
-  purplestuff:  { type: 'folder', name: 'purple stuff',    iconType: 'folder',   syncFolder: 'content/purplestuff', children: [], modified: '2026-07-08' },
-  collage:      { type: 'folder', name: 'collage',         iconType: 'picture',  syncFolder: 'content/collage', children: [], modified: '2026-07-08' },
+  watchthisbabyyyyyyyy: { type: 'folder', name: 'watch this babyyyyyyyy', iconType: 'folder', syncFolder: 'content/desktop/watchthisbabyyyyyyyy', children: [], modified: '2026-07-08' },
+  purplestuff:  { type: 'folder', name: 'purple stuff',    iconType: 'folder',   syncFolder: 'content/desktop/purplestuff', children: [], modified: '2026-07-08' },
+  collage:      { type: 'folder', name: 'collage',         iconType: 'picture',  syncFolder: 'content/desktop/collage', children: [], modified: '2026-07-08' },
 
-  eyes:         { type: 'folder', name: 'eye stuff',       iconType: 'folder',   syncFolder: 'content/eyes', children: [], modified: '2026-07-08' },
-  thoughts:     { type: 'folder', name: 'thoughts',        iconType: 'document', syncFolder: 'content/thoughts', children: [], modified: '2026-07-08' },
-  interface:    { type: 'folder', name: 'I.N.T.E.R.F.A.C.E.', iconType: 'folder', syncFolder: 'content/interface', children: [], modified: '2026-07-08' }
+  eyes:         { type: 'folder', name: 'eye stuff',       iconType: 'folder',   syncFolder: 'content/desktop/eyes', children: [], modified: '2026-07-08' },
+  thoughts:     { type: 'folder', name: 'thoughts',        iconType: 'document', syncFolder: 'content/desktop/thoughts', children: [], modified: '2026-07-08' },
+  interface:    { type: 'folder', name: 'I.N.T.E.R.F.A.C.E.', iconType: 'folder', syncFolder: 'content/desktop/interface', children: [], modified: '2026-07-08' }
 };
 
 /* ---------- user-created folders / reorganized folder contents (persisted) ----------
@@ -2509,6 +2509,81 @@ function slugifyPath(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
+const DESKTOP_SYNC_ROOT_NAMES = ['catscans', 'collage', 'easy', 'eyes', 'interface', 'miscbooks', 'miscinfo', 'pics-unsorted', 'purplestuff', 'thoughts', 'watchthisbabyyyyyyyy'];
+function migrateDesktopSyncIdToDesktopPath(id) {
+  if (typeof id !== 'string' || !id.startsWith('sync__')) return id;
+  for (const root of DESKTOP_SYNC_ROOT_NAMES) {
+    const oldPrefix = 'sync__' + slugifyPath('content/' + root);
+    const newPrefix = 'sync__' + slugifyPath('content/desktop/' + root);
+    if (id === oldPrefix || id.startsWith(oldPrefix + '_')) {
+      return newPrefix + id.slice(oldPrefix.length);
+    }
+  }
+  return id;
+}
+
+function migrateDesktopSyncStorage() {
+  // Keep existing user icon arrangement data when synced desktop folders moved
+  // from content/<name> to content/desktop/<name>.
+  let folderPositionsChanged = false;
+  const nextFolderIconPositions = {};
+  Object.keys(folderIconPositions || {}).forEach(parentId => {
+    const migratedParentId = migrateDesktopSyncIdToDesktopPath(parentId);
+    const sourceEntries = folderIconPositions[parentId];
+    const targetEntries = Object.assign({}, nextFolderIconPositions[migratedParentId] || {});
+    let entryChanged = migratedParentId !== parentId;
+    if (sourceEntries && typeof sourceEntries === 'object') {
+      Object.keys(sourceEntries).forEach(childId => {
+        const migratedChildId = migrateDesktopSyncIdToDesktopPath(childId);
+        if (migratedChildId !== childId) entryChanged = true;
+        if (!targetEntries[migratedChildId]) targetEntries[migratedChildId] = sourceEntries[childId];
+      });
+    }
+    nextFolderIconPositions[migratedParentId] = targetEntries;
+    if (entryChanged) folderPositionsChanged = true;
+  });
+  if (folderPositionsChanged) {
+    folderIconPositions = nextFolderIconPositions;
+    saveFolderIconPositions();
+  }
+
+  let childrenOverridesChanged = false;
+  const nextChildrenOverrides = {};
+  Object.keys(childrenOverrides || {}).forEach(parentId => {
+    const migratedParentId = migrateDesktopSyncIdToDesktopPath(parentId);
+    const entry = childrenOverrides[parentId];
+    const targetEntry = Array.isArray(entry) ? entry.slice() : Object.assign({}, entry || {});
+    const sourceChildren = Array.isArray(entry)
+      ? entry
+      : (entry && Array.isArray(entry.children) ? entry.children : null);
+    if (sourceChildren) {
+      const seen = new Set();
+      const migratedChildren = sourceChildren.map(migrateDesktopSyncIdToDesktopPath).filter(id => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      const changed = migratedParentId !== parentId || migratedChildren.some((id, i) => id !== sourceChildren[i]) || migratedChildren.length !== sourceChildren.length;
+      if (changed) childrenOverridesChanged = true;
+      if (Array.isArray(targetEntry)) {
+        targetEntry.length = 0;
+        migratedChildren.forEach(id => targetEntry.push(id));
+      } else {
+        targetEntry.children = migratedChildren;
+      }
+    } else if (migratedParentId !== parentId) {
+      childrenOverridesChanged = true;
+    }
+    if (!nextChildrenOverrides[migratedParentId]) {
+      nextChildrenOverrides[migratedParentId] = targetEntry;
+    }
+  });
+  if (childrenOverridesChanged) {
+    childrenOverrides = nextChildrenOverrides;
+    localStorage.setItem('site-children-overrides', JSON.stringify(childrenOverrides));
+  }
+}
+
 function toAssetUrl(path) {
   return String(path || '')
     .split('/')
@@ -2735,16 +2810,17 @@ async function openSyncFolder(id) {
 }
 
 /* ---------- manifest-driven desktop roots ----------
-   Fetches content/manifest.json on startup and adds every top-level folder
+   Fetches content/desktop/manifest.json on startup and adds every top-level folder
    it lists to items.desktop.children, creating a default synced-folder item
    for any entry that has no existing definition. Existing item definitions
    (with custom names / iconTypes) are preserved unchanged, but their
-   syncFolder is always aligned to 'content/<name>' as declared by the manifest.
+   syncFolder is always aligned to 'content/desktop/<name>' as declared by the manifest.
    Fixed items that are already in items.desktop.children (shortcuts etc.)
    are kept at the front; manifest-derived content folders are appended after. */
 async function loadDesktopRootsFromManifest() {
   try {
-    const res = await fetch(toAssetUrl('content/manifest.json'), { cache: 'no-store' });
+    migrateDesktopSyncStorage();
+    const res = await fetch(toAssetUrl('content/desktop/manifest.json'), { cache: 'no-store' });
     if (!res.ok) throw new Error('manifest fetch failed: ' + res.status);
     const entries = await res.json();
     // Keep any fixed (non-content-synced) items already in desktop.children
@@ -2758,7 +2834,7 @@ async function loadDesktopRootsFromManifest() {
     const contentIds = entries
       .filter(e => e.type === 'folder')
       .map(e => {
-        const expectedSync = 'content/' + e.name;
+        const expectedSync = 'content/desktop/' + e.name;
         if (items[e.name]) {
           // Reuse existing definition (preserves custom name/iconType) but ensure
           // syncFolder matches the canonical path from the manifest.
@@ -2774,7 +2850,7 @@ async function loadDesktopRootsFromManifest() {
         return e.name;
       });
 
-    // Also place top-level files (e.g. images) from content/ directly on the
+    // Also place top-level files (e.g. images) from content/desktop directly on the
     // desktop.  Skip any file already represented by a fixed desktop item (to
     // avoid duplicates) or currently sitting in the trash (respect the user's
     // decision to remove it).
@@ -2783,7 +2859,7 @@ async function loadDesktopRootsFromManifest() {
     const fileIds = entries
       .filter(e => e.type === 'file')
       .map(e => {
-        const filePath = 'content/' + e.name;
+        const filePath = 'content/desktop/' + e.name;
         if (fixedFilePaths.has(filePath) || trashedFilePaths.has(filePath)) return null;
         const fileId = 'content__' + slugifyPath(e.name);
         if (!items[fileId]) {
@@ -2809,7 +2885,7 @@ async function loadDesktopRootsFromManifest() {
       return true;
     });
   } catch (err) {
-    console.error('Could not load desktop roots from content/manifest.json; keeping defaults', err);
+    console.error('Could not load desktop roots from content/desktop/manifest.json; keeping defaults', err);
   }
 }
 

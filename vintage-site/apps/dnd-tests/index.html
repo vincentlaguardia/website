@@ -271,7 +271,7 @@ resetState();
 reorderItemInFolder('file3', 'folderA', 'file1', true);
 assert(
   'persistence: childrenOverrides updated after reorder',
-  Array.isArray(childrenOverrides['folderA'] && childrenOverrides['folderA'].children)
+  Array.isArray(childrenOverrides['folderA']?.children)
 );
 
 /* ------------------------------------------------------------------ */

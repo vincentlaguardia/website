@@ -17,11 +17,6 @@
   },
   {
     "type": "folder",
-    "name": "coolstuff",
-    "modified": "2026-07-09"
-  },
-  {
-    "type": "folder",
     "name": "easy",
     "modified": "2026-07-09"
   },
@@ -43,6 +38,11 @@
   {
     "type": "folder",
     "name": "miscinfo",
+    "modified": "2026-07-09"
+  },
+  {
+    "type": "folder",
+    "name": "pics-unsorted",
     "modified": "2026-07-09"
   },
   {

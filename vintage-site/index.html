@@ -2643,7 +2643,7 @@ function normalizeManifestUrl(url) {
 }
 
 function stripExtension(name) {
-  return String(name || '').replace(/\.[^.]+$/, '').trimEnd();
+  return String(name || '').replace(/\.[^.]+$/, '').trim();
 }
 
 function isInternetShortcutName(name) {

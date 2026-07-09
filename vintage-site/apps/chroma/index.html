@@ -456,7 +456,8 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo to distill an image into Chroma's color energy, then export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
+      <p class="lead">file&gt;import photo to distill an image into Chroma's color energy.</p>
+      <p class="lead">then export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -604,14 +605,16 @@
       .slice(0, MAX_RANKED_COLORS);
     const picked = [];
     ranked.forEach(v=>{
-      const c = { r: v.r/v.count, g: v.g/v.count, b: v.b/v.count };
+      const avgColor = { r: v.r/v.count, g: v.g/v.count, b: v.b/v.count };
       const keep = picked.every(p=>{
-        const dr = p.r-c.r, dg = p.g-c.g, db = p.b-c.b;
+        const dr = p.r-avgColor.r, dg = p.g-avgColor.g, db = p.b-avgColor.b;
         return Math.sqrt(dr*dr + dg*dg + db*db) >= MIN_COLOR_DISTANCE;
       });
-      if(keep && picked.length < limit){ picked.push(c); }
+      if(keep && picked.length < limit){ picked.push(avgColor); }
     });
-    if(!picked.length && ranked.length){ picked.push(ranked[0]); }
+    if(!picked.length && ranked.length){
+      picked.push({ r: ranked[0].r/ranked[0].count, g: ranked[0].g/ranked[0].count, b: ranked[0].b/ranked[0].count });
+    }
     return picked
       .map(c=>{
         const r = Math.round(c.r), g = Math.round(c.g), b = Math.round(c.b);
@@ -858,8 +861,8 @@
   }
   function resolveImportedZoneColor(zone, palette, seed, strange){
     if(!palette.length) return { h:0, s:0, l:50 };
-    const role = bandIndexFor(zone, palette.length, seed);
-    const src = palette[role];
+    const paletteIndex = bandIndexFor(zone, palette.length, seed);
+    const src = palette[paletteIndex];
     const jitterA = hashZone(zone.col+43, zone.row+89);
     const jitterB = hashZone(zone.col+11, zone.row+61);
     const jitterC = hashZone(zone.col+97, zone.row+7);
@@ -994,7 +997,7 @@
     }
   });
   function dropImport(file){
-    processImportedPhotoFile(file).catch(()=>{});
+    processImportedPhotoFile(file).catch(err=>{ console.warn('Photo import failed.', err); });
   }
   ['dragenter','dragover'].forEach(evt=>{
     contentPanel.addEventListener(evt, e=>{

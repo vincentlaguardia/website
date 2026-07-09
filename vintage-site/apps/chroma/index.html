@@ -537,13 +537,14 @@
     return { h, s: s*100, l: l*100 };
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
-  const DOWNLOAD_REVOKE_DELAY_MS = 1000;
+  const DOWNLOAD_REVOKE_TIMEOUT = 1000;
   const MAX_SAMPLE_DIMENSION = 180;
   const MIN_ALPHA_THRESHOLD = 24;
   const MIN_COLOR_OCCURRENCES = 2;
   const MAX_RANKED_COLORS = 64;
   const MIN_COLOR_DISTANCE = 36;
   const MAX_IMPORTED_PALETTE_SIZE = 12;
+  const DEFAULT_LIGHTNESS = 50;
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -551,7 +552,7 @@
     link.href = url;
     link.download = filename;
     link.click();
-    setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_DELAY_MS);
+    setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_TIMEOUT);
   }
   function readImageFile(file){
     return new Promise((resolve, reject)=>{
@@ -605,7 +606,7 @@
       .slice(0, MAX_RANKED_COLORS);
     const picked = [];
     ranked.forEach(v=>{
-      const avgColor = { r: v.r/v.count, g: v.g/v.count, b: v.b/v.count };
+      const avgColor = avgFromEntry(v);
       const keep = picked.every(p=>{
         const dr = p.r-avgColor.r, dg = p.g-avgColor.g, db = p.b-avgColor.b;
         return Math.sqrt(dr*dr + dg*dg + db*db) >= MIN_COLOR_DISTANCE;
@@ -613,7 +614,7 @@
       if(keep && picked.length < limit){ picked.push(avgColor); }
     });
     if(!picked.length && ranked.length){
-      picked.push({ r: ranked[0].r/ranked[0].count, g: ranked[0].g/ranked[0].count, b: ranked[0].b/ranked[0].count });
+      picked.push(avgFromEntry(ranked[0]));
     }
     return picked
       .map(c=>{
@@ -860,7 +861,7 @@
     return { h: hue, s: clamp(sat, 10, 97), l: clamp(light, 12, 88) };
   }
   function resolveImportedZoneColor(zone, palette, seed, strange){
-    if(!palette.length) return { h:0, s:0, l:50 };
+    if(!palette.length) return { h:0, s:0, l:DEFAULT_LIGHTNESS };
     const paletteIndex = bandIndexFor(zone, palette.length, seed);
     const src = palette[paletteIndex];
     const jitterA = hashZone(zone.col+43, zone.row+89);
@@ -988,21 +989,24 @@
     seed = randomSeed();
     drawScene();
   }
+  function handleImportError(err){
+    const detail = err && err.message ? ': ' + err.message : '.';
+    console.warn('Photo import failed.', err);
+    alert('Photo import failed' + detail + ' Please choose a valid image file and try again.');
+  }
   importInput.addEventListener('change', async ()=>{
     const file = importInput.files && importInput.files[0];
     try{
       await processImportedPhotoFile(file);
     } catch(err){
-      console.warn('Photo import failed.', err);
-      alert('Photo import failed. Please choose a valid image file and try again.');
+      handleImportError(err);
     } finally {
       importInput.value = '';
     }
   });
   function dropImport(file){
     processImportedPhotoFile(file).catch(err=>{
-      console.warn('Photo import failed.', err);
-      alert('Photo import failed. Please choose a valid image file and try again.');
+      handleImportError(err);
     });
   }
   ['dragenter','dragover'].forEach(evt=>{
@@ -1090,3 +1094,4 @@
 </script>
 </body>
 </html>
+    const avgFromEntry = v => ({ r: v.r/v.count, g: v.g/v.count, b: v.b/v.count });

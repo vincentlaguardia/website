@@ -1983,6 +1983,14 @@ const WALLPAPER_IMG_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.
 // Default wallpaper shown when no custom wallpaper has been chosen.
 const DEFAULT_WALLPAPER_SRC = 'content/_backgrounds/trinityneo.jpg';
 
+// Version stamp for the persisted wallpaper preference.
+// Increment WALLPAPER_PREF_VERSION whenever the default wallpaper changes; this
+// invalidates any stale value saved under the old default so every user gets the
+// new default on their next load. Intentional selections made after the bump
+// will be saved with the new version and will continue to persist normally.
+const WALLPAPER_PREF_VERSION = 1;  // increment when changing DEFAULT_WALLPAPER_SRC
+const WALLPAPER_VERSION_KEY  = 'site-wallpaper-version';
+
 // Apply a wallpaper from the _backgrounds folder (src is a relative URL like
 // "content/_backgrounds/photo.jpg"). Passing null/empty resets to the default.
 function applyWallpaper(src) {
@@ -1990,14 +1998,26 @@ function applyWallpaper(src) {
   if (src) {
     desktopEl.style.backgroundImage = 'url(' + toAssetUrl(src) + ')';
     localStorage.setItem('site-wallpaper-src', src);
+    localStorage.setItem(WALLPAPER_VERSION_KEY, String(WALLPAPER_PREF_VERSION));
   } else {
     desktopEl.style.backgroundImage = 'url(' + toAssetUrl(DEFAULT_WALLPAPER_SRC) + ')';
     localStorage.removeItem('site-wallpaper-src');
+    localStorage.removeItem(WALLPAPER_VERSION_KEY);
   }
 }
 
 // Restore persisted wallpaper. Called from tryLogin() after the desktop is shown.
+// Ignores any preference saved before WALLPAPER_PREF_VERSION (stale/legacy value)
+// so old cat-default saves no longer override the current default on load.
 function initWallpaper() {
+  const savedVersion = parseInt(localStorage.getItem(WALLPAPER_VERSION_KEY) || '0', 10);
+  if (savedVersion < WALLPAPER_PREF_VERSION) {
+    // Legacy or unversioned preference — clear it and use the current default.
+    localStorage.removeItem('site-wallpaper-src');
+    localStorage.removeItem(WALLPAPER_VERSION_KEY);
+    applyWallpaper(null);
+    return;
+  }
   const saved = localStorage.getItem('site-wallpaper-src');
   applyWallpaper(saved || null);
 }

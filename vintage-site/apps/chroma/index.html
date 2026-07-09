@@ -708,6 +708,7 @@
   const MIN_COLOR_DISTANCE = 36;
   const MAX_IMPORTED_PALETTE_SIZE = 12;
   const DEFAULT_LIGHTNESS = 50;
+  const LAST_SWATCH_DIAMETER = 20;
   function downloadTextFile(filename, text){
     const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1162,7 +1163,8 @@
       ctx.fillRect(x, y, cw+1, ch+1);
       if(z.hasTarget && showTargets){
         const cx = x + cw/2, cy = y + ch/2;
-        const r = Math.min(cw, ch) * 0.3;
+        const targetRadius = LAST_SWATCH_DIAMETER / 2;
+        const r = Math.min(targetRadius, cw / 2, ch / 2);
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
         grad.addColorStop(0, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
         grad.addColorStop(0.62, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');

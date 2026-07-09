@@ -565,7 +565,6 @@
           <div class="ruler-row">
             <div class="ruler-gutter">
               <div id="hz-display">—</div>
-              <button class="ctrl-btn" id="sound-btn" title="Toggle sound">Mute</button>
             </div>
             <div class="ruler-track sunken" id="ruler">
               <div class="ruler-handle" id="ruler-handle"></div>
@@ -784,7 +783,6 @@
   const swatchWaveSvg = document.getElementById('swatch-wave-svg');
   const swatchWavePath = document.getElementById('swatch-wave-path');
   const swatchMsg = document.getElementById('swatch-msg');
-  const soundBtn = document.getElementById('sound-btn');
   const hzDisplay = document.getElementById('hz-display');
 
   /* ---------- non-uniform scale: the visible band itself gets a big dedicated zone,
@@ -884,8 +882,6 @@
   /* on by default; browsers require a user gesture before audio can actually start,
      so the AudioContext is created on the first interaction rather than on load */
   let audioCtx = null, oscillator = null, gainNode = null, audioEnabled = true;
-  soundBtn.textContent = 'Mute';
-  soundBtn.classList.add('is-active');
   function ensureAudio(){
     if(audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -896,16 +892,6 @@
     oscillator.connect(gainNode).connect(audioCtx.destination);
     oscillator.start();
   }
-  function setAudioEnabled(on){
-    ensureAudio();
-    if(audioCtx.state==='suspended') audioCtx.resume();
-    audioEnabled = on;
-    soundBtn.textContent = on ? 'Mute' : 'Unmute';
-    soundBtn.classList.toggle('is-active', on);
-    render();
-  }
-  soundBtn.addEventListener('click', e=>{ e.stopPropagation(); setAudioEnabled(!audioEnabled); });
-  soundBtn.addEventListener('pointerdown', e=> e.stopPropagation());
   function primeAudioOnce(){
     if(audioCtx) return;
     ensureAudio();

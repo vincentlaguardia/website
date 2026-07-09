@@ -37,6 +37,7 @@
     const statusEl = document.getElementById('status');
     const gameEl = document.getElementById('game');
     const romPickerEl = document.getElementById('rom-picker');
+    let currentRomBlobUrl = null;
 
     const setStatus = (message, isError = false) => {
       statusEl.textContent = message;
@@ -52,9 +53,18 @@
       const canPickFile = typeof romPickerEl?.click === 'function';
       if (!canPickFile) return;
 
-      setStatus('ROM not found at /roms/dkc.sfc. Select a local ROM to continue. For permanent hosting, add vintage-site/roms/dkc.sfc and redeploy.', true);
+      setStatus('ROM not found at /roms/dkc.sfc. Select a local ROM to continue.', true);
+      console.info('To host Donkey Kong permanently, add vintage-site/roms/dkc.sfc and redeploy.');
       romPickerEl.value = '';
       romPickerEl.click();
+    };
+
+    const createRomBlobUrl = (romBytes) => {
+      if (currentRomBlobUrl) {
+        URL.revokeObjectURL(currentRomBlobUrl);
+      }
+      currentRomBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
+      return currentRomBlobUrl;
     };
 
     const decodeHeader = (bytes) => {
@@ -133,8 +143,7 @@
         }
 
         setStatus('Loading emulator runtime…');
-        const romBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
-        loadEmulator(romBlobUrl);
+        loadEmulator(createRomBlobUrl(romBytes));
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
       }
@@ -150,10 +159,15 @@
           throw new Error('Selected ROM payload is unexpectedly small.');
         }
         setStatus('Loading emulator runtime…');
-        const romBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
-        loadEmulator(romBlobUrl);
+        loadEmulator(createRomBlobUrl(romBytes));
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (currentRomBlobUrl) {
+        URL.revokeObjectURL(currentRomBlobUrl);
       }
     });
 

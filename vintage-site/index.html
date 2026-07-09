@@ -1317,17 +1317,18 @@ function restoreItem(id, skipUndo) {
 }
 
 function emptyTrash() {
-  const toDelete = trashItems.slice();
+  const trashedEntries = trashItems.slice();
   trashItems = [];
   saveTrash();
   // Permanently remove each trashed item so it no longer shows up anywhere
   // (e.g. File > Open from site) after the trash is emptied.
   let customDirty = false;
-  toDelete.forEach(entry => {
+  trashedEntries.forEach(entry => {
     if (customFolders[entry.id]) {
       // Custom (user-created) items: recursively clean up from items registry
-      // and localStorage, but defer the persist calls until after the loop.
-      removeCustomItemTree(entry.id, true);
+      // and localStorage.  Pass skipPersist=true to defer the (potentially
+      // expensive) localStorage writes until after the loop completes.
+      removeCustomItemTree(entry.id, /* skipPersist= */ true);
       customDirty = true;
     } else {
       // Synced/static items: remove from the in-memory registry; they will be

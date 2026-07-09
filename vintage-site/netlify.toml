@@ -5,7 +5,7 @@
 [[redirects]]
   from = "/dkc-rom"
   to = "https://archive.org/download/donkey-kong-country-usa_202502/Donkey%20Kong%20Country%20%28USA%29.sfc"
-  status = 200
+  status = 301
   force = true
 
 [[redirects]]

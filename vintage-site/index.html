@@ -1020,6 +1020,8 @@ function getIcon(item, size) {
 
 function getDesktopIconSize(item) {
   if (!item) return 128;
+  if (item.iconSize && item.iconSize > 0) return item.iconSize;
+  if (item.type === 'text' || item.customIcon === 'notepad' || item.customIcon === 'notepadshortcut') return 64;
   if (item.type === 'picture') return 96;
   if ((item.type === 'video' || item.type === 'shortcut') && item.thumb) return 96;
   return 128;
@@ -1999,7 +2001,8 @@ function showContextMenu(x, y, menuEntries) {
     } else {
       row.textContent = entry.label;
     }
-    row.addEventListener('click', () => {
+    row.addEventListener('click', e => {
+      e.stopPropagation();
       closeContextMenu();
       entry.onClick();
     });
@@ -5353,8 +5356,6 @@ function openNotepadWindow(initialText, initialFilename) {
     <span class="np-menu-item np-menu-file">File</span>
     <span class="np-menu-item np-menu-edit">Edit</span>
     <span class="np-menu-item np-menu-format">Format</span>
-    <span class="np-menu-item np-menu-view">View</span>
-    <span class="np-menu-item np-menu-help">Help</span>
   `;
 
   const content = document.createElement('div');
@@ -5581,7 +5582,7 @@ function openNotepadWindow(initialText, initialFilename) {
           lineRuled = !lineRuled;
           applyEditorStyle();
       }},
-      { label: '\u2014 Background Color \u25b6', onClick: () => {
+      { label: 'Background Color', onClick: () => {
           showContextMenu(r.right, r.bottom,
             [{ label: '(white / default)', color: '#ffffff', onClick: () => { bgColor = '#ffffff'; applyEditorStyle(); } }].concat(
               PAINT_PALETTE.map(hex => ({
@@ -5592,7 +5593,7 @@ function openNotepadWindow(initialText, initialFilename) {
             )
           );
       }},
-      { label: '\u2014 Text Color \u25b6', onClick: () => {
+      { label: 'Text Color', onClick: () => {
           showContextMenu(r.right, r.bottom,
             [
               { label: '(black / default)', color: '#000000', onClick: () => { textColor = '#000000'; applyEditorStyle(); } },
@@ -5604,33 +5605,6 @@ function openNotepadWindow(initialText, initialFilename) {
                 onClick: () => { textColor = hex; applyEditorStyle(); }
               }))
             )
-          );
-      }}
-    ]);
-  });
-
-  menubar.querySelector('.np-menu-view').addEventListener('click', e => {
-    e.stopPropagation();
-    const r = e.target.getBoundingClientRect();
-    showContextMenu(r.left, r.bottom, [
-      { label: '\u2713 Status Bar', onClick: () => {} }
-    ]);
-  });
-
-  menubar.querySelector('.np-menu-help').addEventListener('click', e => {
-    e.stopPropagation();
-    const r = e.target.getBoundingClientRect();
-    showContextMenu(r.left, r.bottom, [
-      { label: 'About Notes', onClick: () => {
-          window.alert(
-            'Notes\n\n' +
-            'File \u25b6 Open\u2026           open a .txt from your computer\n' +
-            'File \u25b6 Open from site\u2026  open a .txt hosted on this site\n' +
-            'File \u25b6 Save / Save As\u2026  download as .txt to your computer\n' +
-            'File \u25b6 Save to Desktop    add as an icon on the virtual desktop\n' +
-            'Format \u25b6 Paper Lines      toggle ruled-paper lines\n' +
-            'Format \u25b6 Background Color  change editor background color\n' +
-            'Format \u25b6 Text Color        change editor text color'
           );
       }}
     ]);

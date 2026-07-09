@@ -5182,8 +5182,7 @@ function openDKCWindow() {
   content.className = 'win98-content';
   content.style.padding = '0';
   content.style.overflow = 'hidden';
-  content.style.display = 'flex';
-  content.innerHTML = '<iframe src="https://archive.org/embed/dkc_snes_2" style="width:100%;height:100%;border:none;display:block;" allowfullscreen></iframe>';
+  content.innerHTML = '<iframe src="dkc-game.html" style="width:100%;height:100%;border:none;display:block;" allow="autoplay; gamepad; pointer-lock" allowfullscreen></iframe>';
 
   win.appendChild(titlebar);
   win.appendChild(content);

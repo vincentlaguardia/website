@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>chroma camouflage.exe</title>
+<style>
+  :root{
+    --face:#c0c0c0;
+    --shadow:#808080;
+    --dark:#000000;
+    --hi:#dfdfdf;
+    --white:#ffffff;
+    --navy:#000080;
+    --teal:#008080;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--teal);
+    font-family:Tahoma,'MS Sans Serif','Segoe UI',Arial,sans-serif;
+    font-size:12px;
+    color:#000;
+    -webkit-font-smoothing:none;
+  }
+  .raised{
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .sunken{
+    background:var(--face);
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  #desktop{
+    min-height:100vh;
+    padding:36px 16px 56px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+  }
+  .window{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    width:834px;
+    max-width:96vw;
+    min-width:320px;
+    min-height:480px;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    padding:3px;
+  }
+  .titlebar{
+    background:var(--navy);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:3px 4px 3px 6px;
+    font-weight:bold;
+    font-size:13px;
+    letter-spacing:.2px;
+    flex:0 0 auto;
+  }
+  .titlebar-left{ display:flex; align-items:center; gap:6px; overflow:hidden; }
+  .titlebar-left span:last-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .titlebar-icon,
+  .task-icon{
+    width:14px; height:14px; flex:0 0 auto;
+    background:linear-gradient(135deg,#ff4d4d,#ffd24d,#4dd2ff,#9b59ff);
+    border:1px solid #000;
+  }
+  .task-icon{
+    display:inline-block;
+    vertical-align:-2px;
+    margin-right:4px;
+  }
+  .titlebar-btns{ display:flex; gap:2px; flex:0 0 auto; }
+  .tbtn{
+    width:16px; height:14px;
+    font-size:10px; line-height:12px;
+    text-align:center;
+    background:var(--face);
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--hi);
+    user-select:none;
+  }
+  .tbtn:active{ box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white); }
+  .menubar{
+    display:flex;
+    align-items:center;
+    gap:2px;
+    padding:2px 4px;
+    position:relative;
+    background:var(--face);
+    border-bottom:1px solid var(--shadow);
+    flex:0 0 auto;
+  }
+  .menu-item{ padding:3px 8px; cursor:pointer; user-select:none; }
+  .menu-item:hover, .menu-item.open{ background:var(--navy); color:#fff; }
+  .menu-dropdown{
+    display:none;
+    position:absolute;
+    top:22px;
+    min-width:190px;
+    z-index:20;
+    padding:2px;
+  }
+  .menu-dropdown.show{ display:block; }
+  .menu-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; }
+  .menu-option:hover{ background:var(--navy); color:#fff; }
+  .menu-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 var(--white); margin:3px 2px; }
+  .ctrlbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:16px;
+    padding:6px 10px;
+    flex:0 0 auto;
+    border-bottom:1px solid var(--shadow);
+  }
+  .field{ display:flex; flex-direction:column; gap:3px; font-size:11px; }
+  .ctrl-btn{
+    font-family:inherit;
+    font-size:11px;
+    padding:6px 16px;
+    background:var(--face);
+    border:none;
+    cursor:pointer;
+    white-space:nowrap;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .ctrl-btn:active, .ctrl-btn.is-active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  .cc-style-wrap{ position:relative; }
+  .style-dropdown{
+    display:none;
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:2px;
+    min-width:170px;
+    z-index:25;
+    padding:2px;
+  }
+  .style-dropdown.show{ display:block; }
+  .style-dropdown .menu-option.active{ background:var(--navy); color:#fff; }
+  input[type=color]{
+    width:38px; height:24px; padding:0; cursor:pointer;
+    border:2px solid var(--shadow);
+    border-radius:0;
+    background:var(--face);
+  }
+  input[type=color]::-webkit-color-swatch-wrapper{ padding:0; }
+  input[type=color]::-webkit-color-swatch{ border:none; border-radius:0; }
+  input[type=color]::-moz-color-swatch{ border:none; border-radius:0; }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:110px;
+    height:4px;
+    background:var(--shadow);
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--hi);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px; height:20px;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:20px; border:none;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    cursor:pointer;
+  }
+  .cc-lastcolor{ display:flex; align-items:center; gap:6px; }
+  .cc-lastswatch{
+    width:20px; height:20px;
+    border:2px solid var(--shadow);
+    background:var(--face);
+    flex:0 0 auto;
+  }
+  .cc-copybox{
+    padding:5px 8px;
+    font-size:11px;
+    cursor:pointer;
+    background:var(--face);
+    white-space:nowrap;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .cc-copybox:active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  .winbody{
+    padding:8px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  .content-panel{
+    padding:6px;
+    flex:1;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .cc-wrap{
+    position:relative;
+    flex:1;
+    min-height:120px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .cc-frame{ display:inline-block; border:1px solid #000; line-height:0; }
+  #cc-canvas{ display:block; box-sizing:content-box; border:none; cursor:crosshair; }
+  button.win-btn{
+    font-family:inherit;
+    font-size:12px;
+    padding:6px 14px;
+    background:var(--face);
+    border:none;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  button.win-btn:active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  p.lead{ line-height:1.5; margin:6px 0 12px; max-width:64ch; }
+  .resize-handle{
+    position:absolute;
+    right:1px; bottom:1px;
+    width:14px; height:14px;
+    cursor:nwse-resize;
+    background:
+      linear-gradient(135deg, transparent 0 35%, var(--shadow) 35% 42%, transparent 42% 58%,
+      var(--shadow) 58% 65%, transparent 65% 82%, var(--shadow) 82% 89%, transparent 89% 100%);
+    z-index:30;
+  }
+  #taskbar{
+    position:fixed; left:0; right:0; bottom:0; height:32px;
+    background:var(--face);
+    display:flex; align-items:center;
+    gap:6px; padding:2px 4px;
+    box-shadow: inset 0 1px 0 var(--white), inset 0 2px 0 var(--hi);
+    z-index:50;
+  }
+  #start-btn{
+    display:flex; align-items:center; gap:5px;
+    font-weight:bold; font-size:12px;
+    padding:4px 10px 4px 6px;
+    background:var(--face);
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  #start-btn.active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  #start-btn .flag{
+    width:16px; height:16px;
+    background:conic-gradient(#ff0000 0 90deg,#00aa00 90deg 180deg,#0000ff 180deg 270deg,#ffcc00 270deg 360deg);
+    border:1px solid #000;
+  }
+  .task-item{
+    flex:0 0 auto;
+    display:flex; align-items:center; gap:6px;
+    font-size:12px; padding:3px 10px;
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  .tray{
+    margin-left:auto;
+    font-size:11px;
+    padding:4px 10px;
+    box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--hi),
+                inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--white);
+  }
+  #start-menu{
+    position:fixed; left:2px; bottom:34px;
+    width:220px;
+    display:none;
+    z-index:60;
+    padding:3px;
+  }
+  #start-menu.show{ display:block; }
+  .sm-item{ padding:6px 10px; font-size:12px; cursor:pointer; }
+  .sm-item:hover{ background:var(--navy); color:#fff; }
+  .dialog{
+    display:none;
+    position:fixed;
+    top:60px; left:50%;
+    transform:translateX(-50%);
+    width:520px; max-width:92vw;
+    min-width:0; min-height:0;
+    max-height:85vh;
+    z-index:70;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    padding:3px;
+    flex-direction:column;
+  }
+  .dialog.show{ display:flex; }
+  .dialog .winbody{ padding:8px; min-height:0; }
+  .dialog .content-panel{ overflow-y:auto; max-height:calc(85vh - 90px); display:block; }
+  #help-content[contenteditable="true"]{
+    background:#fff;
+    outline:none;
+    padding:8px;
+    box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--hi),
+                inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--white);
+  }
+  #shutdown-overlay{
+    position:fixed; inset:0; background:#000; color:#fff;
+    display:none; align-items:center; justify-content:center;
+    font-family:Tahoma,Arial,sans-serif; font-size:16px; text-align:center;
+    z-index:100; padding:20px;
+  }
+  #shutdown-overlay.show{ display:flex; }
+  #shutdown-overlay button{ margin-top:18px; }
+  @media (max-width:480px){ .window{ min-width:0; min-height:400px; } }
+</style>
+</head>
+<body>
+<div id="desktop">
+  <div class="window">
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <span class="titlebar-icon"></span>
+        <span id="win-title">chroma camouflage.exe</span>
+      </div>
+      <div class="titlebar-btns">
+        <div class="tbtn" id="btn-min" title="Minimize">_</div>
+        <div class="tbtn" id="btn-max" title="Maximize">&#9633;</div>
+        <div class="tbtn" id="btn-close" title="Close">X</div>
+      </div>
+    </div>
+    <div class="menubar">
+      <div class="menu-item" data-menu="file">File</div>
+      <div class="menu-item" id="menu-help">Help</div>
+      <div class="menu-item" id="menu-about">About</div>
+      <div class="menu-dropdown raised" id="dropdown-file">
+        <div class="menu-option" data-action="save">Save Image...</div>
+        <div class="menu-sep"></div>
+        <div class="menu-option" data-action="exit">Exit</div>
+      </div>
+    </div>
+    <div class="ctrlbar sunken">
+      <div class="field">
+        <div class="cc-style-wrap">
+          <button class="ctrl-btn" id="cc-style-btn" type="button">Random &#9662;</button>
+          <div class="style-dropdown raised" id="cc-style-dropdown">
+            <div class="menu-option active" data-idx="random">Random</div>
+            <div class="menu-option" data-idx="0">Monochromatic</div>
+            <div class="menu-option" data-idx="1">Analogous</div>
+            <div class="menu-option" data-idx="2">Complementary</div>
+            <div class="menu-option" data-idx="3">Split-Complementary</div>
+            <div class="menu-option" data-idx="4">Triadic</div>
+            <div class="menu-option" data-idx="5">Tetradic</div>
+          </div>
+        </div>
+      </div>
+      <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
+      <input type="color" id="cc-target-color" value="#968296">
+      <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
+      <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
+      <button class="ctrl-btn" id="cc-match-sat" title="Set the Saturation slider to match the swatch color">Match Sat</button>
+      <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
+      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
+      <div class="field">Last color clicked
+        <div class="cc-lastcolor">
+          <span class="cc-lastswatch" id="cc-lastswatch"></span>
+          <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
+          <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
+        </div>
+      </div>
+    </div>
+    <div class="winbody">
+      <div class="content-panel sunken" id="content-panel">
+        <div class="cc-wrap" id="cc-wrap">
+          <div class="cc-frame">
+            <canvas id="cc-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="resize-handle" id="resize-handle" title="Drag to resize"></div>
+  </div>
+</div>
+<div id="help-dialog" class="dialog">
+  <div class="titlebar">
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Help</span></div>
+    <div class="titlebar-btns"><div class="tbtn" id="help-close">X</div></div>
+  </div>
+  <div class="winbody">
+    <div class="content-panel sunken">
+      <div id="help-content"><p class="lead" style="margin-top:0;">this app is a color study</p>
+      <p class="lead">nine circles share one color. same hex, same value. but each one appears to change because it sits inside a different palette.</p>
+      <p class="lead">that trick is called simultaneous contrast. a color is never only itself, it is shaped by the colors around it.</p>
+      <p class="lead">every hue lives somewhere on a circle from 0 to 360 degrees. red is near 0, yellow near 60, green near 120, cyan near 180, blue near 240, magenta near 300, then back to red again.</p>
+      <p class="lead">a palette philosophy is a rule for choosing colors from that circle.</p>
+      <p class="lead">monochromatic stays with one hue, changing only lightness and saturation.</p>
+      <p class="lead">analogous uses nearby hues, so the palette feels close and natural.</p>
+      <p class="lead">complementary pairs opposite hues for clear contrast.</p>
+      <p class="lead">split complementary uses two colors near the opposite hue, keeping contrast while feeling a little softer.</p>
+      <p class="lead">triadic spaces three hues evenly around the wheel.</p>
+      <p class="lead">tetradic uses four positions, giving the palette more energy and variety.</p>
+      <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
+      <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
+      <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
+      <p class="lead">file&gt;save to export your colors.</p></div>
+      <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="win-btn" id="help-edit">Edit</button>
+        <button class="win-btn" id="help-save" style="display:none;">Save</button>
+        <button class="win-btn" id="help-cancel" style="display:none;">Cancel</button>
+        <button class="win-btn" id="help-reset">Reset to Default</button>
+        <button class="win-btn" id="help-ok" style="margin-left:auto;">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="about-dialog" class="dialog">
+  <div class="titlebar">
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>About</span></div>
+    <div class="titlebar-btns"><div class="tbtn" id="about-close">X</div></div>
+  </div>
+  <div class="winbody">
+    <div class="content-panel sunken" style="text-align:left;">
+      <p class="lead" style="text-align:center; margin-top:0;">chroma camouflage<br>created by dr. vincent j. pastrami.</p>
+      <button class="win-btn" id="about-ok">OK</button>
+    </div>
+  </div>
+</div>
+<div id="taskbar">
+  <div id="start-btn"><span class="flag"></span>Start</div>
+  <div class="task-item raised"><span class="task-icon"></span>chroma camouflage.exe</div>
+  <div class="tray" id="tray-clock">--:-- --</div>
+</div>
+<div id="start-menu" class="raised">
+  <div class="sm-item" id="sm-programs">Programs</div>
+  <div class="sm-item" id="sm-folder">Apps Folder</div>
+  <div class="sm-item" id="sm-help">Help</div>
+  <div class="sm-item" id="sm-about">About</div>
+  <div class="menu-sep"></div>
+  <div class="sm-item" id="sm-shutdown">Shut Down...</div>
+</div>
+<div id="shutdown-overlay">
+  <div>
+    <div id="shutdown-text">It is now safe to close this browser tab.</div>
+    <button class="win-btn" id="restart-btn">Restart chroma camouflage.exe</button>
+  </div>
+</div>
+<script>
+(function(){
+  function hslToHex(h,s,l){
+    s/=100; l/=100;
+    const k = n => (n + h/30) % 12;
+    const a = s * Math.min(l, 1-l);
+    const f = n => l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
+    const toHex = x => Math.round(255*x).toString(16).padStart(2,'0');
+    return '#' + toHex(f(0)) + toHex(f(8)) + toHex(f(4));
+  }
+  function rgbToHex(r,g,b){
+    const h = x => Math.round(x).toString(16).padStart(2,'0');
+    return '#' + h(r) + h(g) + h(b);
+  }
+  function hexToRgbObj(hex){
+    const v = hex.replace('#','');
+    return { r: parseInt(v.substring(0,2),16), g: parseInt(v.substring(2,4),16), b: parseInt(v.substring(4,6),16) };
+  }
+  function rgbToHsl(r,g,b){
+    r/=255; g/=255; b/=255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h, s;
+    const l = (max+min)/2;
+    if(max === min){ h = 0; s = 0; }
+    else {
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch(max){
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        default: h = (r-g)/d + 4;
+      }
+      h *= 60;
+    }
+    return { h, s: s*100, l: l*100 };
+  }
+  function copyText(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(()=> fallbackCopy(text));
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+  const menuItems = document.querySelectorAll('.menu-item[data-menu]');
+  const dropdowns = { file: document.getElementById('dropdown-file') };
+  function closeAllMenus(){
+    Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
+    menuItems.forEach(m=>m.classList.remove('open'));
+    document.getElementById('cc-style-dropdown').classList.remove('show');
+  }
+  menuItems.forEach(item=>{
+    item.addEventListener('click', e=>{
+      e.stopPropagation();
+      const key = item.dataset.menu;
+      const isOpen = dropdowns[key].classList.contains('show');
+      closeAllMenus();
+      if(!isOpen){
+        dropdowns[key].classList.add('show');
+        item.classList.add('open');
+        dropdowns[key].style.left = item.offsetLeft + 'px';
+      }
+    });
+  });
+  document.addEventListener('click', closeAllMenus);
+  const helpDialog = document.getElementById('help-dialog');
+  const aboutDialog = document.getElementById('about-dialog');
+  function openHelp(){ helpDialog.classList.add('show'); }
+  function closeHelp(){
+    helpDialog.classList.remove('show');
+    if(helpContent.contentEditable === 'true'){
+      helpContent.innerHTML = helpDraftHtml;
+      setHelpEditing(false);
+    }
+  }
+  function openAbout(){ aboutDialog.classList.add('show'); }
+  function closeAbout(){ aboutDialog.classList.remove('show'); }
+  const helpContent = document.getElementById('help-content');
+  const helpEditBtn = document.getElementById('help-edit');
+  const helpSaveBtn = document.getElementById('help-save');
+  const helpCancelBtn = document.getElementById('help-cancel');
+  const helpResetBtn = document.getElementById('help-reset');
+  const HELP_STORAGE_KEY = 'chromaCamouflage.helpHtml';
+  const DEFAULT_HELP_HTML = helpContent.innerHTML;
+  let helpDraftHtml = '';
+  const savedHelp = localStorage.getItem(HELP_STORAGE_KEY);
+  if(savedHelp) helpContent.innerHTML = savedHelp;
+  function setHelpEditing(on){
+    helpContent.contentEditable = on ? 'true' : 'false';
+    helpEditBtn.style.display = on ? 'none' : '';
+    helpSaveBtn.style.display = on ? '' : 'none';
+    helpCancelBtn.style.display = on ? '' : 'none';
+  }
+  helpEditBtn.addEventListener('click', ()=>{ helpDraftHtml = helpContent.innerHTML; setHelpEditing(true); helpContent.focus(); });
+  helpSaveBtn.addEventListener('click', ()=>{ localStorage.setItem(HELP_STORAGE_KEY, helpContent.innerHTML); setHelpEditing(false); });
+  helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
+  helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
+  document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
+  document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
+  document.getElementById('help-close').addEventListener('click', closeHelp);
+  document.getElementById('help-ok').addEventListener('click', closeHelp);
+  document.getElementById('about-close').addEventListener('click', closeAbout);
+  document.getElementById('about-ok').addEventListener('click', closeAbout);
+  document.querySelector('[data-action="exit"]').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
+  document.querySelector('[data-action="save"]').addEventListener('click', e=>{
+    e.stopPropagation();
+    closeAllMenus();
+    const link = document.createElement('a');
+    link.download = 'chroma-camouflage.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+  const win = document.querySelector('.window');
+  const winbody = document.querySelector('.window > .winbody');
+  const menubar = document.querySelector('.menubar');
+  const ctrlbar = document.querySelector('.ctrlbar');
+  document.getElementById('btn-min').addEventListener('click', ()=>{
+    const hidden = winbody.style.display === 'none';
+    winbody.style.display = hidden ? '' : 'none';
+    menubar.style.display = hidden ? '' : 'none';
+    ctrlbar.style.display = hidden ? '' : 'none';
+  });
+  let isMaxed = false;
+  let preMax = null;
+  document.getElementById('btn-max').addEventListener('click', ()=>{
+    if(!isMaxed){
+      const rect = win.getBoundingClientRect();
+      preMax = { w: rect.width+'px', h: rect.height+'px' };
+      win.style.width = '96vw';
+      win.style.height = '90vh';
+      isMaxed = true;
+    } else {
+      win.style.width = preMax.w;
+      win.style.height = preMax.h;
+      isMaxed = false;
+    }
+  });
+  document.getElementById('btn-close').addEventListener('click', doShutdown);
+  const resizeHandle = document.getElementById('resize-handle');
+  let resizing = false, rStartX=0, rStartY=0, rStartW=0, rStartH=0;
+  resizeHandle.addEventListener('pointerdown', e=>{
+    resizing = true;
+    isMaxed = false;
+    resizeHandle.setPointerCapture(e.pointerId);
+    const rect = win.getBoundingClientRect();
+    rStartX = e.clientX; rStartY = e.clientY;
+    rStartW = rect.width; rStartH = rect.height;
+    e.preventDefault();
+  });
+  resizeHandle.addEventListener('pointermove', e=>{
+    if(!resizing) return;
+    const dx = e.clientX - rStartX;
+    const dy = e.clientY - rStartY;
+    win.style.width = Math.max(320, rStartW+dx) + 'px';
+    win.style.height = Math.max(400, rStartH+dy) + 'px';
+  });
+  function endResize(){ resizing = false; }
+  resizeHandle.addEventListener('pointerup', endResize);
+  resizeHandle.addEventListener('pointercancel', endResize);
+  const startBtn = document.getElementById('start-btn');
+  const startMenu = document.getElementById('start-menu');
+  function closeStartMenu(){ startMenu.classList.remove('show'); startBtn.classList.remove('active'); }
+  startBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    startMenu.classList.toggle('show');
+    startBtn.classList.toggle('active');
+  });
+  document.addEventListener('click', closeStartMenu);
+  document.getElementById('sm-programs').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#programs'; });
+  document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
+  document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
+  document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
+  document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
+  function doShutdown(){ document.getElementById('shutdown-overlay').classList.add('show'); }
+  document.getElementById('restart-btn').addEventListener('click', ()=>{ document.getElementById('shutdown-overlay').classList.remove('show'); });
+  function tick(){
+    const now = new Date();
+    let h = now.getHours();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if(h===0) h = 12;
+    const m = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('tray-clock').textContent = h + ':' + m + ' ' + ampm;
+  }
+  tick();
+  setInterval(tick, 1000*10);
+  const ccWrap = document.getElementById('cc-wrap');
+  const canvas = document.getElementById('cc-canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const targetColorInput = document.getElementById('cc-target-color');
+  const hideTargetsBtn = document.getElementById('cc-hide-targets');
+  const satSlider = document.getElementById('cc-sat');
+  const matchSatBtn = document.getElementById('cc-match-sat');
+  const hueSlider = document.getElementById('cc-hue');
+  const weirdSlider = document.getElementById('cc-weird');
+  const styleBtn = document.getElementById('cc-style-btn');
+  const styleDropdown = document.getElementById('cc-style-dropdown');
+  const styleOptions = styleDropdown.querySelectorAll('.menu-option');
+  const rerollHueBtn = document.getElementById('cc-reroll-hue');
+  const lastSwatchEl = document.getElementById('cc-lastswatch');
+  const hexBoxEl = document.getElementById('cc-hexbox');
+  const rgbBoxEl = document.getElementById('cc-rgbbox');
+  const COLS = 7, ROWS = 7;
+  let TARGET = hexToRgbObj(targetColorInput.value);
+  const TARGET_CELLS = [
+    {col:1,row:1}, {col:3,row:1}, {col:5,row:1},
+    {col:1,row:3}, {col:3,row:3}, {col:5,row:3},
+    {col:1,row:5}, {col:3,row:5}, {col:5,row:5}
+  ];
+  const zones = [];
+  for(let row=0; row<ROWS; row++){
+    for(let col=0; col<COLS; col++){
+      zones.push({ col, row, hasTarget: TARGET_CELLS.some(t=>t.col===col && t.row===row) });
+    }
+  }
+  const BASE_SAT = 62, BASE_LIGHT = 47;
+  const PHILOSOPHIES = [
+    { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
+    { name:'Analogous', hueOffsets:[-30,0,30], pattern:[0,1,2,1] },
+    { name:'Complementary', hueOffsets:[0,180], pattern:[0,0,0,1] },
+    { name:'Split-Complementary', hueOffsets:[0,150,210], pattern:[0,0,1,0,0,2] },
+    { name:'Triadic', hueOffsets:[0,120,240], pattern:[0,1,2] },
+    { name:'Tetradic', hueOffsets:[0,90,180,270], pattern:[0,1,2,3] }
+  ];
+  function hashZone(a,b){ const s = Math.sin(a*12.9898 + b*78.233) * 43758.5453; return s - Math.floor(s); }
+  function bandIndexFor(zone, patternLen, seed){
+    const nx = (zone.col+0.5)/COLS, ny = (zone.row+0.5)/ROWS;
+    const proj = nx*Math.cos(seed.angle) + ny*Math.sin(seed.angle);
+    const totalBands = patternLen * seed.repeats;
+    let idx = Math.floor(proj*totalBands + seed.phase*totalBands);
+    idx = ((idx % patternLen) + patternLen) % patternLen;
+    return idx;
+  }
+  function resolveZoneColor(zone, philo, baseHue, seed, strange){
+    const hues = philo.hueOffsets.map(off => (baseHue+off+3600)%360);
+    const bandIdx = bandIndexFor(zone, philo.pattern.length, seed);
+    const role = philo.pattern[bandIdx];
+    const roleCount = hues.length;
+    const lightOffset = (role - (roleCount-1)/2) * 6;
+    const jitterA = hashZone(zone.col, zone.row);
+    const jitterB = hashZone(zone.col+91, zone.row+37);
+    const jitterC = hashZone(zone.col+53, zone.row+17);
+    const outlierRoll = hashZone(zone.col+13, zone.row+29);
+    const w = Math.max(0, Math.min(100, strange)) / 100;
+    let hueRange = w * 40;
+    const wildcardChance = w * 0.65;
+    if(outlierRoll < wildcardChance){ hueRange = 50 + w*280; }
+    const satRange = 30, lightRange = 28;
+    const hue = (hues[role] + (jitterC-0.5)*hueRange + 360) % 360;
+    const sat = BASE_SAT + (jitterA-0.5)*satRange;
+    const light = BASE_LIGHT + lightOffset + (jitterB-0.5)*lightRange;
+    return { h: hue, s: Math.max(10, Math.min(97, sat)), l: Math.max(12, Math.min(88, light)) };
+  }
+  function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
+  function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
+  let randomStyle = true;
+  let philoIdx = randomPhiloIdx();
+  let seed = randomSeed();
+  let dpr = window.devicePixelRatio || 1;
+  let globalSatMul = satSlider.value/100;
+  let baseHue = +hueSlider.value;
+  let strange = +weirdSlider.value;
+  let showTargets = true;
+  function drawScene(){
+    const size = canvas.clientWidth;
+    if(size === 0) return;
+    ctx.clearRect(0,0,size,size);
+    const cw = size/COLS, ch = size/ROWS;
+    zones.forEach(z=>{
+      const c = resolveZoneColor(z, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
+      const s = Math.max(0, Math.min(100, c.s * globalSatMul));
+      ctx.fillStyle = hslToHex(c.h, s, c.l);
+      const x = z.col*cw, y = z.row*ch;
+      ctx.fillRect(x, y, cw+1, ch+1);
+      if(z.hasTarget && showTargets){
+        const cx = x + cw/2, cy = y + ch/2;
+        const r = Math.min(cw, ch) * 0.3;
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
+        grad.addColorStop(0.62, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',1)');
+        grad.addColorStop(1, 'rgba('+TARGET.r+','+TARGET.g+','+TARGET.b+',0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.fill();
+      }
+    });
+  }
+  function closeStyleDropdown(){ styleDropdown.classList.remove('show'); }
+  styleBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const isOpen = styleDropdown.classList.contains('show');
+    closeAllMenus();
+    closeStyleDropdown();
+    if(!isOpen) styleDropdown.classList.add('show');
+  });
+  styleOptions.forEach(opt=>{
+    opt.addEventListener('click', e=>{
+      e.stopPropagation();
+      const isRandom = opt.dataset.idx === 'random';
+      randomStyle = isRandom;
+      philoIdx = isRandom ? randomPhiloIdx() : +opt.dataset.idx;
+      styleBtn.innerHTML = (isRandom ? 'Random' : PHILOSOPHIES[philoIdx].name) + ' &#9662;';
+      styleOptions.forEach(o=>o.classList.remove('active'));
+      opt.classList.add('active');
+      seed = randomSeed();
+      closeStyleDropdown();
+      drawScene();
+    });
+  });
+  rerollHueBtn.addEventListener('click', ()=>{
+    baseHue = Math.random()*360;
+    hueSlider.value = Math.round(baseHue);
+    if(randomStyle){ philoIdx = randomPhiloIdx(); seed = randomSeed(); }
+    drawScene();
+  });
+  targetColorInput.addEventListener('input', ()=>{ TARGET = hexToRgbObj(targetColorInput.value); drawScene(); });
+  hideTargetsBtn.addEventListener('click', ()=>{
+    showTargets = !showTargets;
+    hideTargetsBtn.textContent = showTargets ? 'Hide' : 'Show';
+    hideTargetsBtn.classList.toggle('is-active', !showTargets);
+    drawScene();
+  });
+  satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
+  matchSatBtn.addEventListener('click', ()=>{
+    const targetSat = rgbToHsl(TARGET.r, TARGET.g, TARGET.b).s;
+    const satMin = +satSlider.min, satMax = +satSlider.max;
+    const pct = Math.max(satMin, Math.min(satMax, Math.round((targetSat/BASE_SAT)*100)));
+    satSlider.value = pct;
+    globalSatMul = pct/100;
+    drawScene();
+  });
+  hueSlider.addEventListener('input', ()=>{ baseHue = +hueSlider.value; drawScene(); });
+  weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
+  function resizeCanvas(){
+    const rect = ccWrap.getBoundingClientRect();
+    const size = Math.max(60, Math.floor(Math.min(rect.width, rect.height)) - 2);
+    dpr = window.devicePixelRatio || 1;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.width = Math.max(1, Math.round(size*dpr));
+    canvas.height = Math.max(1, Math.round(size*dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    drawScene();
+  }
+  if(window.ResizeObserver){ new ResizeObserver(resizeCanvas).observe(ccWrap); }
+  else { window.addEventListener('resize', resizeCanvas); }
+  resizeCanvas();
+  (function fitInitialWindowSize(){
+    const winRect = win.getBoundingClientRect();
+    const wrapRect = ccWrap.getBoundingClientRect();
+    const chromeW = winRect.width - wrapRect.width;
+    const chromeH = winRect.height - wrapRect.height;
+    const targetW = Math.min(Math.round(800 + chromeW), Math.floor(window.innerWidth*0.96));
+    const targetH = Math.min(Math.round(800 + chromeH), Math.floor(window.innerHeight*0.96));
+    win.style.width = targetW + 'px';
+    win.style.height = targetH + 'px';
+    resizeCanvas();
+  })();
+  function samplePixel(e){
+    const rect = canvas.getBoundingClientRect();
+    const xCss = e.clientX - rect.left;
+    const yCss = e.clientY - rect.top;
+    if(xCss < 0 || yCss < 0 || xCss > rect.width || yCss > rect.height) return null;
+    const px = Math.min(canvas.width-1, Math.max(0, Math.floor(xCss*dpr)));
+    const py = Math.min(canvas.height-1, Math.max(0, Math.floor(yCss*dpr)));
+    const data = ctx.getImageData(px, py, 1, 1).data;
+    return { r:data[0], g:data[1], b:data[2] };
+  }
+  let lastColor = null;
+  function updateLastColorUI(){
+    if(!lastColor) return;
+    lastSwatchEl.style.background = lastColor.hex;
+    hexBoxEl.textContent = lastColor.hex;
+    rgbBoxEl.textContent = 'RGB ' + lastColor.r + ', ' + lastColor.g + ', ' + lastColor.b;
+  }
+  function flashCopied(el, restoreText){ el.textContent = 'Copied!'; setTimeout(()=>{ el.textContent = restoreText; }, 800); }
+  canvas.addEventListener('click', e=>{
+    const s = samplePixel(e);
+    if(!s) return;
+    lastColor = { r:s.r, g:s.g, b:s.b, hex: rgbToHex(s.r,s.g,s.b).toUpperCase() };
+    updateLastColorUI();
+  });
+  canvas.addEventListener('contextmenu', e=>{
+    e.preventDefault();
+    const s = samplePixel(e);
+    if(!s) return;
+    lastColor = { r:s.r, g:s.g, b:s.b, hex: rgbToHex(s.r,s.g,s.b).toUpperCase() };
+    updateLastColorUI();
+    copyText(lastColor.hex);
+    flashCopied(hexBoxEl, lastColor.hex);
+  });
+  hexBoxEl.addEventListener('click', ()=>{ if(!lastColor) return; copyText(lastColor.hex); flashCopied(hexBoxEl, lastColor.hex); });
+  rgbBoxEl.addEventListener('click', ()=>{
+    if(!lastColor) return;
+    const rgbCss = 'rgb(' + lastColor.r + ', ' + lastColor.g + ', ' + lastColor.b + ')';
+    const label = 'RGB ' + lastColor.r + ', ' + lastColor.g + ', ' + lastColor.b;
+    copyText(rgbCss);
+    flashCopied(rgbBoxEl, label);
+  });
+})();
+</script>
+</body>
+</html>

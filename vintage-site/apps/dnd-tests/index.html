@@ -143,10 +143,7 @@ assert(
   JSON.stringify(items.folderA.children) === JSON.stringify(['file2', 'file3', 'file1'])
 );
 
-// 3. No-op: dragging file2 before file1, but it already is before file1 effectively?
-// file2 is at index 1; anchor file1 is at index 0; insert before file1 means index 0.
-// After removal of file2, children = ['file1','file3'], newAnchorIdx=0, insertIdx=0, srcIdx was 1. Not same → actually a real move.
-// Instead test: file2 inserted after file2 itself → same item guard
+// 3. No-op when the dragged item matches the anchor item
 resetState();
 assert(
   'reorder: no-op when itemId === anchorItemId',
@@ -200,10 +197,9 @@ assert(
 
 // 9. File moved to another folder
 resetState();
-items.folderA.children = ['file2', 'file3'];
 items.folderB.children = [];
 items.file1 = { type: 'picture', name: 'cat.jpg' };
-items.folderA.children.unshift('file1'); // ['file1','file2','file3']
+items.folderA.children = ['file1', 'file2', 'file3'];
 assert(
   'cross-folder: file moved to destination folder',
   moveItemToFolder('file1', 'folderA', 'folderB') === true &&

@@ -30,11 +30,15 @@
 <body>
   <div id="game"></div>
   <div id="status">Preparing Donkey Kong Country…</div>
+  <input id="rom-picker" type="file" accept=".sfc,.smc,.fig,.swc,.zip,application/octet-stream" hidden>
   <script>
     const ROM_URL = '/roms/dkc.sfc';
     const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
+    const MIN_ROM_SIZE_BYTES = 1024;
     const statusEl = document.getElementById('status');
     const gameEl = document.getElementById('game');
+    const romPickerEl = document.getElementById('rom-picker');
+    let currentRomBlobUrl = null;
 
     const setStatus = (message, isError = false) => {
       statusEl.textContent = message;
@@ -44,6 +48,31 @@
 
     const hideStatus = () => {
       statusEl.classList.add('hidden');
+    };
+
+    const promptForLocalRom = () => {
+      setStatus('ROM not available on server. Select your local ROM file.', true);
+      romPickerEl.value = '';
+      romPickerEl.click();
+    };
+
+    const createRomBlobUrl = (romBytes) => {
+      if (currentRomBlobUrl) {
+        URL.revokeObjectURL(currentRomBlobUrl);
+      }
+      currentRomBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
+      return currentRomBlobUrl;
+    };
+
+    const validateMinimumRomSize = (romBytes, errorMessagePrefix) => {
+      if (romBytes.byteLength < MIN_ROM_SIZE_BYTES) {
+        throw new Error(`${errorMessagePrefix} (minimum: ${MIN_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
+      }
+    };
+
+    const loadRomFromBytes = (romBytes) => {
+      setStatus('Loading emulator runtime…');
+      loadEmulator(createRomBlobUrl(romBytes));
     };
 
     const decodeHeader = (bytes) => {
@@ -103,6 +132,10 @@
         setStatus('Checking game ROM…');
         const romResponse = await fetch(ROM_URL);
         if (!romResponse.ok) {
+          if (romResponse.status === 404) {
+            promptForLocalRom();
+            return;
+          }
           throw new Error(`ROM request failed (${romResponse.status}).`);
         }
 
@@ -110,20 +143,35 @@
         const romBytes = await romResponse.arrayBuffer();
         const headerBytes = new Uint8Array(romBytes.slice(0, 256));
 
-        if (romBytes.byteLength < 1024) {
-          throw new Error('ROM payload is unexpectedly small.');
-        }
+        validateMinimumRomSize(romBytes, 'ROM payload is unexpectedly small');
         if (isHtmlFallbackResponse(contentType, headerBytes)) {
           throw new Error('ROM URL returned HTML instead of binary data (likely routing fallback).');
         }
 
-        setStatus('Loading emulator runtime…');
-        const romBlobUrl = URL.createObjectURL(new Blob([romBytes], { type: 'application/octet-stream' }));
-        loadEmulator(romBlobUrl);
+        loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);
       }
     };
+
+    romPickerEl.addEventListener('change', async (event) => {
+      const selectedFile = event.target.files[0];
+      if (!selectedFile) return;
+
+      try {
+        const romBytes = await selectedFile.arrayBuffer();
+        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small');
+        loadRomFromBytes(romBytes);
+      } catch (error) {
+        setStatus(`Donkey Kong failed to start: ${error.message}`, true);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (currentRomBlobUrl) {
+        URL.revokeObjectURL(currentRomBlobUrl);
+      }
+    });
 
     start();
   </script>

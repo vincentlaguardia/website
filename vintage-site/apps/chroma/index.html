@@ -1189,14 +1189,31 @@
     }
     return { h: hue, s: clamp(sat, 0, 100), l: clamp(light, 0, 100) };
   }
-  function resolveImportedZoneColor(zone, palette, seed, strange){
+  function resolveImportedZoneColor(zone, palette, seed, strange, technoMode){
     if(!palette.length) return { h:0, s:0, l:DEFAULT_LIGHTNESS };
     const paletteIndex = bandIndexFor(zone, palette.length, seed);
     const src = palette[paletteIndex];
     const jitterA = hashZone(zone.col+43, zone.row+89);
     const jitterB = hashZone(zone.col+11, zone.row+61);
     const jitterC = hashZone(zone.col+97, zone.row+7);
+    const jitterD = hashZone(zone.col+29, zone.row+47);
+    const jitterE = hashZone(zone.col+71, zone.row+13);
     const w = clamp(strange, 0, 100) / 100;
+    if(technoMode){
+      const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
+      const hue = applySkewToHue((src.h + (jitterC-0.5)*(80 + w*220) + 3600) % 360);
+      const sat = isPastel
+        ? src.s * 0.35 + 32 + jitterA * 20
+        : src.s * 0.45 + 56 + jitterA * 12;
+      const light = isPastel
+        ? src.l * 0.4 + 42 + jitterB * 18
+        : src.l * 0.35 + 28 + jitterB * 22;
+      return {
+        h: hue,
+        s: clamp(sat, isPastel ? 32 : 88, 100),
+        l: clamp(light, isPastel ? 48 : 28, isPastel ? 92 : 78)
+      };
+    }
     return {
       h: applySkewToHue((src.h + (jitterC-0.5)*(8 + w*30) + 360) % 360),
       s: clamp(src.s + (jitterA-0.5)*(8 + w*22), 8, 98),
@@ -1205,7 +1222,7 @@
   }
   function zoneHex(zone){
     const sourceColor = importedMode
-      ? resolveImportedZoneColor(zone, importedPalette, seed, strange)
+      ? resolveImportedZoneColor(zone, importedPalette, seed, strange, pastramiMode)
       : pastramiMode
         ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
         : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);

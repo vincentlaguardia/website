@@ -578,6 +578,7 @@
     return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
   }
   function distillPaletteFromImage(img, limit){
+    const avgFromEntry = v => ({ r: v.r/v.count, g: v.g/v.count, b: v.b/v.count });
     const scale = Math.min(1, MAX_SAMPLE_DIMENSION / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
@@ -1094,4 +1095,3 @@
 </script>
 </body>
 </html>
-    const avgFromEntry = v => ({ r: v.r/v.count, g: v.g/v.count, b: v.b/v.count });

@@ -533,7 +533,7 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???">Dr Pastrami Mode</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Dr Pastrami Mode">Dr Pastrami Mode</button>
         </div>
       </div>
     </div>
@@ -610,9 +610,6 @@
   </div>
 </div>
 <div id="cc-ctx-menu" class="raised">
-  <div class="menu-option" id="ctx-copy-hex">Copy Hex</div>
-  <div class="menu-option" id="ctx-copy-rgb">Copy RGB</div>
-  <div class="menu-sep"></div>
   <div class="menu-option" id="ctx-add-diary">Add to Diary</div>
 </div>
 <div id="diary-ctx-menu" class="raised">
@@ -1403,6 +1400,10 @@
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;
+  const RED_LUMINANCE_WEIGHT = 0.299;
+  const GREEN_LUMINANCE_WEIGHT = 0.587;
+  const BLUE_LUMINANCE_WEIGHT = 0.114;
+  const DARK_TEXT_LUMINANCE_THRESHOLD = 0.55;
   let diaryColors = (()=>{ try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(err){ console.warn('chroma: failed to load diary from localStorage', err); return []; } })();
   const diaryDialog = document.getElementById('diary-dialog');
   const diaryGrid = document.getElementById('diary-grid');
@@ -1420,7 +1421,7 @@
     saveDiary(); return true;
   }
   function swatchTextColor(r,g,b){
-    return (0.299*r + 0.587*g + 0.114*b)/255 > 0.55 ? '#000' : '#fff';
+    return (RED_LUMINANCE_WEIGHT*r + GREEN_LUMINANCE_WEIGHT*g + BLUE_LUMINANCE_WEIGHT*b)/255 > DARK_TEXT_LUMINANCE_THRESHOLD ? '#000' : '#fff';
   }
   function renderDiary(){
     diaryGrid.innerHTML = '';
@@ -1478,11 +1479,15 @@
   }
   function exportDiaryJPG(){
     if(!diaryColors.length){ alert('Diary is empty.'); return; }
-    const COLS = 6;
-    const ROWS = Math.ceil(diaryColors.length / COLS);
-    const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
-    const cw = COLS * SW + (COLS - 1) * GAP + PAD * 2;
-    const ch = ROWS * SH + (ROWS - 1) * GAP + PAD * 2 + HEADER;
+    const GRID_COLUMNS = 6;
+    const GRID_ROWS = Math.ceil(diaryColors.length / GRID_COLUMNS);
+    const SWATCH_WIDTH = 110;
+    const SWATCH_HEIGHT = 110;
+    const SWATCH_GAP = 6;
+    const CANVAS_PADDING = 16;
+    const HEADER_HEIGHT = 36;
+    const cw = GRID_COLUMNS * SWATCH_WIDTH + (GRID_COLUMNS - 1) * SWATCH_GAP + CANVAS_PADDING * 2;
+    const ch = GRID_ROWS * SWATCH_HEIGHT + (GRID_ROWS - 1) * SWATCH_GAP + CANVAS_PADDING * 2 + HEADER_HEIGHT;
     const c = document.createElement('canvas');
     c.width = cw; c.height = ch;
     const cx = c.getContext('2d');
@@ -1491,24 +1496,24 @@
     cx.fillStyle = '#000000';
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
-    cx.fillText('chroma.exe — Color Diary', PAD, PAD + 14);
+    cx.fillText('chroma.exe — Color Diary', CANVAS_PADDING, CANVAS_PADDING + 14);
     diaryColors.forEach((color, i)=>{
-      const col = i % COLS;
-      const row = Math.floor(i / COLS);
-      const x = PAD + col * (SW + GAP);
-      const y = PAD + HEADER + row * (SH + GAP);
+      const col = i % GRID_COLUMNS;
+      const row = Math.floor(i / GRID_COLUMNS);
+      const x = CANVAS_PADDING + col * (SWATCH_WIDTH + SWATCH_GAP);
+      const y = CANVAS_PADDING + HEADER_HEIGHT + row * (SWATCH_HEIGHT + SWATCH_GAP);
       cx.fillStyle = color.hex;
-      cx.fillRect(x, y, SW, SH);
+      cx.fillRect(x, y, SWATCH_WIDTH, SWATCH_HEIGHT);
       cx.strokeStyle = 'rgba(0,0,0,0.22)';
       cx.lineWidth = 1;
-      cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
+      cx.strokeRect(x + 0.5, y + 0.5, SWATCH_WIDTH - 1, SWATCH_HEIGHT - 1);
       const tc = swatchTextColor(color.r, color.g, color.b);
       cx.fillStyle = tc;
       cx.font = 'bold 10px Tahoma,Arial,sans-serif';
       cx.textAlign = 'center';
-      cx.fillText(color.hex, x + SW / 2, y + SH / 2 - 6);
+      cx.fillText(color.hex, x + SWATCH_WIDTH / 2, y + SWATCH_HEIGHT / 2 - 6);
       cx.font = '9px Tahoma,Arial,sans-serif';
-      cx.fillText(color.r + ',' + color.g + ',' + color.b, x + SW / 2, y + SH / 2 + 8);
+      cx.fillText(color.r + ',' + color.g + ',' + color.b, x + SWATCH_WIDTH / 2, y + SWATCH_HEIGHT / 2 + 8);
     });
     const link = document.createElement('a');
     link.download = 'chroma-diary-' + timestampTag() + '.jpg';
@@ -1556,18 +1561,6 @@
     ccCtxMenu.style.display = 'block';
   }
   function hideCanvasCtxMenu(){ ccCtxMenu.style.display = 'none'; }
-  document.getElementById('ctx-copy-hex').addEventListener('click', e=>{
-    e.stopPropagation();
-    if(!ctxMenuColor) return;
-    copyText(ctxMenuColor.hex); flashCopied(hexBoxEl, ctxMenuColor.hex); hideCanvasCtxMenu();
-  });
-  document.getElementById('ctx-copy-rgb').addEventListener('click', e=>{
-    e.stopPropagation();
-    if(!ctxMenuColor) return;
-    const label = 'RGB '+ctxMenuColor.r+', '+ctxMenuColor.g+', '+ctxMenuColor.b;
-    copyText('rgb('+ctxMenuColor.r+', '+ctxMenuColor.g+', '+ctxMenuColor.b+')');
-    flashCopied(rgbBoxEl, label); hideCanvasCtxMenu();
-  });
   document.getElementById('ctx-add-diary').addEventListener('click', e=>{
     e.stopPropagation();
     if(!ctxMenuColor) return;

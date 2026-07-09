@@ -34,7 +34,7 @@
   <script>
     const ROM_URL = '/roms/dkc.sfc';
     const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
-    const MIN_VALID_ROM_SIZE_BYTES = 1024;
+    const MIN_ROM_SIZE_BYTES = 1024;
     const statusEl = document.getElementById('status');
     const gameEl = document.getElementById('game');
     const romPickerEl = document.getElementById('rom-picker');
@@ -51,7 +51,7 @@
     };
 
     const promptForLocalRom = () => {
-      setStatus('ROM not found at /roms/dkc.sfc. Select your local ROM file.', true);
+      setStatus('ROM not available on server. Select your local ROM file.', true);
       romPickerEl.value = '';
       romPickerEl.click();
     };
@@ -64,9 +64,12 @@
       return currentRomBlobUrl;
     };
 
-    const validateMinimumRomSize = (romBytes, errorMessagePrefix) => {
-      if (romBytes.byteLength < MIN_VALID_ROM_SIZE_BYTES) {
-        throw new Error(`${errorMessagePrefix} (minimum: ${MIN_VALID_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
+    const validateMinimumRomSize = (romBytes, errorMessagePrefix, includeDiagnostics = true) => {
+      if (romBytes.byteLength < MIN_ROM_SIZE_BYTES) {
+        if (!includeDiagnostics) {
+          throw new Error(errorMessagePrefix);
+        }
+        throw new Error(`${errorMessagePrefix} (minimum: ${MIN_ROM_SIZE_BYTES} bytes, received: ${romBytes.byteLength} bytes)`);
       }
     };
 
@@ -160,7 +163,7 @@
 
       try {
         const romBytes = await selectedFile.arrayBuffer();
-        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small');
+        validateMinimumRomSize(romBytes, 'Selected ROM payload is unexpectedly small', false);
         loadRomFromBytes(romBytes);
       } catch (error) {
         setStatus(`Donkey Kong failed to start: ${error.message}`, true);

@@ -338,9 +338,30 @@
   #shutdown-overlay.show{ display:flex; }
   #shutdown-overlay button{ margin-top:18px; }
   @media (max-width:480px){ .window{ min-width:0; min-height:400px; } }
+  /* embedded mode: loaded inside an iframe in the main site */
+  html.embedded,
+  body.embedded{
+    background:var(--face);
+  }
+  body.embedded #desktop{
+    min-height:100vh;
+    height:100vh;
+    padding:0;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  body.embedded .window{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    min-height:0;
+    flex:1;
+  }
+  body.embedded #taskbar{ display:none; }
 </style>
 </head>
 <body>
+<script>if(window.self!==window.top){document.documentElement.classList.add('embedded');document.body.classList.add('embedded');}</script>
 <div id="desktop">
   <div class="window">
     <div class="titlebar">
@@ -824,6 +845,7 @@
   else { window.addEventListener('resize', resizeCanvas); }
   resizeCanvas();
   (function fitInitialWindowSize(){
+    if(window.self !== window.top) return; // skip in embedded/iframe mode
     const winRect = win.getBoundingClientRect();
     const wrapRect = ccWrap.getBoundingClientRect();
     const chromeW = winRect.width - wrapRect.width;

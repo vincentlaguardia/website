@@ -1064,9 +1064,10 @@ const items = {
    in localStorage instead of the hardcoded site map above. On boot we merge any
    saved custom item definitions into `items`, then apply any saved "children"
    overrides (full arrays) for folders whose contents have been rearranged --
-   either because a new folder was added into them, or because an item was moved
-   or pasted into a different folder. This runs BEFORE the trash system below,
-   so trash removals are always applied last / on top of the current arrangement. */
+   either because a new folder was added into them, because an item was moved,
+   or because a pasted copy was added into a different folder. This runs BEFORE
+   the trash system below, so trash removals are always applied last / on top of
+   the current arrangement. */
 let customFolders = {};
 try { customFolders = JSON.parse(localStorage.getItem('site-custom-folders') || '{}'); } catch (e) { customFolders = {}; }
 Object.keys(customFolders).forEach(id => { items[id] = customFolders[id]; });
@@ -1331,8 +1332,10 @@ function generateUniqueCopiedItemName(parentId, originalName) {
   return name;
 }
 
+let customItemIdCounter = 0;
 function generateCustomItemId(prefix) {
-  return prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+  customItemIdCounter += 1;
+  return prefix + '_' + Date.now() + '_' + customItemIdCounter + '_' + Math.floor(Math.random() * 100000);
 }
 
 let virtualClipboard = null;
@@ -1380,6 +1383,8 @@ async function cloneItemForPaste(sourceId) {
       custom: true,
       modified: Date.now()
     });
+    // Copies of synced folders become normal custom folders so pasted snapshots
+    // can diverge from the live manifest and keep any later moves/pastes.
     delete clone.syncFolder;
     items[cloneId] = clone;
     customFolders[cloneId] = clone;

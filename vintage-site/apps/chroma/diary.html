@@ -381,7 +381,7 @@
     const raw = window.prompt('Save diary to virtual desktop as:', defaultName);
     if(raw === null) return;
     let fname = raw.trim() || defaultName;
-    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.jpg';
+    if(!/\.(jpe?g)$/i.test(fname)) fname = fname.replace(/\.[a-zA-Z0-9]+$/, '') + '.jpg';
     window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl: c.toDataURL('image/jpeg', 0.92) }, window.location.origin);
   }
   document.getElementById('diary-save-desktop').addEventListener('click', saveToDesktop);

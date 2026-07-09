@@ -1335,10 +1335,26 @@ function generateUniqueCopiedItemName(parentId, originalName) {
 }
 
 function generateCustomItemId(prefix) {
-  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-    return prefix + '_' + window.crypto.randomUUID().replace(/-/g, '_');
-  }
-  return prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000000000);
+  let id = '';
+  do {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      id = prefix + '_' + window.crypto.randomUUID().replace(/-/g, '_');
+    } else {
+      id = prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000000000);
+    }
+  } while (items[id]);
+  return id;
+}
+
+function deepCloneItemData(value) {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+function pushUniqueChildId(childId, seen, target) {
+  if (!items[childId] || seen.has(childId)) return;
+  seen.add(childId);
+  target.push(childId);
 }
 
 let virtualClipboard = null;
@@ -1386,11 +1402,10 @@ async function cloneItemForPaste(sourceId) {
   if (source.type === 'folder') {
     if (source.syncFolder) await loadSyncChildren(sourceId);
     const cloneId = generateCustomItemId('copiedfolder');
-    const clone = Object.assign({}, source, {
-      children: [],
-      custom: true,
-      modified: Date.now()
-    });
+    const clone = deepCloneItemData(source);
+    clone.children = [];
+    clone.custom = true;
+    clone.modified = Date.now();
     // Copies of synced folders become normal custom folders so pasted snapshots
     // can diverge from the live manifest and keep any later moves/pastes.
     delete clone.syncFolder;
@@ -1404,10 +1419,9 @@ async function cloneItemForPaste(sourceId) {
     return cloneId;
   }
   const cloneId = generateCustomItemId('copieditem');
-  const clone = Object.assign({}, source, {
-    custom: true,
-    modified: Date.now()
-  });
+  const clone = deepCloneItemData(source);
+  clone.custom = true;
+  clone.modified = Date.now();
   delete clone.children;
   delete clone.syncFolder;
   items[cloneId] = clone;
@@ -2988,14 +3002,10 @@ async function loadSyncChildren(id) {
       const mergedChildren = [];
       const seen = new Set();
       overrideChildren.forEach(childId => {
-        if (!items[childId] || seen.has(childId)) return;
-        seen.add(childId);
-        mergedChildren.push(childId);
+        pushUniqueChildId(childId, seen, mergedChildren);
       });
       childIds.forEach(childId => {
-        if (seen.has(childId)) return;
-        seen.add(childId);
-        mergedChildren.push(childId);
+        pushUniqueChildId(childId, seen, mergedChildren);
       });
       item.children = mergedChildren;
       if (!Array.isArray(overrideEntry) && overrideEntry && overrideEntry.modified) item.modified = overrideEntry.modified;

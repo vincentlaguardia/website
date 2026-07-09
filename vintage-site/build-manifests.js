@@ -50,6 +50,15 @@ function suggestUrlSafeTxtName(name) {
   return (safeBase || 'file') + '.txt';
 }
 
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function readUrlBackedManifestEntries(folderPath) {
   const manifestPath = path.join(folderPath, 'manifest.json');
   if (!fs.existsSync(manifestPath)) return [];
@@ -61,7 +70,7 @@ function readUrlBackedManifestEntries(folderPath) {
       .map(entry => {
         const name = typeof entry.name === 'string' ? entry.name.trim() : '';
         const url = typeof entry.url === 'string' ? entry.url.trim() : '';
-        if (!name || !url) return null;
+        if (!name || !url || !isHttpUrl(url)) return null;
         const item = { type: 'file', name, url };
         if (typeof entry.modified === 'string' && entry.modified) item.modified = entry.modified;
         if (typeof entry.size === 'number' && Number.isFinite(entry.size)) item.size = entry.size;
@@ -105,10 +114,13 @@ function buildManifest(folderPath) {
   });
 
   const existingNames = new Set(result.map(entry => entry.name));
+  const urlEntriesByName = new Map();
   existingUrlEntries.forEach(entry => {
-    if (existingNames.has(entry.name)) return;
+    if (!urlEntriesByName.has(entry.name)) urlEntriesByName.set(entry.name, entry);
+  });
+  urlEntriesByName.forEach((entry, entryName) => {
+    if (existingNames.has(entryName)) return;
     result.push(entry);
-    existingNames.add(entry.name);
   });
 
   result.sort((a, b) => a.name.localeCompare(b.name));

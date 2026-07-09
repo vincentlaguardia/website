@@ -698,6 +698,9 @@
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('about-ok').addEventListener('click', closeAbout);
+  document.addEventListener('click', function(e){
+    if(aboutDialog.classList.contains('show') && !aboutDialog.contains(e.target)) closeAbout();
+  });
   document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
     e.stopPropagation();
     closeAllMenus();

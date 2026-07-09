@@ -119,6 +119,7 @@
   .desktop-icon-item {
     position: absolute;
     width: 190px; text-align: center; cursor: default; padding: 4px 2px;
+    display: flex; flex-direction: column; align-items: center;
   }
   .desktop-icon-item svg,
   .desktop-icon-item img {
@@ -129,7 +130,7 @@
   }
   .desktop-icon-item .label {
     display: block; width: fit-content; max-width: 100%;
-    margin: 2px auto 0;
+    margin: 4px auto 0;
     color: #fff; font-size: 11px;
     text-shadow: 1px 1px 1px #000;
     word-wrap: break-word;
@@ -266,13 +267,14 @@
   }
   .grid-item {
     width: 140px; text-align: center; cursor: default; padding: 4px 2px; border: 1px dotted transparent;
+    display: flex; flex-direction: column; align-items: center;
   }
   .folder-freeform-layout .grid-item {
     position: absolute;
     margin: 0;
   }
   .grid-item svg { width: 64px; height: 64px; }
-  .grid-item .label { font-size: 11px; margin-top: 3px; word-wrap: break-word; }
+  .grid-item .label { font-size: 11px; margin-top: 4px; word-wrap: break-word; }
   .grid-item.selected {
     border: 1px dotted #000;
     background: var(--acc-mid);

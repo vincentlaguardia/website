@@ -456,8 +456,7 @@
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
       <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo to distill an image into Chroma's color energy.</p>
-      <p class="lead">then export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
+      <p class="lead">file&gt;import photo to distill an image into Chroma's color energy, then export unique palette hex values from file&gt;export palette or use the Export Palette button.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -578,7 +577,7 @@
     return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
   }
   function distillPaletteFromImage(img, limit){
-    const avgFromEntry = v => ({ r: v.r/v.count, g: v.g/v.count, b: v.b/v.count });
+    const avgFromEntry = binEntry => ({ r: binEntry.r/binEntry.count, g: binEntry.g/binEntry.count, b: binEntry.b/binEntry.count });
     const scale = Math.min(1, MAX_SAMPLE_DIMENSION / Math.max(img.width, img.height));
     const w = Math.max(1, Math.round(img.width * scale));
     const h = Math.max(1, Math.round(img.height * scale));
@@ -991,9 +990,9 @@
     drawScene();
   }
   function handleImportError(err){
-    const detail = err && err.message ? ': ' + err.message : '.';
+    const detail = err && err.message ? ': ' + err.message : '';
     console.warn('Photo import failed.', err);
-    alert('Photo import failed' + detail + ' Please choose a valid image file and try again.');
+    alert('Photo import failed' + detail + '. Please choose a valid image file and try again.');
   }
   importInput.addEventListener('change', async ()=>{
     const file = importInput.files && importInput.files[0];
@@ -1010,17 +1009,23 @@
       handleImportError(err);
     });
   }
+  let dragDepth = 0;
   ['dragenter','dragover'].forEach(evt=>{
     contentPanel.addEventListener(evt, e=>{
       e.preventDefault();
-      contentPanel.classList.add('drop-active');
+      if(evt === 'dragenter') dragDepth += 1;
+      if(!contentPanel.classList.contains('drop-active')) contentPanel.classList.add('drop-active');
     });
   });
-  ['dragleave','drop'].forEach(evt=>{
-    contentPanel.addEventListener(evt, ()=> contentPanel.classList.remove('drop-active'));
+  contentPanel.addEventListener('dragleave', e=>{
+    e.preventDefault();
+    dragDepth = Math.max(0, dragDepth - 1);
+    if(dragDepth === 0) contentPanel.classList.remove('drop-active');
   });
   contentPanel.addEventListener('drop', e=>{
     e.preventDefault();
+    dragDepth = 0;
+    contentPanel.classList.remove('drop-active');
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     dropImport(file);
   });

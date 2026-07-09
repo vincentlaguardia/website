@@ -7167,18 +7167,33 @@ window.addEventListener('message', function(e) {
   // Verify the message comes from the embedded chroma frame, not an arbitrary same-origin window
   const chromaFrame = document.querySelector('.chroma-frame');
   if (!chromaFrame || e.source !== chromaFrame.contentWindow) return;
-  const name = String(e.data.name || '').trim() || 'chroma-palette.txt';
-  const text = String(e.data.text || '');
+  const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
   const newId = 'chroma_' + Date.now();
-  const newItem = {
-    type: 'text',
-    name: name,
-    iconType: 'document',
-    customIcon: 'notepad',
-    text: text,
-    modified: new Date().toISOString().slice(0, 10),
-    custom: true
-  };
+  let newItem;
+  const rawDataUrl = e.data.dataUrl ? String(e.data.dataUrl) : '';
+  if (rawDataUrl && /^data:image\//.test(rawDataUrl)) {
+    // Image palette — saved as a picture item with thumbnail
+    newItem = {
+      type: 'picture',
+      name: name,
+      file: rawDataUrl,
+      thumb: rawDataUrl,
+      modified: new Date().toISOString().slice(0, 10),
+      custom: true
+    };
+  } else {
+    // Fallback: plain text palette
+    const text = String(e.data.text || '');
+    newItem = {
+      type: 'text',
+      name: name,
+      iconType: 'document',
+      customIcon: 'notepad',
+      text: text,
+      modified: new Date().toISOString().slice(0, 10),
+      custom: true
+    };
+  }
   items[newId] = newItem;
   customFolders[newId] = newItem;
   saveCustomFolders();

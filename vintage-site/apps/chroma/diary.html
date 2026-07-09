@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Diary — chroma.exe</title>
+<style>
+  :root{
+    --face:#c0c0c0;
+    --shadow:#808080;
+    --dark:#000000;
+    --hi:#dfdfdf;
+    --white:#ffffff;
+    --navy:#000080;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:var(--face);
+    font-family:Tahoma,'MS Sans Serif','Segoe UI',Arial,sans-serif;
+    font-size:12px;
+    color:#000;
+    -webkit-font-smoothing:none;
+  }
+  .raised{
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .titlebar{
+    background:var(--navy);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    padding:3px 4px 3px 6px;
+    font-weight:bold;
+    font-size:13px;
+    letter-spacing:.2px;
+    flex:0 0 auto;
+    gap:6px;
+  }
+  .titlebar-icon{
+    width:14px; height:14px; flex:0 0 auto;
+    background:linear-gradient(135deg,#ff4d4d,#ffd24d,#4dd2ff,#9b59ff);
+    border:1px solid #000;
+  }
+  .tbtn{
+    width:16px; height:14px;
+    font-size:10px; line-height:12px;
+    text-align:center;
+    background:var(--face);
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--hi);
+    user-select:none;
+    border:none;
+    padding:0;
+    margin-left:auto;
+  }
+  .tbtn:active{ box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white); }
+  .winbody{ padding:6px 8px 8px; }
+  .diary-grid{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:4px;
+    padding:4px 0;
+  }
+  .diary-swatch{
+    position:relative;
+    min-height:72px;
+    aspect-ratio:1;
+    cursor:default;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    border:1px solid rgba(0,0,0,0.25);
+    padding:3px;
+    user-select:none;
+  }
+  .diary-swatch.empty{
+    background:var(--face) !important;
+    border:1px dashed var(--shadow) !important;
+    opacity:0.35;
+  }
+  .dsw-hex{
+    font-size:9px;
+    font-weight:bold;
+    text-align:center;
+    line-height:1.3;
+    word-break:break-all;
+  }
+  .dsw-rgb{
+    font-size:8px;
+    text-align:center;
+    line-height:1.3;
+    word-break:break-all;
+  }
+  .footer{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:4px 0 2px;
+  }
+  button.win-btn{
+    font-family:inherit;
+    font-size:12px;
+    padding:6px 14px;
+    background:var(--face);
+    border:none;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  button.win-btn:active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  .menu-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; font-size:12px; }
+  .menu-option:hover{ background:var(--navy); color:#fff; }
+  #ctx-menu{
+    position:fixed;
+    z-index:250;
+    min-width:120px;
+    padding:2px;
+    display:none;
+  }
+</style>
+</head>
+<body>
+<div class="raised" style="margin:0;padding:3px;display:flex;flex-direction:column;min-height:100vh;">
+  <div class="titlebar">
+    <span class="titlebar-icon"></span>
+    <span>Color Diary</span>
+    <button class="tbtn" id="btn-close" title="Close">X</button>
+  </div>
+  <div class="winbody" style="flex:1;">
+    <div id="diary-grid" class="diary-grid"></div>
+    <div class="footer">
+      <span id="diary-count" style="font-size:11px;">0 / 36</span>
+      <button class="win-btn" id="btn-clear" style="margin-left:auto;">Clear All</button>
+      <button class="win-btn" id="btn-export">Export PNG</button>
+    </div>
+  </div>
+</div>
+<div id="ctx-menu" class="raised">
+  <div class="menu-option" id="ctx-delete">Delete</div>
+</div>
+<script>
+(function(){
+  const DIARY_KEY = 'chroma.diary';
+  const MAX_DIARY = 36;
+  const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+  function loadColors(){
+    try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(e){ return []; }
+  }
+  function saveColors(arr){ localStorage.setItem(DIARY_KEY, JSON.stringify(arr)); }
+  function swatchTextColor(r,g,b){ return (0.299*r+0.587*g+0.114*b)/255 > 0.55 ? '#000' : '#fff'; }
+
+  function render(){
+    const colors = loadColors();
+    const grid = document.getElementById('diary-grid');
+    const countEl = document.getElementById('diary-count');
+    grid.innerHTML = '';
+    countEl.textContent = colors.length + ' / ' + MAX_DIARY;
+    colors.forEach((c, idx)=>{
+      if(!HEX_RE.test(c.hex)) return;
+      const r = Math.round(c.r), g = Math.round(c.g), b = Math.round(c.b);
+      const tc = swatchTextColor(r,g,b);
+      const div = document.createElement('div');
+      div.className = 'diary-swatch';
+      div.style.background = c.hex;
+      div.title = c.hex + ' \u2014 right-click to delete';
+      const hexSpan = document.createElement('span');
+      hexSpan.className = 'dsw-hex'; hexSpan.style.color = tc; hexSpan.textContent = c.hex;
+      const rgbSpan = document.createElement('span');
+      rgbSpan.className = 'dsw-rgb'; rgbSpan.style.color = tc; rgbSpan.textContent = r+','+g+','+b;
+      div.appendChild(hexSpan); div.appendChild(rgbSpan);
+      div.addEventListener('contextmenu', e=>{ e.preventDefault(); e.stopPropagation(); showCtxMenu(e, idx); });
+      grid.appendChild(div);
+    });
+    for(let i=colors.length; i<MAX_DIARY; i++){
+      const div = document.createElement('div');
+      div.className = 'diary-swatch empty';
+      grid.appendChild(div);
+    }
+  }
+
+  // Auto-refresh when the main chroma window writes to localStorage
+  window.addEventListener('storage', e=>{
+    if(e.key === DIARY_KEY) render();
+  });
+
+  // Context menu
+  const ctxMenu = document.getElementById('ctx-menu');
+  let ctxIdx = -1;
+  function showCtxMenu(e, idx){
+    ctxIdx = idx;
+    ctxMenu.style.left = e.clientX+'px';
+    ctxMenu.style.top = e.clientY+'px';
+    ctxMenu.style.display = 'block';
+  }
+  function hideCtxMenu(){ ctxMenu.style.display = 'none'; }
+  document.getElementById('ctx-delete').addEventListener('click', e=>{
+    e.stopPropagation();
+    if(ctxIdx < 0) return;
+    const colors = loadColors();
+    colors.splice(ctxIdx, 1);
+    saveColors(colors);
+    render();
+    hideCtxMenu();
+  });
+  document.addEventListener('click', e=>{ if(!ctxMenu.contains(e.target)) hideCtxMenu(); });
+
+  // Clear All
+  document.getElementById('btn-clear').addEventListener('click', ()=>{
+    const colors = loadColors();
+    if(!colors.length || !confirm('Clear all diary colors?')) return;
+    saveColors([]);
+    render();
+  });
+
+  // Export PNG
+  function timestampTag(){
+    const now = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'-'+pad(now.getHours())+pad(now.getMinutes())+pad(now.getSeconds());
+  }
+
+  function exportPNG(){
+    const colors = loadColors().filter(c=> HEX_RE.test(c.hex));
+    if(!colors.length){ alert('Diary is empty.'); return; }
+    const COLS = 6;
+    const SW = 100, GAP = 6, PAD = 8;
+    const HEADER_H = 44;
+    const rows = Math.ceil(colors.length / COLS);
+    const W = PAD + COLS*(SW+GAP) - GAP + PAD;
+    const H = HEADER_H + rows*(SW+GAP) - GAP + PAD;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#c0c0c0';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px Tahoma,Arial,sans-serif';
+    ctx.fillText('chroma.exe \u2014 Color Diary', PAD, 28);
+    colors.forEach((c, idx)=>{
+      const r = Math.round(c.r), g = Math.round(c.g), b = Math.round(c.b);
+      if([r,g,b].some(v=> !Number.isInteger(v) || v<0 || v>255)) return;
+      const col = idx % COLS;
+      const row = Math.floor(idx / COLS);
+      const x = PAD + col*(SW+GAP);
+      const y = HEADER_H + row*(SW+GAP);
+      ctx.fillStyle = c.hex;
+      ctx.fillRect(x, y, SW, SW);
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x+0.5, y+0.5, SW-1, SW-1);
+      const tc = swatchTextColor(r,g,b);
+      ctx.fillStyle = tc;
+      ctx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(c.hex, x+SW/2, y+SW/2-4);
+      ctx.font = '9px Tahoma,Arial,sans-serif';
+      ctx.fillText('RGB '+r+','+g+','+b, x+SW/2, y+SW/2+10);
+      ctx.textAlign = 'left';
+    });
+    const link = document.createElement('a');
+    link.download = 'chroma-diary-'+timestampTag()+'.png';
+    link.href = cv.toDataURL('image/png');
+    link.click();
+  }
+
+  document.getElementById('btn-export').addEventListener('click', exportPNG);
+  document.getElementById('btn-close').addEventListener('click', ()=> window.close());
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1342,14 +1342,15 @@
   document.getElementById('diary-close').addEventListener('click', closeDiary);
   document.getElementById('menu-diary').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openDiary(); });
   document.getElementById('diary-clear').addEventListener('click', clearDiary);
+  // Validate hex strings before writing into generated HTML to prevent XSS
   const HEX_RE = /^#[0-9a-fA-F]{6}$/;
   function exportDiaryPDF(){
     if(!diaryColors.length){ alert('Diary is empty.'); return; }
-    // open a new window; noopener prevents the new page from accessing window.opener
+    // noopener prevents the new page from accessing window.opener;
+    // noreferrer additionally suppresses the Referer header
     const pw = window.open('','_blank','width=750,height=950,noopener,noreferrer');
     if(!pw){ alert('Please allow popups to export PDF.'); return; }
     let s=''; diaryColors.forEach(c=>{
-      // Validate values to prevent XSS in the generated page
       if(!HEX_RE.test(c.hex)) return;
       const r=Math.round(c.r), g=Math.round(c.g), b=Math.round(c.b);
       if([r,g,b].some(v=> !Number.isInteger(v) || v<0 || v>255)) return;

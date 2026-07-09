@@ -1,23 +1,13 @@
 [
   {
     "type": "file",
-    "name": "Film Posters Exploitation (Taschen, 2006)",
-    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Film%20Posters%20Exploitation%20%20-Taschen%20(2006).pdf"
-  },
-  {
-    "type": "file",
     "name": "An Accented Cinema: Exilic and Diasporic Filmmaking (Hamid Naficy, 2001)",
     "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Hamid%20Naficy%20-%20An%20Accented%20Cinema%20_%20Exilic%20and%20Diasporic%20Filmmaking%20(2001).pdf"
   },
   {
     "type": "file",
-    "name": "Introduction to Logic (Copi, Cohen, McMahon, 2013)",
-    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Irving%20M.%20Copi%2C%20Carl%20Cohen%2C%20Kenneth%20McMahon%20-%20Introduction%20to%20Logic%20(2013%2C%20Pearson%20Education)%20-%20libgen.li.pdf"
-  },
-  {
-    "type": "file",
-    "name": "Thinking, Fast and Slow (Daniel Kahneman, 2011)",
-    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Kahneman%2C%20Daniel%20-%20Thinking%2C%20Fast%20and%20Slow%20(2011)%20-%20libgen.li.pdf"
+    "name": "anarchist cookbook",
+    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/The%20anarchist%20cookbook%20-%20William%20Powell.pdf"
   },
   {
     "type": "file",
@@ -31,13 +21,18 @@
   },
   {
     "type": "file",
-    "name": "Mechanical and Electrical Equipment for Buildings (Grondzik & Kwok, 12th ed., 2014)",
-    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Walter%20T.%20Grondzik%2C%20Alison%20G.%20Kwok%20-%20Mechanical%20and%20Electrical%20Equipment%20for%20Buildings%2C%2012th%20Edition%20Wiley%20E-Text%20Card%20and%20Interactive%20Resource%20Center%20Access%20Card-Wiley%20(2014).pdf"
+    "name": "Film Posters Exploitation (Taschen, 2006)",
+    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Film%20Posters%20Exploitation%20%20-Taschen%20(2006).pdf"
   },
   {
     "type": "file",
-    "name": "Understanding Behavior in the Milgram Obedience Experiment (Blass, 1991)",
-    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/%5BJournal%20of%20Personality%20and%20Social%20Psychology%201991-mar%20vol.%2060%20iss.%203%5D%20Understanding%20behavior%20in%20the%20Milgram%20obedience%20experiment_%20The%20role%20of%20personality%2C%20situations%2C%20...%7BBlass%2C%20Thomas%7D(1991%20March)%5B10.1037_0022-3514.60.3.398%5D%7B22021077%7D%20lib.pdf"
+    "name": "Introduction to Logic (Copi, Cohen, McMahon, 2013)",
+    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Irving%20M.%20Copi%2C%20Carl%20Cohen%2C%20Kenneth%20McMahon%20-%20Introduction%20to%20Logic%20(2013%2C%20Pearson%20Education)%20-%20libgen.li.pdf"
+  },
+  {
+    "type": "file",
+    "name": "Mechanical and Electrical Equipment for Buildings (Grondzik & Kwok, 12th ed., 2014)",
+    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Walter%20T.%20Grondzik%2C%20Alison%20G.%20Kwok%20-%20Mechanical%20and%20Electrical%20Equipment%20for%20Buildings%2C%2012th%20Edition%20Wiley%20E-Text%20Card%20and%20Interactive%20Resource%20Center%20Access%20Card-Wiley%20(2014).pdf"
   },
   {
     "type": "file",
@@ -46,7 +41,12 @@
   },
   {
     "type": "file",
-    "name": "anarchist cookbook",
-    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/The%20anarchist%20cookbook%20-%20William%20Powell.pdf"
+    "name": "Thinking, Fast and Slow (Daniel Kahneman, 2011)",
+    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/Kahneman%2C%20Daniel%20-%20Thinking%2C%20Fast%20and%20Slow%20(2011)%20-%20libgen.li.pdf"
+  },
+  {
+    "type": "file",
+    "name": "Understanding Behavior in the Milgram Obedience Experiment (Blass, 1991)",
+    "url": "https://pub-9ec55d6c3c604b20833d378e6ea0fd12.r2.dev/issues/1/%5BJournal%20of%20Personality%20and%20Social%20Psychology%201991-mar%20vol.%2060%20iss.%203%5D%20Understanding%20behavior%20in%20the%20Milgram%20obedience%20experiment_%20The%20role%20of%20personality%2C%20situations%2C%20...%7BBlass%2C%20Thomas%7D(1991%20March)%5B10.1037_0022-3514.60.3.398%5D%7B22021077%7D%20lib.pdf"
   }
 ]

@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "type": "file",
+    "name": "hi.mp3",
+    "size": 6210965,
+    "modified": "2026-07-09"
+  },
+  {
+    "type": "file",
+    "name": "zsuzsjhaaaaa.mp3",
+    "size": 5420345,
+    "modified": "2026-07-09"
+  }
+]

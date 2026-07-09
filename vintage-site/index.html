@@ -7159,6 +7159,35 @@ document.getElementById('password-input').addEventListener('keydown', e => {
 
   updateIcon();
 })();
+
+// Handle messages from chroma.exe iframe
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'chroma-save-to-desktop') return;
+  if (e.origin !== window.location.origin) return;
+  // Verify the message comes from the embedded chroma frame, not an arbitrary same-origin window
+  const chromaFrame = document.querySelector('.chroma-frame');
+  if (!chromaFrame || e.source !== chromaFrame.contentWindow) return;
+  const name = String(e.data.name || '').trim() || 'chroma-palette.txt';
+  const text = String(e.data.text || '');
+  const newId = 'chroma_' + Date.now();
+  const newItem = {
+    type: 'text',
+    name: name,
+    iconType: 'document',
+    customIcon: 'notepad',
+    text: text,
+    modified: new Date().toISOString().slice(0, 10),
+    custom: true
+  };
+  items[newId] = newItem;
+  customFolders[newId] = newItem;
+  saveCustomFolders();
+  if (!items.desktop.children.includes(newId)) {
+    items.desktop.children.push(newId);
+    persistFolderChildren('desktop');
+  }
+  buildDesktopIcons();
+});
 </script>
 </body>
 </html>

@@ -34,6 +34,7 @@
   <script>
     const ROM_URL = '/roms/dkc.sfc';
     const EMULATOR_DATA_BASE_URL = 'https://cdn.emulatorjs.org/latest/data/';
+    const MIN_ROM_BYTES = 1024;
     const statusEl = document.getElementById('status');
     const gameEl = document.getElementById('game');
     const romPickerEl = document.getElementById('rom-picker');
@@ -135,7 +136,7 @@
         const romBytes = await romResponse.arrayBuffer();
         const headerBytes = new Uint8Array(romBytes.slice(0, 256));
 
-        if (romBytes.byteLength < 1024) {
+        if (romBytes.byteLength < MIN_ROM_BYTES) {
           throw new Error('ROM payload is unexpectedly small.');
         }
         if (isHtmlFallbackResponse(contentType, headerBytes)) {
@@ -155,7 +156,7 @@
 
       try {
         const romBytes = await selectedFile.arrayBuffer();
-        if (romBytes.byteLength < 1024) {
+        if (romBytes.byteLength < MIN_ROM_BYTES) {
           throw new Error('Selected ROM payload is unexpectedly small.');
         }
         setStatus('Loading emulator runtime…');

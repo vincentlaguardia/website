@@ -54,10 +54,12 @@
       }
     };
 
+    const HTML_FALLBACK_PREFIXES = ['<!doctype html', '<html', '<head', '<body'];
+
     const isHtmlFallbackResponse = (contentType, bytes) => {
       if ((contentType || '').toLowerCase().includes('text/html')) return true;
       const header = decodeHeader(bytes);
-      return header.startsWith('<!doctype html') || header.startsWith('<html') || header.startsWith('<head') || header.startsWith('<body');
+      return HTML_FALLBACK_PREFIXES.some((prefix) => header.startsWith(prefix));
     };
 
     const monitorGameBoot = () => {
@@ -99,7 +101,7 @@
     const start = async () => {
       try {
         setStatus('Checking game ROM…');
-        const romResponse = await fetch(ROM_URL, { cache: 'no-store' });
+        const romResponse = await fetch(ROM_URL);
         if (!romResponse.ok) {
           throw new Error(`ROM request failed (${romResponse.status}).`);
         }

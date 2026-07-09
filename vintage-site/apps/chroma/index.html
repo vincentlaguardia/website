@@ -511,6 +511,19 @@
     box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
+  .techno-level-wrap{ position:relative; }
+  .techno-level-dropdown{
+    display:none;
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:2px;
+    min-width:60px;
+    z-index:25;
+    padding:2px;
+  }
+  .techno-level-dropdown.show{ display:block; }
+  .techno-level-dropdown .menu-option.active{ background:var(--navy); color:#fff; }
   .style-dropdown .menu-option.pastrami-disabled{
     color:var(--shadow);
     cursor:default;
@@ -598,6 +611,14 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
+          <div class="techno-level-wrap">
+            <button class="ctrl-btn" id="pastrami-level-btn" type="button" title="Techno Level">I</button>
+            <div class="techno-level-dropdown raised" id="pastrami-level-dropdown">
+              <div class="menu-option active" data-level="1">I</div>
+              <div class="menu-option" data-level="2">II</div>
+              <div class="menu-option" data-level="3">III</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -878,6 +899,7 @@
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
     document.getElementById('cc-style-dropdown').classList.remove('show');
+    document.getElementById('pastrami-level-dropdown').classList.remove('show');
   }
   menuItems.forEach(item=>{
     item.addEventListener('click', e=>{
@@ -1426,6 +1448,28 @@
       seed = randomSeed();
     }
     drawScene();
+  });
+  // Techno level button
+  let technoLevel = 1;
+  const pastramiLevelBtn = document.getElementById('pastrami-level-btn');
+  const pastramiLevelDropdown = document.getElementById('pastrami-level-dropdown');
+  const pastramiLevelOptions = pastramiLevelDropdown.querySelectorAll('.menu-option');
+  const TECHNO_LEVEL_LABELS = { 1:'I', 2:'II', 3:'III' };
+  pastramiLevelBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const isOpen = pastramiLevelDropdown.classList.contains('show');
+    closeAllMenus();
+    if(!isOpen) pastramiLevelDropdown.classList.add('show');
+  });
+  pastramiLevelOptions.forEach(opt=>{
+    opt.addEventListener('click', e=>{
+      e.stopPropagation();
+      technoLevel = +opt.dataset.level;
+      pastramiLevelBtn.textContent = TECHNO_LEVEL_LABELS[technoLevel];
+      pastramiLevelOptions.forEach(o=>o.classList.remove('active'));
+      opt.classList.add('active');
+      pastramiLevelDropdown.classList.remove('show');
+    });
   });
   rerollHueBtn.addEventListener('click', ()=>{
     importedMode = false;

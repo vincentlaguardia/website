@@ -1059,15 +1059,17 @@ const items = {
   interface:    { type: 'folder', name: 'I.N.T.E.R.F.A.C.E.', iconType: 'folder', syncFolder: 'content/desktop/interface', children: [], modified: '2026-07-08' }
 };
 
-/* ---------- user-created folders / reorganized folder contents (persisted) ----------
-   Folders the visitor creates themselves (via "New Folder") aren't part of the
-   hardcoded site map above, so they're kept in localStorage instead. On boot we
-   merge any saved custom folder definitions into `items`, then apply any saved
-   "children" overrides (full arrays) for folders whose contents have been
-   rearranged -- either because a new folder was added into them, or because an
-   item was dragged into a different folder. This runs BEFORE the trash system
-   below, so trash removals are always applied last / on top of the current
-   arrangement. */
+/* ---------- user-created / copied items + reorganized folder contents ----------
+   Anything the visitor creates or duplicates inside the virtual desktop is kept
+   in localStorage instead of the hardcoded site map above. On boot we merge any
+   saved custom item definitions into `items`, then apply any saved "children"
+   overrides (full arrays) for folders whose contents have been rearranged --
+   either because a new folder was added into them, because an item was moved,
+   or because a pasted copy was added into a different folder. This runs BEFORE
+   the trash system below, so trash removals are always applied last / on top of
+   the current arrangement. */
+// Legacy name kept for backwards compatibility with the existing
+// `site-custom-folders` storage key; it now holds all custom items, not just folders.
 let customFolders = {};
 try { customFolders = JSON.parse(localStorage.getItem('site-custom-folders') || '{}'); } catch (e) { customFolders = {}; }
 Object.keys(customFolders).forEach(id => { items[id] = customFolders[id]; });
@@ -1318,6 +1320,175 @@ function generateUniqueFolderName(parentId) {
     n++;
   }
   return name;
+}
+
+function generateUniqueCopiedItemName(parentId, originalName) {
+  const parent = items[parentId];
+  const existingNames = new Set((parent && parent.children || []).map(cid => items[cid] && items[cid].name).filter(Boolean));
+  let name = originalName + ' - Copy';
+  let n = 2;
+  while (existingNames.has(name)) {
+    name = originalName + ' - Copy (' + n + ')';
+    n++;
+  }
+  return name;
+}
+
+function generateCustomItemId(prefix) {
+  let id = '';
+  do {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      id = prefix + '_' + window.crypto.randomUUID().replace(/-/g, '_');
+    } else {
+      id = prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000000000);
+    }
+  } while (items[id]);
+  return id;
+}
+
+function deepCloneItemData(value) {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+function pushUniqueChildId(childId, seen, target) {
+  if (!items[childId] || seen.has(childId)) return;
+  seen.add(childId);
+  target.push(childId);
+}
+
+let virtualClipboard = null;
+
+function setClipboardItem(itemId) {
+  if (!items[itemId]) return;
+  virtualClipboard = { itemId: itemId };
+}
+
+function canPasteIntoFolder(parentId) {
+  return !!(
+    virtualClipboard &&
+    virtualClipboard.itemId &&
+    items[virtualClipboard.itemId] &&
+    items[parentId] &&
+    items[parentId].type === 'folder'
+  );
+}
+
+function removeCustomItemTree(id, skipPersist) {
+  const item = items[id];
+  if (item && Array.isArray(item.children)) {
+    item.children.slice().forEach(childId => removeCustomItemTree(childId, true));
+  }
+  delete items[id];
+  delete customFolders[id];
+  delete childrenOverrides[id];
+  delete folderViewModes[id];
+  delete folderIconPositions[id];
+  Object.keys(folderIconPositions).forEach(parentId => {
+    if (folderIconPositions[parentId]) delete folderIconPositions[parentId][id];
+  });
+  try { localStorage.removeItem('desktop-icon-pos-' + id); } catch (e) {}
+  if (openWindows[id]) closeWindow(id);
+  if (!skipPersist) {
+    saveCustomFolders();
+    saveFolderIconPositions();
+    localStorage.setItem('site-folder-view-modes', JSON.stringify(folderViewModes));
+  }
+}
+
+async function cloneItemForPaste(sourceId) {
+  const source = items[sourceId];
+  if (!source) return null;
+  if (source.type === 'folder') {
+    if (source.syncFolder) await loadSyncChildren(sourceId);
+    const cloneId = generateCustomItemId('copiedfolder');
+    const clone = deepCloneItemData(source);
+    clone.children = [];
+    clone.custom = true;
+    clone.modified = Date.now();
+    // Copies of synced folders become normal custom folders so pasted snapshots
+    // can diverge from the live manifest and keep any later moves/pastes.
+    delete clone.syncFolder;
+    items[cloneId] = clone;
+    customFolders[cloneId] = clone;
+    const childIds = Array.isArray(source.children) ? source.children.slice() : [];
+    for (const childId of childIds) {
+      const childCloneId = await cloneItemForPaste(childId);
+      if (childCloneId) clone.children.push(childCloneId);
+    }
+    return cloneId;
+  }
+  const cloneId = generateCustomItemId('copieditem');
+  const clone = deepCloneItemData(source);
+  clone.custom = true;
+  clone.modified = Date.now();
+  delete clone.children;
+  delete clone.syncFolder;
+  items[cloneId] = clone;
+  customFolders[cloneId] = clone;
+  return cloneId;
+}
+
+async function pasteClipboardInto(parentId, skipUndo) {
+  if (!canPasteIntoFolder(parentId)) return false;
+  const sourceId = virtualClipboard.itemId;
+  const parent = items[parentId];
+  if (!parent || !parent.children || !items[sourceId]) return false;
+  const originalChildren = parent.children.slice();
+  const cloneId = await cloneItemForPaste(sourceId);
+  if (!cloneId || !items[cloneId]) return false;
+  items[cloneId].name = generateUniqueCopiedItemName(parentId, items[sourceId].name);
+  items[cloneId].modified = Date.now();
+  if (customFolders[cloneId]) {
+    customFolders[cloneId].name = items[cloneId].name;
+    customFolders[cloneId].modified = items[cloneId].modified;
+  }
+  parent.children.push(cloneId);
+  saveCustomFolders();
+  persistFolderChildren(parentId);
+  if (!skipUndo) {
+    pushUndo(() => {
+      if (items[parentId] && items[parentId].children) {
+        items[parentId].children = originalChildren.slice();
+        persistFolderChildren(parentId);
+      }
+      removeCustomItemTree(cloneId);
+      refreshFolderView(parentId);
+      if (parentId === 'desktop') buildDesktopIcons();
+    });
+  }
+  refreshFolderView(parentId);
+  if (parentId === 'desktop') buildDesktopIcons();
+  return true;
+}
+
+function buildItemContextMenuEntries(itemId, parentId, renameAction) {
+  const item = items[itemId];
+  if (!item) return [];
+  const menuEntries = [
+    { label: 'Open', onClick: () => openChildItem(itemId, item, parentId) },
+    { label: 'Copy', onClick: () => setClipboardItem(itemId) }
+  ];
+  if (item.type === 'folder' && canPasteIntoFolder(itemId)) {
+    menuEntries.push({ label: 'Paste', onClick: () => pasteClipboardInto(itemId) });
+  }
+  if (item.custom && renameAction) {
+    menuEntries.push({ label: 'Rename', onClick: renameAction });
+  }
+  if (item.type === 'pdf') menuEntries.push({ label: 'Download', onClick: () => downloadItem(itemId) });
+  if (item.type === 'shortcut' && item.action === 'browser-url' && item.url) menuEntries.push({ label: 'Download', onClick: () => downloadUrlItem(item.url, item.name) });
+  if (item.type === 'audio') menuEntries.push({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
+  menuEntries.push({ label: 'Delete', onClick: () => deleteItem(itemId, parentId) });
+  return menuEntries;
+}
+
+function buildFolderBackgroundMenuEntries(parentId) {
+  const menuEntries = [];
+  if (canPasteIntoFolder(parentId)) {
+    menuEntries.push({ label: 'Paste', onClick: () => pasteClipboardInto(parentId) });
+  }
+  menuEntries.push({ label: 'New Folder', onClick: () => triggerNewFolder(parentId) });
+  return menuEntries;
 }
 
 // Fully removes a folder that was just created via createNewFolder --
@@ -2823,7 +2994,24 @@ async function loadSyncChildren(id) {
       }
       childIds.push(cid);
     }
-    item.children = childIds;
+    const overrideEntry = childrenOverrides[id];
+    const overrideChildren = Array.isArray(overrideEntry)
+      ? overrideEntry
+      : (overrideEntry && Array.isArray(overrideEntry.children) ? overrideEntry.children : null);
+    if (overrideChildren) {
+      const mergedChildren = [];
+      const seen = new Set();
+      overrideChildren.forEach(childId => {
+        pushUniqueChildId(childId, seen, mergedChildren);
+      });
+      childIds.forEach(childId => {
+        pushUniqueChildId(childId, seen, mergedChildren);
+      });
+      item.children = mergedChildren;
+      if (!Array.isArray(overrideEntry) && overrideEntry && overrideEntry.modified) item.modified = overrideEntry.modified;
+    } else {
+      item.children = childIds;
+    }
   } catch (e) {
     console.error('Could not load synced folder contents for', id, e);
     item.children = item.children || [];
@@ -3151,17 +3339,10 @@ function renderFolderContent(id) {
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      const menuEntries = [{ label: 'Delete', onClick: () => deleteItem(childId, id) }];
-      if (child.custom) {
-        menuEntries.unshift({ label: 'Rename', onClick: () => {
-          const label = el.querySelector('.label');
-          startInlineRename(label, childId, () => refreshFolderView(id));
-        } });
-      }
-      if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
-      if (child.type === 'shortcut' && child.action === 'browser-url' && child.url) menuEntries.unshift({ label: 'Download', onClick: () => downloadUrlItem(child.url, child.name) });
-      if (child.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(childId)) });
-      showContextMenu(e.clientX, e.clientY, menuEntries);
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, () => {
+        const label = el.querySelector('.label');
+        startInlineRename(label, childId, () => refreshFolderView(id));
+      }));
     });
     const savedPos = getFolderIconPosition(id, childId);
     const defaultPos = folderSlotPosition(index, childId, grid);
@@ -3176,9 +3357,7 @@ function renderFolderContent(id) {
   grid.addEventListener('contextmenu', e => {
     e.preventDefault();
     e.stopPropagation();
-    showContextMenu(e.clientX, e.clientY, [
-      { label: 'New Folder', onClick: () => triggerNewFolder(id) }
-    ]);
+    showContextMenu(e.clientX, e.clientY, buildFolderBackgroundMenuEntries(id));
   });
   return grid;
 }
@@ -3213,16 +3392,9 @@ function renderDetailsContent(id) {
     row.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      const menuEntries = [{ label: 'Delete', onClick: () => deleteItem(childId, id) }];
-      if (child.custom) {
-        menuEntries.unshift({ label: 'Rename', onClick: () => {
-          startInlineRename(row.querySelector('.label'), childId, () => refreshFolderView(id));
-        } });
-      }
-      if (child.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(childId) });
-      if (child.type === 'shortcut' && child.action === 'browser-url' && child.url) menuEntries.unshift({ label: 'Download', onClick: () => downloadUrlItem(child.url, child.name) });
-      if (child.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(childId)) });
-      showContextMenu(e.clientX, e.clientY, menuEntries);
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, () => {
+        startInlineRename(row.querySelector('.label'), childId, () => refreshFolderView(id));
+      }));
     });
     makeDraggableToTrash(row, () => deleteItem(childId, id), childId, id);
     tbody.appendChild(row);
@@ -3233,9 +3405,7 @@ function renderDetailsContent(id) {
   wrap.addEventListener('contextmenu', e => {
     e.preventDefault();
     e.stopPropagation();
-    showContextMenu(e.clientX, e.clientY, [
-      { label: 'New Folder', onClick: () => triggerNewFolder(id) }
-    ]);
+    showContextMenu(e.clientX, e.clientY, buildFolderBackgroundMenuEntries(id));
   });
   return wrap;
 }
@@ -4436,10 +4606,9 @@ function openWindow(id) {
     fileMenuItem.addEventListener('click', e => {
       e.stopPropagation();
       const rect = fileMenuItem.getBoundingClientRect();
-      showContextMenu(rect.left, rect.bottom, [
-        { label: 'New Folder', onClick: () => triggerNewFolder(id) },
-        { label: 'Close', onClick: () => closeWindow(id) }
-      ]);
+      const menuEntries = buildFolderBackgroundMenuEntries(id);
+      menuEntries.push({ label: 'Close', onClick: () => closeWindow(id) });
+      showContextMenu(rect.left, rect.bottom, menuEntries);
     });
 
     const viewMenuItem = menubar.querySelector('.menubar-view');
@@ -6163,16 +6332,9 @@ function buildDesktopIcons() {
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      const menuEntries = [{ label: 'Delete', onClick: () => deleteItem(itemId, 'desktop') }];
-      if (item.custom) {
-        menuEntries.unshift({ label: 'Rename', onClick: () => {
-          startInlineRename(el.querySelector('.label'), itemId, () => buildDesktopIcons());
-        } });
-      }
-      if (item.type === 'pdf') menuEntries.unshift({ label: 'Download', onClick: () => downloadItem(itemId) });
-      if (item.type === 'shortcut' && item.action === 'browser-url' && item.url) menuEntries.unshift({ label: 'Download', onClick: () => downloadUrlItem(item.url, item.name) });
-      if (item.type === 'audio') menuEntries.unshift({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
-      showContextMenu(e.clientX, e.clientY, menuEntries);
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(itemId, 'desktop', () => {
+        startInlineRename(el.querySelector('.label'), itemId, () => buildDesktopIcons());
+      }));
     });
     wrap.appendChild(el);
   });
@@ -6186,17 +6348,25 @@ function buildDesktopIcons() {
     wrap.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, [
-        { label: 'New Folder', onClick: () => {
+      const menuEntries = [];
+      if (canPasteIntoFolder('desktop')) {
+        menuEntries.push({ label: 'Paste', onClick: () => pasteClipboardInto('desktop') });
+      }
+      menuEntries.push({
+        label: 'New Folder',
+        onClick: () => {
           const newId = createNewFolder('desktop');
           if (!newId) return;
           buildDesktopIcons();
           const newEl = wrap.querySelector('.desktop-icon-item[data-item-id="' + newId + '"]');
           if (newEl) startInlineRename(newEl.querySelector('.label'), newId, () => buildDesktopIcons());
-        } },
+        }
+      });
+      menuEntries.push(
         { label: 'Change Background', onClick: openBackgroundPickerWindow },
         { label: 'Scheme', onClick: openSchemeWindow }
-      ]);
+      );
+      showContextMenu(e.clientX, e.clientY, menuEntries);
     });
   }
 

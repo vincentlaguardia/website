@@ -286,6 +286,18 @@
     position: absolute; top: 0; left: 0; transform-origin: top left;
   }
   .ie-window, .chroma-window, .echo-trail-window { resize: both; overflow: hidden; }
+  .colormixer95-window { overflow: hidden; }
+  .colormixer95-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    z-index: 10;
+    background:
+      linear-gradient(135deg, transparent 0 45%, #808080 45% 55%, transparent 55% 65%, #808080 65% 75%, transparent 75% 85%, #808080 85% 95%, transparent 95%);
+  }
   .chroma-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .echo-trail-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
@@ -6656,15 +6668,33 @@ function openColorMixer95Window() {
     return;
   }
   const win = document.createElement('div');
-  win.className = 'win98-window bevel-out';
+  win.className = 'win98-window bevel-out colormixer95-window';
   cascade = (cascade + 1) % 8;
   const taskbar = document.getElementById('taskbar');
   const taskbarHeight = taskbar ? taskbar.offsetHeight : 30;
   const availH = window.innerHeight - taskbarHeight;
-  const openW = Math.min(750, Math.max(400, window.innerWidth - 40));
-  const openH = Math.max(400, Math.round(availH * 0.95));
-  win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
-  win.style.top = (Math.max(0, Math.round((availH - openH) / 2)) + cascade * 18) + 'px';
+  const COLORMIXER95_BASE_W = 750;
+  const COLORMIXER95_BASE_H = 1000;
+  const COLORMIXER95_ASPECT = COLORMIXER95_BASE_W / COLORMIXER95_BASE_H;
+  const COLORMIXER95_CHROME_H = 20;
+  const minContentW = 320;
+  const minContentH = Math.round(minContentW / COLORMIXER95_ASPECT);
+  const maxContentW = Math.max(minContentW, window.innerWidth - 80);
+  const maxContentH = Math.max(minContentH, availH - 60 - COLORMIXER95_CHROME_H);
+  let contentW = Math.min(680, maxContentW);
+  let contentH = Math.round(contentW / COLORMIXER95_ASPECT);
+  if (contentH > maxContentH) {
+    contentH = maxContentH;
+    contentW = Math.round(contentH * COLORMIXER95_ASPECT);
+  }
+  const openW = contentW;
+  const openH = contentH + COLORMIXER95_CHROME_H;
+  const proposedLeft = Math.round((window.innerWidth - openW) / 2) + cascade * 20;
+  const proposedTop = Math.round((availH - openH) / 2) + cascade * 18;
+  const maxLeft = Math.max(0, window.innerWidth - openW);
+  const maxTop = Math.max(0, availH - openH);
+  win.style.left = Math.min(maxLeft, Math.max(0, proposedLeft)) + 'px';
+  win.style.top = Math.min(maxTop, Math.max(0, proposedTop)) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
   win.style.resize = 'none';
@@ -6685,9 +6715,12 @@ function openColorMixer95Window() {
   content.className = 'win98-content';
   content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
   content.innerHTML = `<iframe src="apps/colormixer95/colormixer95.html?embedded=1" title="colormixer95" style="border:0;width:100%;height:100%;background:#c0c0c0;"></iframe>`;
+  const resizeHandle = document.createElement('div');
+  resizeHandle.className = 'colormixer95-resize-handle';
 
   win.appendChild(titlebar);
   win.appendChild(content);
+  win.appendChild(resizeHandle);
   document.getElementById('desktop').appendChild(win);
 
   win.addEventListener('mousedown', () => bringToFront(id));
@@ -6695,6 +6728,37 @@ function openColorMixer95Window() {
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
   attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);
+  resizeHandle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    bringToFront(id);
+    const winState = openWindows[id];
+    if (winState && winState.maximized) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startContentW = Math.max(1, win.offsetWidth);
+    const startContentH = Math.max(1, win.offsetHeight - COLORMIXER95_CHROME_H);
+    function onResizeMove(ev) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      let nextContentW;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        nextContentW = (startContentH + dy) * COLORMIXER95_ASPECT;
+      } else {
+        nextContentW = startContentW + dx;
+      }
+      nextContentW = Math.max(minContentW, nextContentW);
+      const nextContentH = Math.round(nextContentW / COLORMIXER95_ASPECT);
+      win.style.width = Math.round(nextContentW) + 'px';
+      win.style.height = (nextContentH + COLORMIXER95_CHROME_H) + 'px';
+    }
+    function onResizeUp() {
+      document.removeEventListener('mousemove', onResizeMove);
+      document.removeEventListener('mouseup', onResizeUp);
+    }
+    document.addEventListener('mousemove', onResizeMove);
+    document.addEventListener('mouseup', onResizeUp);
+  });
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
   addTaskbarEntry(id, 'colormixer95', imgIcon(COLORMIXER95_SHORTCUT_ICON, 14));

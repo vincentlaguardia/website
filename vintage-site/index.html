@@ -6658,12 +6658,14 @@ function openColorMixer95Window() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
-  const openW = Math.min(640, Math.max(320, window.innerWidth - 80));
-  const openH = Math.min(520, Math.max(240, window.innerHeight - 120));
+  const openW = 750;
+  const openH = 1000;
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
   win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
+  win.style.resize = 'none';
+  win.style.overflow = 'hidden';
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';

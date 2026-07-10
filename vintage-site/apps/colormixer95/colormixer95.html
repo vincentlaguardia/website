@@ -25,7 +25,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:30px 12px 70px;
+    padding:30px 12px;
     user-select:none;
   }
 
@@ -46,9 +46,7 @@
   .window{ width:100%; }
   #mainWindow{
     width:750px; height:1000px;
-    min-width:420px; min-height:320px;
-    max-width:96vw; max-height:96vh;
-    resize:both; overflow:auto;
+    resize:none; overflow:hidden;
   }
   @media (max-width:460px){ #mainWindow{ width:100%; } }
   .titlebar{
@@ -203,50 +201,6 @@
   }
   .statuscell:last-child{flex:0 0 140px;}
 
-  /* ---- taskbar ---- */
-  .taskbar{
-    position:fixed;left:0;right:0;bottom:0;height:34px;
-    background:var(--face);
-    border-top:1px solid var(--hi);
-    display:flex;align-items:center;gap:8px;padding:0 4px;
-    z-index:50;
-  }
-  .startbtn{
-    display:flex;align-items:center;gap:5px;
-    padding:3px 10px 3px 6px;
-    font-weight:bold;font-size:12px;
-    background:var(--face);
-    border-top:1px solid var(--hi); border-left:1px solid var(--hi);
-    border-right:1px solid var(--darkshadow); border-bottom:1px solid var(--darkshadow);
-    box-shadow: inset 1px 1px 0 var(--lite);
-    cursor:pointer;
-  }
-  .startbtn:active{
-    border-top:1px solid var(--darkshadow); border-left:1px solid var(--darkshadow);
-    border-right:1px solid var(--hi); border-bottom:1px solid var(--hi);
-    box-shadow:none;
-  }
-  .startflag{
-    width:16px;height:16px;
-    background:conic-gradient(#f25022 0deg 90deg,#7fba00 90deg 180deg,#00a4ef 180deg 270deg,#ffb900 270deg 360deg);
-    border-radius:1px;
-  }
-  .taskbar .divider{width:2px;height:24px;border-left:1px solid var(--shadow);border-right:1px solid var(--hi);}
-  .taskitem{
-    display:flex;align-items:center;gap:6px;
-    padding:3px 10px;font-size:11.5px;
-    background:var(--face);
-    border-top:1px solid var(--shadow); border-left:1px solid var(--shadow);
-    border-right:1px solid var(--hi); border-bottom:1px solid var(--hi);
-    box-shadow: inset 1px 1px 0 rgba(0,0,0,0.08);
-  }
-  .clock{
-    margin-left:auto;
-    padding:4px 10px;font-size:11.5px;
-    border-top:1px solid var(--shadow); border-left:1px solid var(--shadow);
-    border-right:1px solid var(--hi); border-bottom:1px solid var(--hi);
-  }
-
   /* ---- modal ---- */
   .overlay{ position:fixed;inset:0;background:rgba(0,0,0,0); display:none;align-items:center;justify-content:center;z-index:100; }
   .overlay.show{display:flex;}
@@ -320,13 +274,6 @@
 
       <div class="modegrid" id="modeGrid"></div>
     </div>
-  </div>
-
-  <div class="taskbar">
-    <div class="startbtn"><span class="startflag"></span>Start</div>
-    <div class="divider"></div>
-    <div class="taskitem"><span class="icon">🎨</span>Color Mixer</div>
-    <div class="clock" id="clock">--:--</div>
   </div>
 
   <div class="overlay" id="overlay">
@@ -967,17 +914,6 @@ document.getElementById('paletteSaveDesktop').addEventListener('click', ()=>{
 document.getElementById('paletteSaveAs').addEventListener('click', ()=>{
   openSaveAsDialog(exportPaletteJSON(currentPaletteSwatches), 'palette-'+currentPaletteKey+'.json');
 });
-
-/* ---------- clock ---------- */
-function tick(){
-  const d = new Date();
-  let h = d.getHours();
-  const ampm = h>=12 ? 'PM':'AM';
-  h = h%12; if(h===0) h=12;
-  const m = String(d.getMinutes()).padStart(2,'0');
-  document.getElementById('clock').textContent = `${h}:${m} ${ampm}`;
-}
-tick(); setInterval(tick, 1000*15);
 
 /* ---------- generic info dialog ---------- */
 const overlay = document.getElementById('overlay');

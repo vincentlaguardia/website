@@ -610,7 +610,7 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
-          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Lock one diagonal band to the selected focus color" aria-label="Focus Mode" aria-pressed="false">Focus</button>
+          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Focus Mode: lock one diagonal band to the selected focus color" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
             <div class="color-swatch-wrap">
               <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
@@ -1304,6 +1304,7 @@
   let skewActive = false;
   let focusActive = false;
   let focusHex = '#bfbfbf';
+  // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
   }
@@ -1388,6 +1389,7 @@
   function roundToGradientPrecision(value){
     return Math.round(value * GRADIENT_KEY_PRECISION) / GRADIENT_KEY_PRECISION;
   }
+  // ITU-R BT.601 luma for choosing readable dark/light foreground text.
   function calculateLuma(rgb){
     return (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
   }
@@ -1664,15 +1666,21 @@
   const focusSwatchBtn = document.getElementById('cc-focus-swatch');
   const focusInput = document.getElementById('cc-focus-color');
   const focusIcon = document.getElementById('focus-icon');
-  function applySkewHex(hex){
-    skewInput.value = hex;
-    const rgb = hexToRgbObj(hex);
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
-    skewActive = true;
-    skewIcon.style.background = hex;
-    syncSkewButtonState();
+  function applyModeHex(hex, inputEl, iconEl, applyState){
+    inputEl.value = String(hex).toLowerCase();
+    const normalizedHex = inputEl.value;
+    iconEl.style.background = normalizedHex;
+    applyState(normalizedHex);
     drawScene();
+  }
+  function applySkewHex(hex){
+    applyModeHex(hex, skewInput, skewIcon, normalizedHex=>{
+      const rgb = hexToRgbObj(normalizedHex);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
+      skewActive = true;
+      syncSkewButtonState();
+    });
   }
   function syncSkewButtonState(){
     skewBtn.classList.toggle('is-active', skewActive);
@@ -1723,11 +1731,10 @@
     applySkewHex(skewInput.value);
   });
   function setFocusHex(hex){
-    focusInput.value = hex.toLowerCase();
-    focusHex = focusInput.value;
-    focusIcon.style.background = focusHex;
-    syncFocusButtonState();
-    drawScene();
+    applyModeHex(hex, focusInput, focusIcon, normalizedHex=>{
+      focusHex = normalizedHex;
+      syncFocusButtonState();
+    });
   }
   function syncFocusButtonState(){
     focusBtn.classList.toggle('is-active', focusActive);

@@ -146,6 +146,7 @@
     landReached = false;
     state = 'playing';
     stopEngineSounds();
+    stopCrashSounds();
     startEngineSounds();
   }
 
@@ -325,6 +326,7 @@
       updateExplosion(dt); // explosion keeps animating, but the city/ground hold still
       updatePlume(dt);
       updateVehicles(dt);
+      updateCrashAudio();
       if (crashTimer <= 0) state = 'dead';
       return;
     }
@@ -539,6 +541,9 @@
   var sndEngineOsc1 = null, sndEngineOsc2 = null, sndEngineGain = null;
   var sndWindSrc = null, sndWindGain = null;
   var sndEngineRunning = false;
+  var sndSirenOsc = null, sndSirenLfo = null, sndSirenGain = null;
+  var sndFireSrc = null, sndFireGain = null;
+  var sirenStarted = false, fireCrackleStarted = false, screamPlayed = false;
 
   function initAudio() {
     if (audioCtx) {
@@ -676,6 +681,124 @@
         osc.stop(audioCtx.currentTime + delay + 0.15);
       })(freqs[fi], fi * 0.12);
     }
+  }
+
+  function startSiren() {
+    if (!audioCtx || sirenStarted) return;
+    sirenStarted = true;
+    var t = audioCtx.currentTime;
+
+    sndSirenGain = audioCtx.createGain();
+    sndSirenGain.gain.setValueAtTime(0, t);
+    sndSirenGain.gain.linearRampToValueAtTime(0.12, t + 2.0);
+    sndSirenGain.connect(audioCtx.destination);
+
+    var lfoDepth = audioCtx.createGain();
+    lfoDepth.gain.setValueAtTime(150, t);
+
+    sndSirenLfo = audioCtx.createOscillator();
+    sndSirenLfo.type = 'sine';
+    sndSirenLfo.frequency.setValueAtTime(1.2, t);
+    sndSirenLfo.connect(lfoDepth);
+
+    sndSirenOsc = audioCtx.createOscillator();
+    sndSirenOsc.type = 'sawtooth';
+    sndSirenOsc.frequency.setValueAtTime(800, t);
+    lfoDepth.connect(sndSirenOsc.frequency);
+
+    var sirenFlt = audioCtx.createBiquadFilter();
+    sirenFlt.type = 'bandpass';
+    sirenFlt.frequency.setValueAtTime(900, t);
+    sirenFlt.Q.setValueAtTime(1.2, t);
+    sndSirenOsc.connect(sirenFlt);
+    sirenFlt.connect(sndSirenGain);
+
+    sndSirenLfo.start();
+    sndSirenOsc.start();
+  }
+
+  function stopSiren() {
+    if (sndSirenOsc) { try { sndSirenOsc.stop(); } catch (e) {} sndSirenOsc = null; }
+    if (sndSirenLfo) { try { sndSirenLfo.stop(); } catch (e) {} sndSirenLfo = null; }
+    sndSirenGain = null;
+    sirenStarted = false;
+  }
+
+  function startFireCrackle() {
+    if (!audioCtx || fireCrackleStarted) return;
+    fireCrackleStarted = true;
+    var t = audioCtx.currentTime;
+    var sr = audioCtx.sampleRate;
+    var fLen = sr * 2;
+    var fBuf = audioCtx.createBuffer(1, fLen, sr);
+    var fd = fBuf.getChannelData(0);
+    for (var i = 0; i < fLen; i++) {
+      fd[i] = (Math.random() * 2 - 1) * (Math.random() < 0.05 ? rand(3, 6) : 1);
+    }
+    sndFireSrc = audioCtx.createBufferSource();
+    sndFireSrc.buffer = fBuf;
+    sndFireSrc.loop = true;
+
+    var fireFlt = audioCtx.createBiquadFilter();
+    fireFlt.type = 'bandpass';
+    fireFlt.frequency.setValueAtTime(1200, t);
+    fireFlt.Q.setValueAtTime(0.6, t);
+
+    sndFireGain = audioCtx.createGain();
+    sndFireGain.gain.setValueAtTime(0, t);
+    sndFireGain.gain.linearRampToValueAtTime(0.07, t + 2.5);
+
+    sndFireSrc.connect(fireFlt);
+    fireFlt.connect(sndFireGain);
+    sndFireGain.connect(audioCtx.destination);
+    sndFireSrc.start();
+  }
+
+  function stopFireCrackle() {
+    if (sndFireSrc) { try { sndFireSrc.stop(); } catch (e) {} sndFireSrc = null; }
+    sndFireGain = null;
+    fireCrackleStarted = false;
+  }
+
+  function playScream() {
+    if (!audioCtx || screamPlayed) return;
+    screamPlayed = true;
+    var t = audioCtx.currentTime;
+    var dur = 3.2;
+    var sLen = Math.round(audioCtx.sampleRate * dur);
+    var sBuf = audioCtx.createBuffer(1, sLen, audioCtx.sampleRate);
+    var sd = sBuf.getChannelData(0);
+    for (var i = 0; i < sLen; i++) sd[i] = Math.random() * 2 - 1;
+    var screamSrc = audioCtx.createBufferSource(); screamSrc.buffer = sBuf;
+
+    var screamFlt = audioCtx.createBiquadFilter();
+    screamFlt.type = 'bandpass';
+    screamFlt.frequency.setValueAtTime(1600, t);
+    screamFlt.frequency.exponentialRampToValueAtTime(900, t + 1.2);
+    screamFlt.Q.setValueAtTime(5, t);
+
+    var screamGain = audioCtx.createGain();
+    screamGain.gain.setValueAtTime(0, t);
+    screamGain.gain.linearRampToValueAtTime(0.22, t + 0.15);
+    screamGain.gain.setValueAtTime(0.22, t + 0.8);
+    screamGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    screamSrc.connect(screamFlt); screamFlt.connect(screamGain); screamGain.connect(audioCtx.destination);
+    screamSrc.start();
+  }
+
+  function stopCrashSounds() {
+    stopSiren();
+    stopFireCrackle();
+    screamPlayed = false;
+  }
+
+  function updateCrashAudio() {
+    if (!audioCtx) return;
+    // dt is normalized to ~60fps; these thresholds map to ~1s, ~2s, and ~5s after crash
+    if (!screamPlayed && crashElapsed > 60) playScream();
+    if (!fireCrackleStarted && crashElapsed > 120) startFireCrackle();
+    if (!sirenStarted && crashElapsed > 300) startSiren();
   }
 
   // Emergency crews stream in for the whole 30-second crash sequence -

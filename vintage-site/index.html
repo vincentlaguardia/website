@@ -1063,7 +1063,7 @@
             <circle cx="6.5" cy="6.5" r="4" stroke="#000" stroke-width="1.5"/>
             <line x1="9.9" y1="9.9" x2="13.5" y2="13.5" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <input type="text" id="spotlight-input" placeholder="Type to search apps, actions..." autocomplete="off" spellcheck="false" aria-label="Search apps and actions" aria-autocomplete="list" aria-controls="spotlight-results">
+          <input type="text" id="spotlight-input" placeholder="Search apps, files, folders..." autocomplete="off" spellcheck="false" aria-label="Search apps and actions" aria-autocomplete="list" aria-controls="spotlight-results">
         </div>
         <div id="spotlight-results" role="listbox" aria-label="Search results"></div>
         <div class="spotlight-hint">&#x2191;&#x2193; navigate &nbsp;&nbsp; Enter open &nbsp;&nbsp; Esc close</div>
@@ -8027,6 +8027,7 @@ window.addEventListener('message', function(e) {
     Web:    '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6" fill="#1e88e5" stroke="#000" stroke-width="0.8"/><line x1="8" y1="2" x2="8" y2="14" stroke="#fff" stroke-width="1"/><line x1="2" y1="8" x2="14" y2="8" stroke="#fff" stroke-width="1"/></svg>',
     System: '<svg viewBox="0 0 16 16" width="16" height="16"><rect x="2" y="4" width="12" height="9" rx="1" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="5" y="12" width="6" height="2" fill="#808080"/></svg>',
     File:   '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 1 h7 l3 3 v11 H3 Z" fill="#fff" stroke="#000" stroke-width="0.8"/><path d="M10 1 v3 h3" fill="none" stroke="#000" stroke-width="0.8"/><line x1="5" y1="7" x2="11" y2="7" stroke="#888" stroke-width="0.8"/><line x1="5" y1="9.5" x2="11" y2="9.5" stroke="#888" stroke-width="0.8"/><line x1="5" y1="12" x2="9" y2="12" stroke="#888" stroke-width="0.8"/></svg>',
+    Recent: '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6" fill="none" stroke="#000" stroke-width="1"/><polyline points="8,4 8,8 11,10" stroke="#000" stroke-width="1" fill="none" stroke-linecap="round"/></svg>',
   };
 
   let selectedIndex = -1;
@@ -8034,6 +8035,39 @@ window.addEventListener('message', function(e) {
 
   // ---- dynamic file index (populated by fetching synced-folder manifests) ----
   let _fileIndexCache = null;
+  const RECENT_STORAGE_KEY = 'spotlight-recent';
+  const RECENT_MAX = 8;
+
+  function loadRecentItems() {
+    try {
+      const raw = localStorage.getItem(RECENT_STORAGE_KEY);
+      if (!raw) return [];
+      const stored = JSON.parse(raw); // array of {label, category, iconKey, _recentMeta}
+      return stored.map(s => {
+        let action;
+        if (s._recentMeta && s._recentMeta.type === 'file') {
+          const { folderId, filePath, fileName } = s._recentMeta;
+          action = () => openSpotlightFile(folderId, filePath, fileName);
+        } else {
+          // look up in static command list
+          const match = SPOTLIGHT_COMMANDS.find(c => c.label === s.label);
+          action = match ? match.action : () => {};
+        }
+        return { label: s.label, category: s.category, iconKey: s.iconKey || 'Recent', keywords: [], _recentMeta: s._recentMeta, action };
+      });
+    } catch (_) { return []; }
+  }
+
+  function saveRecentItem(cmd) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || '[]');
+      const entry = { label: cmd.label, category: cmd.category, iconKey: cmd.iconKey, _recentMeta: cmd._recentMeta || null };
+      const filtered = stored.filter(s => s.label !== cmd.label);
+      filtered.unshift(entry);
+      if (filtered.length > RECENT_MAX) filtered.length = RECENT_MAX;
+      localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(filtered));
+    } catch (_) {}
+  }
 
   async function buildSpotlightFileIndex() {
     if (_fileIndexCache !== null) return _fileIndexCache;
@@ -8055,6 +8089,7 @@ window.addEventListener('message', function(e) {
               category: folderLabel,
               iconKey: 'File',
               keywords: [stripExtension(e.name).toLowerCase(), folderLabel.toLowerCase()],
+              _recentMeta: { type: 'file', folderId, filePath, fileName: e.name },
               action: () => openSpotlightFile(folderId, filePath, e.name)
             });
           } else if (e.type === 'folder') {
@@ -8147,7 +8182,12 @@ window.addEventListener('message', function(e) {
       ? SPOTLIGHT_COMMANDS.concat(_fileIndexCache || [])
       : SPOTLIGHT_COMMANDS;
     if (!query.trim()) {
-      filteredCommands = allCommands.slice();
+      const recentItems = loadRecentItems();
+      if (recentItems.length > 0) {
+        filteredCommands = recentItems.map(r => Object.assign({}, r, { _isRecent: true }));
+      } else {
+        filteredCommands = allCommands.slice();
+      }
     } else {
       filteredCommands = allCommands
         .map(cmd => ({ cmd, score: matchScore(cmd, query) }))
@@ -8162,10 +8202,12 @@ window.addEventListener('message', function(e) {
     filteredCommands.forEach((cmd, i) => {
       const row = document.createElement('div');
       row.className = 'spotlight-result' + (i === selectedIndex ? ' selected' : '');
+      const displayCategory = cmd._isRecent ? 'Recent' : cmd.category;
+      const iconKey = cmd._isRecent ? 'Recent' : (cmd.iconKey || cmd.category);
       row.innerHTML =
-        '<span class="spotlight-result-icon">' + (ICONS[cmd.iconKey || cmd.category] || '') + '</span>' +
+        '<span class="spotlight-result-icon">' + (ICONS[iconKey] || '') + '</span>' +
         '<span class="spotlight-result-label">' + escapeHtml(cmd.label) + '</span>' +
-        '<span class="spotlight-result-category">' + escapeHtml(cmd.category) + '</span>';
+        '<span class="spotlight-result-category">' + escapeHtml(displayCategory) + '</span>';
       row.addEventListener('mousedown', e => {
         e.preventDefault(); // don't blur the input
         activateCommand(cmd);
@@ -8191,6 +8233,7 @@ window.addEventListener('message', function(e) {
   }
 
   function activateCommand(cmd) {
+    saveRecentItem(cmd);
     closeSpotlight();
     // Give the overlay time to close before opening windows
     setTimeout(() => { cmd.action(); }, 50);

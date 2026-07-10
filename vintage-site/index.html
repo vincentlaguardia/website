@@ -6989,11 +6989,18 @@ function openMyComputerWindow() {
     const sortMode = getCurrentSortMode();
     const indicator = col => sortMode === col ? ' ▲' : '';
     table.innerHTML = '<thead><tr>' +
-      '<th>Name' + indicator('name') + '</th>' +
-      '<th>Type' + indicator('type') + '</th>' +
-      '<th>Size' + indicator('size') + '</th>' +
-      '<th>Date Modified' + indicator('date') + '</th>' +
+      '<th data-sort="name" style="cursor:pointer;">Name' + indicator('name') + '</th>' +
+      '<th data-sort="type" style="cursor:pointer;">Type' + indicator('type') + '</th>' +
+      '<th data-sort="size" style="cursor:pointer;">Size' + indicator('size') + '</th>' +
+      '<th data-sort="date" style="cursor:pointer;">Date Modified' + indicator('date') + '</th>' +
       '</tr></thead>';
+    table.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        setCurrentSortMode(th.dataset.sort);
+        setNavState();
+        renderItems(currentEntries);
+      });
+    });
     const tbody = document.createElement('tbody');
 
     sorted.forEach(entry => {

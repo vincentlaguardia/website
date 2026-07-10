@@ -634,7 +634,7 @@
         </div>
         <div class="color-swatch-wrap">
           <button class="color-swatch-btn" id="cc-match-sat-swatch" type="button" title="Color being matched. Click to pick a custom color (sets source to User). Right-click to clear." aria-label="Match sat color swatch"><span class="color-icon" id="match-sat-icon"></span></button>
-          <input type="color" id="cc-match-sat-color" value="#bfbfbf" aria-labelledby="cc-match-sat cc-match-sat-swatch">
+          <input type="color" id="cc-match-sat-color" value="#bfbfbf" aria-label="Pick custom saturation source color">
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
@@ -1367,7 +1367,7 @@
   // --- Match Sat helpers ---
   function getMatchSatSourceRgb(){
     switch(matchSatSource){
-      case 'circles': return TARGET;
+      case 'circles': return { r:TARGET.r, g:TARGET.g, b:TARGET.b };
       case 'skew': return (skewColor !== null) ? hexToRgbObj(skewInput.value) : null;
       case 'buttons': return lastColor ? { r:lastColor.r, g:lastColor.g, b:lastColor.b } : null;
       case 'user': return matchSatUserColor ? { r:matchSatUserColor.r, g:matchSatUserColor.g, b:matchSatUserColor.b } : null;
@@ -1377,9 +1377,9 @@
   function applyMatchSat(){
     const rgb = getMatchSatSourceRgb();
     if(!rgb) return;
-    const targetSat = rgbToHsl(rgb.r, rgb.g, rgb.b).s;
+    const sourceSat = rgbToHsl(rgb.r, rgb.g, rgb.b).s;
     const satMin = +satSlider.min, satMax = +satSlider.max;
-    const pct = Math.max(satMin, Math.min(satMax, Math.round((targetSat/BASE_SAT)*100)));
+    const pct = Math.max(satMin, Math.min(satMax, Math.round((sourceSat/BASE_SAT)*100)));
     satSlider.value = pct;
     globalSatMul = pct/100;
   }
@@ -1628,8 +1628,6 @@
       e.stopPropagation();
       const src = opt.dataset.source;
       if(!src) return;
-      // Clear user color when switching away from user via dropdown
-      if(src !== 'user') matchSatUserColor = null;
       setMatchSatSource(src);
       matchSourceDropdown.classList.remove('show');
     });

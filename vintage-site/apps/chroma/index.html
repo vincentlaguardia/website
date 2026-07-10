@@ -1303,7 +1303,7 @@
   let skewColor = null;
   let skewActive = false;
   let focusActive = false;
-  let focusHex = '';
+  let focusHex = '#1fff8b';
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
@@ -1681,12 +1681,12 @@
     drawScene();
     return true;
   }
-  function applySkewHex(hex, activateSkew = true){
+  function applySkewHex(hex, shouldActivateSkew = true){
     applyModeHex(hex, skewInput, skewIcon, appliedHex=>{
       const rgb = hexToRgbObj(appliedHex);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
-      if(activateSkew){
+      if(shouldActivateSkew){
         skewActive = true;
       }
       syncSkewButtonState();

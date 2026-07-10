@@ -1298,6 +1298,8 @@
   let importedPalette = [];
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
+  const FOCUS_BAND_COUNT = 4;
+  const FOCUS_BAND_INDEX = 0;
   let skewColor = null;
   let skewActive = false;
   let focusActive = false;
@@ -1373,12 +1375,10 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
-  const FOCUS_BAND_COUNT = 4;
-  const FOCUS_BAND_INDEX = 0;
   const SKEW_ACTIVE_LUMA_R = 0.299;
   const SKEW_ACTIVE_LUMA_G = 0.587;
   const SKEW_ACTIVE_LUMA_B = 0.114;
-  const SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD = 0.6;
+  const ACTIVE_LUMA_DARK_TEXT_THRESHOLD = 0.6;
   const GRADIENT_KEY_PRECISION = 1000;
   const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
   let pastramiButtonGradientKey = '';
@@ -1387,6 +1387,9 @@
   }
   function roundToGradientPrecision(value){
     return Math.round(value * GRADIENT_KEY_PRECISION) / GRADIENT_KEY_PRECISION;
+  }
+  function calculateLuma(rgb){
+    return (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
   }
   function getPastramiButtonGradientKey(){
     if(shouldSkipPastramiGradient()) return '';
@@ -1678,9 +1681,9 @@
       const activeHex = skewInput.value;
       const rgb = hexToRgbObj(activeHex);
       // ITU-R BT.601 luma keeps label text readable over the active skew color.
-      const luma = (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
+      const luma = calculateLuma(rgb);
       skewBtn.style.setProperty('--skew-active-color', activeHex);
-      skewBtn.style.setProperty('--skew-active-text', luma > SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+      skewBtn.style.setProperty('--skew-active-text', luma > ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
     } else {
       skewBtn.style.removeProperty('--skew-active-color');
       skewBtn.style.removeProperty('--skew-active-text');
@@ -1731,9 +1734,9 @@
     focusBtn.setAttribute('aria-pressed', String(focusActive));
     if(focusActive){
       const rgb = hexToRgbObj(focusHex);
-      const luma = (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
+      const luma = calculateLuma(rgb);
       focusBtn.style.setProperty('--focus-active-color', focusHex);
-      focusBtn.style.setProperty('--focus-active-text', luma > SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+      focusBtn.style.setProperty('--focus-active-text', luma > ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
     } else {
       focusBtn.style.removeProperty('--focus-active-color');
       focusBtn.style.removeProperty('--focus-active-text');

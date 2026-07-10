@@ -456,13 +456,13 @@
     background:var(--focus-active-color, var(--face));
     color:var(--focus-active-text, #000);
   }
-  .skew-swatch-wrap{
+  .color-swatch-wrap{
     position:relative;
     width:var(--swatch-size);
     height:var(--swatch-size);
     flex:0 0 auto;
   }
-  .skew-swatch-btn{
+  .color-swatch-btn{
     -webkit-appearance:none;
     appearance:none;
     width:var(--swatch-size);
@@ -483,7 +483,15 @@
     opacity:0;
     pointer-events:none;
   }
-  .skew-icon{
+  #cc-focus-color{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    pointer-events:none;
+  }
+  .color-icon{
     display:block;
     width:100%; height:100%;
     border:none;
@@ -588,8 +596,8 @@
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
-          <div class="skew-swatch-wrap">
-            <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
+          <div class="color-swatch-wrap">
+            <button class="color-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="color-icon" id="skew-icon"></span></button>
             <input type="color" id="cc-skew-color" value="#bfbfbf">
           </div>
         </div>
@@ -604,8 +612,8 @@
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Lock one diagonal band to the selected focus color" aria-label="Focus Mode" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
-            <div class="skew-swatch-wrap">
-              <button class="skew-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color." aria-label="Choose focus color"><span class="skew-icon" id="focus-icon"></span></button>
+            <div class="color-swatch-wrap">
+              <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
               <input type="color" id="cc-focus-color" value="#bfbfbf">
             </div>
           </div>
@@ -1230,7 +1238,7 @@
     };
   }
   function zoneHex(zone){
-    if(focusActive && ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX){
+    if(focusActive && isInFocusBand(zone)){
       return focusHex;
     }
     const sourceColor = importedMode
@@ -1294,6 +1302,9 @@
   let skewActive = false;
   let focusActive = false;
   let focusHex = '#bfbfbf';
+  function isInFocusBand(zone){
+    return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
+  }
   function getTargetRadius(cw, ch){
     const cellMin = Math.min(cw, ch);
     const ratio = (DOT_SIZE_CONFIG[dotSizeMode] || DOT_SIZE_CONFIG[DEFAULT_DOT_SIZE_MODE]).radiusRatio;

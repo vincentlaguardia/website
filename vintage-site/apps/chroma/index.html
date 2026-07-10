@@ -2221,6 +2221,9 @@
   });
   // --- Sam Mode ---
   const SAM_SWATCH_COUNT = 9;
+  const SAM_DIVERSITY_HUE_WEIGHT = 0.7;
+  const SAM_DIVERSITY_SAT_WEIGHT = 0.15;
+  const SAM_DIVERSITY_LIGHT_WEIGHT = 0.15;
   enableDialogDragging(samDialog);
   function getSamZoneData(){
     return zones.map(function(zone){
@@ -2283,6 +2286,7 @@
     // Fill remaining slots by maximizing diversity from already-picked samples.
     const unpicked = candidates.filter(function(item){ return !pickedHexes.has(item.hex); });
     while(picked.length < SAM_SWATCH_COUNT && unpicked.length){
+      // Sentinel values: "no candidate chosen yet".
       let bestIdx = -1;
       let bestScore = -Infinity;
       for(let i = 0; i < unpicked.length; i++){
@@ -2293,7 +2297,7 @@
           const dHue = hueDist(item.hsl.h, chosen.hsl.h);
           const dSat = Math.abs(item.hsl.s - chosen.hsl.s);
           const dLight = Math.abs(item.hsl.l - chosen.hsl.l);
-          const d = dHue * 0.7 + dSat * 0.15 + dLight * 0.15;
+          const d = dHue * SAM_DIVERSITY_HUE_WEIGHT + dSat * SAM_DIVERSITY_SAT_WEIGHT + dLight * SAM_DIVERSITY_LIGHT_WEIGHT;
           if(d < score) score = d;
         }
         if(score > bestScore){

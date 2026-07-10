@@ -248,6 +248,47 @@
     border-right:1px solid var(--hi); border-bottom:1px solid var(--hi);
     box-shadow:none;
   }
+
+  /* ---- diary ---- */
+  .diary-lastswatch{
+    width:26px; height:26px; flex-shrink:0;
+    background:var(--face);
+    cursor:default;
+    align-self:center;
+  }
+  #diaryOverlay .imgdialog{ width:440px; max-width:92vw; }
+  .diary-winbody{
+    display:flex; flex-direction:column; padding:6px; flex:1; min-height:0; overflow:hidden;
+  }
+  .diary-grid{
+    display:grid; grid-template-columns:repeat(6,1fr);
+    gap:4px; padding:4px; overflow-y:auto; align-content:start;
+    max-height:360px; min-height:60px;
+  }
+  .diary-swatch{
+    position:relative; aspect-ratio:1; cursor:default;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    overflow:hidden; border:1px solid rgba(0,0,0,0.25);
+    padding:0 3px 4px; user-select:none;
+  }
+  .diary-swatch.empty{
+    background:var(--face) !important; border:1px dashed var(--shadow) !important; opacity:0.35;
+  }
+  .dsw-hex{ font-size:9px; font-weight:bold; text-align:center; line-height:1.3; word-break:break-all; }
+  .dsw-rgb{ font-size:8px; text-align:center; line-height:1.3; word-break:break-all; }
+  .diary-footer{
+    display:flex; align-items:center; gap:8px; padding:4px 4px 2px; flex:0 0 auto;
+  }
+  #cmDiaryCtxMenu{
+    position:fixed; z-index:250; min-width:140px; padding:2px; display:none;
+    background:var(--face);
+    border-top:1px solid var(--hi); border-left:1px solid var(--hi);
+    border-right:1px solid var(--darkshadow); border-bottom:1px solid var(--darkshadow);
+    box-shadow:inset 1px 1px 0 var(--lite), inset -1px -1px 0 var(--shadow);
+  }
+  .cm-menu-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; }
+  .cm-menu-option:hover{ background:var(--titleblue2); color:#fff; }
+  .cm-menu-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 var(--hi); margin:3px 2px; }
 </style>
 </head>
 <body>
@@ -281,6 +322,9 @@
             <input type="color" id="bgPicker" value="#000000" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
           </div>
           <button class="btn95" id="resetBgBtn">Default</button>
+          <div class="diary-lastswatch raised" id="diaryLastSwatch" title="Last clicked color — click any Venn diagram to pick a color"></div>
+          <button class="btn95" id="diaryAddBtn" title="Add last clicked color to diary">Add to Diary</button>
+          <button class="btn95" id="diaryOpenBtn">Diary</button>
         </div>
       </div>
 
@@ -352,6 +396,28 @@
         <button class="btn95" id="paletteDone">Close</button>
       </div>
     </div>
+  </div>
+
+  <div class="overlay" id="diaryOverlay">
+    <div class="window raised imgdialog" id="diaryWindow">
+      <div class="titlebar">
+        <div class="ttext"><span>Color Diary</span></div>
+        <div class="titlebtns"><div class="tbtn" id="diaryX">×</div></div>
+      </div>
+      <div class="diary-winbody">
+        <div id="diaryGrid" class="diary-grid"></div>
+        <div class="diary-footer">
+          <span id="diaryCount" style="font-size:11px;">0 / 36</span>
+          <button class="btn95" id="diaryClearBtn" style="margin-left:auto;">Clear All</button>
+          <button class="btn95" id="diaryExportBtn">Export JPG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="cmDiaryCtxMenu">
+    <div class="cm-menu-option" id="cmDiaryCopyHex">Copy Hex</div>
+    <div class="cm-menu-sep"></div>
+    <div class="cm-menu-option" id="cmDiaryDelete">Delete</div>
   </div>
 
 <script>
@@ -1056,6 +1122,163 @@ document.getElementById('importInput').addEventListener('change', (e)=>{
   if(!file) return;
   handleImageFile(file);
   e.target.value = '';
+});
+
+/* ---------- diary ---------- */
+const DIARY_KEY = 'chroma.diary';
+const DIARY_MAX = 36;
+const DIARY_EXPORT_COLS = 6;
+const DIARY_SW = 110, DIARY_SH = 110, DIARY_GAP = 6, DIARY_PAD = 16, DIARY_HEADER = 36;
+const DIARY_JPEG_QUALITY = 0.92;
+const LUM_R = 0.299, LUM_G = 0.587, LUM_B = 0.114, LUM_THRESH = 0.55;
+
+let diaryColors;
+try { diaryColors = JSON.parse(localStorage.getItem(DIARY_KEY)) || []; } catch(e) { diaryColors = []; }
+let diaryLastColor = null;
+let diaryCtxIdx = -1;
+let diaryCtxColor = null;
+
+function diarySwatchTextColor(r,g,b){
+  return (LUM_R*r + LUM_G*g + LUM_B*b)/255 > LUM_THRESH ? '#000' : '#fff';
+}
+
+function saveDiaryColors(){
+  localStorage.setItem(DIARY_KEY, JSON.stringify(diaryColors));
+}
+
+function renderDiary(){
+  const grid = document.getElementById('diaryGrid');
+  document.getElementById('diaryCount').textContent = diaryColors.length + ' / ' + DIARY_MAX;
+  grid.innerHTML = '';
+  diaryColors.forEach((c, idx)=>{
+    const tc = diarySwatchTextColor(c.r, c.g, c.b);
+    const div = document.createElement('div');
+    div.className = 'diary-swatch';
+    div.style.background = c.hex;
+    div.title = c.hex + ' — right-click to delete';
+    const hexSpan = document.createElement('span');
+    hexSpan.className = 'dsw-hex'; hexSpan.style.color = tc; hexSpan.textContent = c.hex;
+    const rgbSpan = document.createElement('span');
+    rgbSpan.className = 'dsw-rgb'; rgbSpan.style.color = tc; rgbSpan.textContent = c.r+','+c.g+','+c.b;
+    div.appendChild(hexSpan); div.appendChild(rgbSpan);
+    div.addEventListener('contextmenu', e=>{
+      e.preventDefault(); e.stopPropagation();
+      diaryCtxIdx = idx; diaryCtxColor = c;
+      const menu = document.getElementById('cmDiaryCtxMenu');
+      menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px';
+      menu.style.display = 'block';
+    });
+    grid.appendChild(div);
+  });
+  for(let i=diaryColors.length; i<DIARY_MAX; i++){
+    const div = document.createElement('div'); div.className = 'diary-swatch empty'; grid.appendChild(div);
+  }
+}
+
+function hideDiaryCtxMenu(){
+  document.getElementById('cmDiaryCtxMenu').style.display = 'none';
+  diaryCtxIdx = -1; diaryCtxColor = null;
+}
+
+function openDiary(){
+  renderDiary();
+  document.getElementById('diaryOverlay').classList.add('show');
+}
+
+function closeDiary(){
+  document.getElementById('diaryOverlay').classList.remove('show');
+  hideDiaryCtxMenu();
+}
+
+function addToDiary(color){
+  if(!color) return;
+  if(diaryColors.length >= DIARY_MAX){ openInfoDialog('Diary is full (' + DIARY_MAX + ' colors max). Delete some to add more.', 'Color Diary', ''); return; }
+  diaryColors.push({ hex: color.hex, r: color.r, g: color.g, b: color.b });
+  saveDiaryColors();
+  if(document.getElementById('diaryOverlay').classList.contains('show')) renderDiary();
+}
+
+function setLastClickedColor(r, g, b){
+  const hex = rgbToHex([r, g, b]);
+  diaryLastColor = { r, g, b, hex };
+  document.getElementById('diaryLastSwatch').style.background = hex;
+}
+
+// Click any Venn canvas to capture a color into the swatch
+MODE_ORDER.forEach(key=>{
+  const canvas = document.getElementById('venn_' + key);
+  canvas.style.cursor = 'crosshair';
+  canvas.addEventListener('click', e=>{
+    const rect = canvas.getBoundingClientRect();
+    const pixelX = Math.max(0, Math.min(canvas.width - 1, Math.floor((e.clientX - rect.left) * canvas.width / rect.width)));
+    const pixelY = Math.max(0, Math.min(canvas.height - 1, Math.floor((e.clientY - rect.top) * canvas.height / rect.height)));
+    const px = canvas.getContext('2d').getImageData(pixelX, pixelY, 1, 1).data;
+    setLastClickedColor(px[0], px[1], px[2]);
+  });
+});
+
+document.getElementById('diaryAddBtn').addEventListener('click', ()=> addToDiary(diaryLastColor));
+document.getElementById('diaryOpenBtn').addEventListener('click', openDiary);
+document.getElementById('diaryX').addEventListener('click', closeDiary);
+document.getElementById('diaryOverlay').addEventListener('click', e=>{ if(e.target.id === 'diaryOverlay') closeDiary(); });
+
+document.getElementById('diaryClearBtn').addEventListener('click', ()=>{
+  if(!diaryColors.length) return;
+  if(!confirm('Clear all diary colors?')) return;
+  diaryColors = []; saveDiaryColors(); renderDiary();
+});
+
+function diaryTimestampTag(){
+  const n = new Date();
+  return n.getFullYear() + String(n.getMonth()+1).padStart(2,'0') + String(n.getDate()).padStart(2,'0') + '-' +
+         String(n.getHours()).padStart(2,'0') + String(n.getMinutes()).padStart(2,'0') + String(n.getSeconds()).padStart(2,'0');
+}
+
+document.getElementById('diaryExportBtn').addEventListener('click', ()=>{
+  if(!diaryColors.length){ openInfoDialog('Diary is empty.', 'Color Diary', ''); return; }
+  const rows = Math.ceil(diaryColors.length / DIARY_EXPORT_COLS);
+  const cw = DIARY_EXPORT_COLS * DIARY_SW + (DIARY_EXPORT_COLS - 1) * DIARY_GAP + DIARY_PAD * 2;
+  const ch = rows * DIARY_SH + (rows - 1) * DIARY_GAP + DIARY_PAD * 2 + DIARY_HEADER;
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c0c0c0'; ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = '#000'; ctx.font = 'bold 13px Tahoma,Arial,sans-serif';
+  ctx.textAlign = 'left'; ctx.fillText('colormixer95 — Color Diary', DIARY_PAD, DIARY_PAD + 14);
+  diaryColors.forEach((color, i)=>{
+    const col = i % DIARY_EXPORT_COLS, row = Math.floor(i / DIARY_EXPORT_COLS);
+    const x = DIARY_PAD + col * (DIARY_SW + DIARY_GAP);
+    const y = DIARY_PAD + DIARY_HEADER + row * (DIARY_SH + DIARY_GAP);
+    ctx.fillStyle = color.hex; ctx.fillRect(x, y, DIARY_SW, DIARY_SH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, DIARY_SW-1, DIARY_SH-1);
+    const tc = diarySwatchTextColor(color.r, color.g, color.b);
+    ctx.fillStyle = tc; ctx.font = 'bold 10px Tahoma,Arial,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(color.hex, x + DIARY_SW/2, y + DIARY_SH/2 - 6);
+    ctx.font = '9px Tahoma,Arial,sans-serif'; ctx.fillText(color.r+','+color.g+','+color.b, x + DIARY_SW/2, y + DIARY_SH/2 + 8);
+  });
+  const link = document.createElement('a');
+  link.download = 'colormixer95-diary-' + diaryTimestampTag() + '.jpg';
+  link.href = c.toDataURL('image/jpeg', DIARY_JPEG_QUALITY);
+  link.click();
+});
+
+document.getElementById('cmDiaryCopyHex').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(diaryCtxColor) copyToClipboard(diaryCtxColor.hex);
+  hideDiaryCtxMenu();
+});
+document.getElementById('cmDiaryDelete').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(diaryCtxIdx >= 0){ diaryColors.splice(diaryCtxIdx, 1); saveDiaryColors(); renderDiary(); }
+  hideDiaryCtxMenu();
+});
+document.addEventListener('click', e=>{
+  if(!document.getElementById('cmDiaryCtxMenu').contains(e.target)) hideDiaryCtxMenu();
+});
+window.addEventListener('storage', e=>{
+  if(e.key === DIARY_KEY){
+    try{ diaryColors = JSON.parse(e.newValue) || []; }catch(err){ diaryColors = []; }
+    if(document.getElementById('diaryOverlay').classList.contains('show')) renderDiary();
+  }
 });
 
 /* ---------- init ---------- */

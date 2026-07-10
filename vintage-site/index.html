@@ -11,11 +11,11 @@
      ============================================================ */
 
 :root {
-    --acc-dark:  #0a246a;
-    --acc-light: #a6caf0;
-    --acc-mid:   #3a5090;
-    --acc-card1: #1a4d8f;
-    --acc-card2: #2a5da0;
+    --acc-dark:  #3b1c54;
+    --acc-light: #cebade;
+    --acc-mid:   #694785;
+    --acc-card1: #553172;
+    --acc-card2: #643c86;
   }
 
   * { box-sizing: border-box; }
@@ -3829,7 +3829,7 @@ function applyScheme(hex) {
 // Restore saved scheme on load
 (function() {
   const saved = localStorage.getItem('site-scheme-hex');
-  if (saved) applyScheme(saved);
+  applyScheme(saved || '#9868c0');
 })();
 
 function openSchemeWindow() {

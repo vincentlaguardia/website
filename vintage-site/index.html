@@ -846,6 +846,87 @@
   }
   .face-volume-row input { flex: 1; accent-color: #536ab5; }
 
+  /* ---- spotlight search ---- */
+  #spotlight-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    align-items: flex-start; justify-content: center;
+    z-index: 9000;
+    padding-top: 80px;
+  }
+  #spotlight-overlay.open { display: flex; }
+  #spotlight-box {
+    width: 420px;
+    background: #c0c0c0;
+    box-shadow:
+      inset -1px -1px 0 #0a0a0a,
+      inset  1px  1px 0 #ffffff,
+      inset -2px -2px 0 #808080,
+      inset  2px  2px 0 #dfdfdf;
+  }
+  #spotlight-titlebar {
+    height: 18px;
+    background: linear-gradient(90deg, var(--acc-dark), var(--acc-light) 92%);
+    color: #fff;
+    font-size: 11px; font-weight: bold;
+    display: flex; align-items: center; padding: 0 6px;
+    user-select: none;
+  }
+  #spotlight-body { padding: 6px 6px 4px; }
+  #spotlight-input-row {
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 2px;
+  }
+  #spotlight-input {
+    flex: 1;
+    padding: 3px 4px; font-family: inherit; font-size: 12px;
+    border: none;
+    box-shadow: inset 1px 1px 0 #0a0a0a, inset -1px -1px 0 #fff,
+                inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+    background: #fff;
+    outline: none;
+  }
+  #spotlight-results {
+    max-height: 240px; overflow-y: auto;
+  }
+  .spotlight-result {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 8px; font-size: 12px; cursor: default;
+    color: #000;
+  }
+  .spotlight-result.selected {
+    background: var(--acc-dark); color: #fff;
+  }
+  .spotlight-result-icon { flex: none; display: flex; align-items: center; justify-content: center; width: 18px; }
+  .spotlight-result-label { flex: 1; }
+  .spotlight-result-category { font-size: 10px; color: #666; margin-left: auto; white-space: nowrap; }
+  .spotlight-result.selected .spotlight-result-category { color: #b0c8f0; }
+  .spotlight-hint {
+    font-size: 10px; color: #666; padding: 3px 6px 2px;
+    box-shadow: inset 0 1px 0 #808080;
+    margin-top: 2px;
+  }
+  /* ---- search tray button ---- */
+  #spotlight-btn {
+    height: 24px; padding: 0 6px; display: flex; align-items: center; cursor: pointer;
+    font-size: 11px; gap: 3px;
+    box-shadow:
+      inset  1px  1px 0 #0a0a0a,
+      inset -1px -1px 0 #ffffff,
+      inset  2px  2px 0 #808080,
+      inset -2px -2px 0 #dfdfdf;
+    user-select: none;
+    white-space: nowrap;
+  }
+  #spotlight-btn:active {
+    box-shadow:
+      inset -1px -1px 0 #0a0a0a,
+      inset  1px  1px 0 #ffffff,
+      inset -2px -2px 0 #808080,
+      inset  2px  2px 0 #dfdfdf;
+  }
+
   </style>
 </head>
 <body>
@@ -926,6 +1007,12 @@
       <span>Start</span>
     </div>
     <div id="taskbar-sep"></div>
+    <div id="spotlight-btn" title="Search (Ctrl+Space)">
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="6.5" cy="6.5" r="4" stroke="#000" stroke-width="1.5"/>
+        <line x1="9.9" y1="9.9" x2="13.5" y2="13.5" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div id="taskbar-windows"></div>
     <div id="vol-btn" title="Volume">
       <svg id="vol-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -965,6 +1052,25 @@
     <div class="menu-item" id="menu-settings">Settings</div>
     <div class="menu-item" id="menu-shutdown">Shut Down...</div>
   </div>
+
+  <!-- ================= SPOTLIGHT SEARCH ================= -->
+  <div id="spotlight-overlay" role="dialog" aria-modal="true" aria-label="Search">
+    <div id="spotlight-box">
+      <div id="spotlight-titlebar">Search</div>
+      <div id="spotlight-body">
+        <div id="spotlight-input-row">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none;opacity:0.5">
+            <circle cx="6.5" cy="6.5" r="4" stroke="#000" stroke-width="1.5"/>
+            <line x1="9.9" y1="9.9" x2="13.5" y2="13.5" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="spotlight-input" placeholder="Type to search apps, actions..." autocomplete="off" spellcheck="false">
+        </div>
+        <div id="spotlight-results"></div>
+        <div class="spotlight-hint">&#x2191;&#x2193; navigate &nbsp;&nbsp; Enter open &nbsp;&nbsp; Esc close</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -7627,6 +7733,182 @@ window.addEventListener('message', function(e) {
     buildDesktopIcons();
   }
 });
+
+/* ================= SPOTLIGHT SEARCH ================= */
+(function () {
+  // Command registry — each entry: { label, category, keywords[], action() }
+  const SPOTLIGHT_COMMANDS = [
+    // Apps
+    { label: 'Solitaire',        category: 'App',     keywords: ['solitaire', 'cards', 'game'],           action: () => openSolitaireWindow() },
+    { label: 'Songs Player',     category: 'App',     keywords: ['songs', 'music', 'player', 'media', 'wmp'], action: () => openMediaPlayerWindow() },
+    { label: 'Internet Explorer',category: 'App',     keywords: ['browser', 'internet', 'explorer', 'ie', 'web'], action: () => openBrowserWindow() },
+    { label: 'Paint',            category: 'App',     keywords: ['paint', 'draw', 'art'],                 action: () => openPaintWindow() },
+    { label: 'chroma.exe',       category: 'App',     keywords: ['chroma', 'color', 'colour', 'palette'], action: () => openChromaWindow() },
+    { label: 'Off The Spectrum', category: 'App',     keywords: ['spectrum', 'frequency', 'music', 'sound'], action: () => openSpectrumWindow() },
+    { label: 'nyc_flight_sim',   category: 'App',     keywords: ['flight', 'sim', 'game', 'nyc', 'plane'], action: () => openFlightSimWindow() },
+    { label: 'Notes',            category: 'App',     keywords: ['notes', 'notepad', 'text', 'write'],    action: () => openNotepadWindow() },
+    { label: 'Echo Trail',       category: 'App',     keywords: ['echo', 'trail', 'draw', 'art'],         action: () => openEchoTrailWindow() },
+    { label: 'The Exorcist',     category: 'App',     keywords: ['exorcist', 'horror', 'game', 'pray'],   action: () => openExorcistWindow() },
+    // Navigation / destinations
+    { label: 'Documents',        category: 'Folder',  keywords: ['documents', 'files', 'folder'],         action: () => openWindow('documents') },
+    { label: 'Settings',         category: 'Action',  keywords: ['settings', 'preferences', 'config'],    action: () => openSettingsWindow() },
+    { label: 'Change Background',category: 'Action',  keywords: ['background', 'wallpaper', 'desktop'],   action: () => openBackgroundPickerWindow() },
+    // Useful web destinations via browser
+    { label: 'GitHub',           category: 'Web',     keywords: ['github', 'code', 'repos'],              action: () => openBrowserWindow('https://github.com/vincentlaguardia') },
+    // System actions
+    { label: 'Shut Down',        category: 'System',  keywords: ['shutdown', 'shut down', 'restart', 'reload', 'reboot'], action: () => location.reload() },
+  ];
+
+  // Icons (tiny inline SVGs matching win98 palette)
+  const ICONS = {
+    App:    '<svg viewBox="0 0 16 16" width="16" height="16"><rect x="2" y="2" width="12" height="12" rx="1" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="4" y="6" width="8" height="1.5" fill="#000"/><rect x="4" y="9" width="6" height="1.5" fill="#000"/></svg>',
+    Folder: '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M1 4 h5 l1.5 2 H15 V13 H1 Z" fill="#fbc02d" stroke="#000" stroke-width="0.8"/></svg>',
+    Action: '<svg viewBox="0 0 16 16" width="16" height="16"><polygon points="8,2 14,14 2,14" fill="#000080" stroke="#000" stroke-width="0.5"/></svg>',
+    Web:    '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6" fill="#1e88e5" stroke="#000" stroke-width="0.8"/><line x1="8" y1="2" x2="8" y2="14" stroke="#fff" stroke-width="1"/><line x1="2" y1="8" x2="14" y2="8" stroke="#fff" stroke-width="1"/></svg>',
+    System: '<svg viewBox="0 0 16 16" width="16" height="16"><rect x="2" y="4" width="12" height="9" rx="1" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="5" y="12" width="6" height="2" fill="#808080"/></svg>',
+  };
+
+  let selectedIndex = -1;
+  let filteredCommands = [];
+
+  function openSpotlight() {
+    const overlay = document.getElementById('spotlight-overlay');
+    const input = document.getElementById('spotlight-input');
+    overlay.classList.add('open');
+    input.value = '';
+    selectedIndex = -1;
+    renderResults('');
+    input.focus();
+  }
+
+  function closeSpotlight() {
+    document.getElementById('spotlight-overlay').classList.remove('open');
+  }
+
+  function isSpotlightOpen() {
+    return document.getElementById('spotlight-overlay').classList.contains('open');
+  }
+
+  function matchScore(cmd, query) {
+    const q = query.toLowerCase();
+    const label = cmd.label.toLowerCase();
+    const cat = cmd.category.toLowerCase();
+    if (label === q) return 100;
+    if (label.startsWith(q)) return 80;
+    if (label.includes(q)) return 60;
+    if (cmd.keywords.some(k => k.startsWith(q))) return 50;
+    if (cmd.keywords.some(k => k.includes(q))) return 30;
+    if (cat.includes(q)) return 10;
+    return -1;
+  }
+
+  function renderResults(query) {
+    const container = document.getElementById('spotlight-results');
+    if (!query.trim()) {
+      filteredCommands = SPOTLIGHT_COMMANDS.slice();
+    } else {
+      filteredCommands = SPOTLIGHT_COMMANDS
+        .map(cmd => ({ cmd, score: matchScore(cmd, query) }))
+        .filter(x => x.score >= 0)
+        .sort((a, b) => b.score - a.score)
+        .map(x => x.cmd);
+    }
+
+    if (selectedIndex >= filteredCommands.length) selectedIndex = filteredCommands.length - 1;
+
+    container.innerHTML = '';
+    filteredCommands.forEach((cmd, i) => {
+      const row = document.createElement('div');
+      row.className = 'spotlight-result' + (i === selectedIndex ? ' selected' : '');
+      row.innerHTML =
+        '<span class="spotlight-result-icon">' + (ICONS[cmd.category] || '') + '</span>' +
+        '<span class="spotlight-result-label">' + escapeHtml(cmd.label) + '</span>' +
+        '<span class="spotlight-result-category">' + escapeHtml(cmd.category) + '</span>';
+      row.addEventListener('mousedown', e => {
+        e.preventDefault(); // don't blur the input
+        activateCommand(cmd);
+      });
+      row.addEventListener('mousemove', () => {
+        selectedIndex = i;
+        highlightSelected();
+      });
+      container.appendChild(row);
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function highlightSelected() {
+    document.querySelectorAll('.spotlight-result').forEach((el, i) => {
+      el.classList.toggle('selected', i === selectedIndex);
+    });
+    const sel = document.querySelector('.spotlight-result.selected');
+    if (sel) sel.scrollIntoView({ block: 'nearest' });
+  }
+
+  function activateCommand(cmd) {
+    closeSpotlight();
+    // Give the overlay time to close before opening windows
+    setTimeout(() => { cmd.action(); }, 50);
+  }
+
+  // ---- keyboard shortcut ----
+  document.addEventListener('keydown', e => {
+    const isMac = navigator.platform.toUpperCase().includes('MAC');
+    const modKey = isMac ? e.metaKey : e.ctrlKey;
+    if (modKey && e.code === 'Space') {
+      // Don't fire if focus is in a text input (except the spotlight input itself)
+      const tag = document.activeElement && document.activeElement.tagName;
+      const isContentEditable = document.activeElement && document.activeElement.isContentEditable;
+      const isSpotlightInput = document.activeElement && document.activeElement.id === 'spotlight-input';
+      if (!isSpotlightInput && (tag === 'INPUT' || tag === 'TEXTAREA' || isContentEditable)) return;
+      e.preventDefault();
+      if (isSpotlightOpen()) {
+        closeSpotlight();
+      } else {
+        openSpotlight();
+      }
+      return;
+    }
+
+    if (!isSpotlightOpen()) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeSpotlight();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, filteredCommands.length - 1);
+      highlightSelected();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      highlightSelected();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const cmd = filteredCommands[selectedIndex] || filteredCommands[0];
+      if (cmd) activateCommand(cmd);
+    }
+  });
+
+  // ---- input: live filter ----
+  document.getElementById('spotlight-input').addEventListener('input', e => {
+    selectedIndex = 0;
+    renderResults(e.target.value);
+  });
+
+  // ---- click outside to close ----
+  document.getElementById('spotlight-overlay').addEventListener('mousedown', e => {
+    if (e.target === document.getElementById('spotlight-overlay')) closeSpotlight();
+  });
+
+  // ---- taskbar search button ----
+  document.getElementById('spotlight-btn').addEventListener('click', () => {
+    if (isSpotlightOpen()) closeSpotlight(); else openSpotlight();
+  });
+})();
 </script>
 </body>
 </html>

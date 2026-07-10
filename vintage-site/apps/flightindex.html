@@ -795,6 +795,7 @@
 
   function updateCrashAudio() {
     if (!audioCtx) return;
+    // dt is normalized to ~60fps; these thresholds map to ~1s, ~2s, and ~5s after crash
     if (!screamPlayed && crashElapsed > 60) playScream();
     if (!fireCrackleStarted && crashElapsed > 120) startFireCrackle();
     if (!sirenStarted && crashElapsed > 300) startSiren();

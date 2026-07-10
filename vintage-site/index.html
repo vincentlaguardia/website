@@ -1054,7 +1054,7 @@
   </div>
 
   <!-- ================= SPOTLIGHT SEARCH ================= -->
-  <div id="spotlight-overlay" role="dialog" aria-modal="true" aria-label="Search">
+  <div id="spotlight-overlay" role="dialog" aria-modal="true" aria-labelledby="spotlight-titlebar">
     <div id="spotlight-box">
       <div id="spotlight-titlebar">Search</div>
       <div id="spotlight-body">
@@ -1063,9 +1063,9 @@
             <circle cx="6.5" cy="6.5" r="4" stroke="#000" stroke-width="1.5"/>
             <line x1="9.9" y1="9.9" x2="13.5" y2="13.5" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          <input type="text" id="spotlight-input" placeholder="Type to search apps, actions..." autocomplete="off" spellcheck="false">
+          <input type="text" id="spotlight-input" placeholder="Type to search apps, actions..." autocomplete="off" spellcheck="false" aria-label="Search apps and actions" aria-autocomplete="list" aria-controls="spotlight-results">
         </div>
-        <div id="spotlight-results"></div>
+        <div id="spotlight-results" role="listbox" aria-label="Search results"></div>
         <div class="spotlight-hint">&#x2191;&#x2193; navigate &nbsp;&nbsp; Enter open &nbsp;&nbsp; Esc close</div>
       </div>
     </div>

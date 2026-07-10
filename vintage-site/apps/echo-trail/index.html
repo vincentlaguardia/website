@@ -265,9 +265,6 @@
             <input type="range" id="dither-levels" min="2" max="8" value="4">
             <span id="dither-levels-val">4</span>
           </div>
-          <div class="control-row">
-            <label><input type="checkbox" id="dither-grayscale"> Grayscale</label>
-          </div>
           <div class="control-row" style="--row-color:#8FC3E8;">
             <button type="button" class="item-toggle active" data-target="grain-intensity" data-off="0">Intensity</button>
             <input type="range" id="grain-intensity" min="0" max="100" value="35">
@@ -976,7 +973,7 @@
         type: 'ordered',
         matrixSize: 4,
         levels: rowVal('dither-levels'),
-        grayscale: $('dither-grayscale').checked
+        grayscale: false
       },
       grain:{
         intensity: rowVal('grain-intensity'),
@@ -1228,7 +1225,6 @@
     // Dither
     setRowActive('dither-levels', Math.random()>0.15);
     $('dither-levels').value = 2+Math.floor(Math.random()*6);
-    // dither-grayscale intentionally excluded from randomization
 
     // Film Grain
     setRowActive('grain-intensity', Math.random()>0.2);
@@ -1332,7 +1328,6 @@
     $('topo-strength').value=100;             setRowActive('topo-strength', false);
 
     $('dither-levels').value=4;               setRowActive('dither-levels', false);
-    setCheckboxRow('dither-grayscale', false);
 
     $('grain-intensity').value=35;            setRowActive('grain-intensity', true);
     $('grain-size').value=1;                  setRowActive('grain-size', true);
@@ -1444,9 +1439,6 @@
       const row = btn.closest('.control-row');
       if(row) row.classList.toggle('row-active', btn.classList.contains('active'));
     });
-    const gs = $('dither-grayscale');
-    const gsRow = gs.closest('.control-row');
-    if(gsRow) gsRow.classList.toggle('row-active', gs.checked);
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
@@ -1462,11 +1454,6 @@
     ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
-    $('dither-grayscale').addEventListener('change', ()=>{
-      const row = $('dither-grayscale').closest('.control-row');
-      if(row) row.classList.toggle('row-active', $('dither-grayscale').checked);
-      scheduleRender();
-    });
 
     // Each control row's name doubles as its own on/off switch
     document.querySelectorAll('.item-toggle').forEach(btn=>{

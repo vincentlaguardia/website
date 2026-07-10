@@ -2083,14 +2083,32 @@ function showContextMenu(x, y, menuEntries) {
       row.style.alignItems = 'center';
       row.appendChild(swatch);
       row.appendChild(document.createTextNode(entry.label));
+    } else if (entry.subMenu) {
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.gap = '16px';
+      row.appendChild(document.createTextNode(entry.label));
+      const arrow = document.createElement('span');
+      arrow.textContent = '\u25ba';
+      arrow.style.cssText = 'font-size:9px;opacity:0.7;align-self:center;flex-shrink:0;';
+      row.appendChild(arrow);
     } else {
       row.textContent = entry.label;
     }
-    row.addEventListener('click', e => {
-      e.stopPropagation();
-      closeContextMenu();
-      entry.onClick();
-    });
+    if (entry.subMenu) {
+      row.addEventListener('click', e => {
+        e.stopPropagation();
+        const rect = row.getBoundingClientRect();
+        closeContextMenu();
+        showContextMenu(rect.right + 2, rect.top, entry.subMenu);
+      });
+    } else if (entry.onClick) {
+      row.addEventListener('click', e => {
+        e.stopPropagation();
+        closeContextMenu();
+        entry.onClick();
+      });
+    }
     menu.appendChild(row);
   });
   document.body.appendChild(menu);
@@ -7287,6 +7305,46 @@ function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, item
   }
 }
 
+function cleanUpDesktopBySort(sortBy) {
+  const TYPE_ORDER = { folder: 0, text: 1, picture: 2, audio: 3, video: 4, pdf: 5, shortcut: 6 };
+  const children = items.desktop.children.slice();
+  children.sort((a, b) => {
+    const ia = items[a], ib = items[b];
+    if (!ia || !ib) return 0;
+    if (sortBy === 'name') {
+      const na = getItemDisplayName(a, ia).toLowerCase();
+      const nb = getItemDisplayName(b, ib).toLowerCase();
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    }
+    if (sortBy === 'type') {
+      const ta = TYPE_ORDER[ia.type] !== undefined ? TYPE_ORDER[ia.type] : 99;
+      const tb = TYPE_ORDER[ib.type] !== undefined ? TYPE_ORDER[ib.type] : 99;
+      if (ta !== tb) return ta - tb;
+      const na = getItemDisplayName(a, ia).toLowerCase();
+      const nb = getItemDisplayName(b, ib).toLowerCase();
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    }
+    if (sortBy === 'date') {
+      const da = String(ia.modified || '');
+      const db = String(ib.modified || '');
+      if (da !== db) return da > db ? -1 : 1;
+      const na = getItemDisplayName(a, ia).toLowerCase();
+      const nb = getItemDisplayName(b, ib).toLowerCase();
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    }
+    return 0;
+  });
+  // Reset trash to slot 0 (clean grid, no jitter)
+  const trashPos = desktopSlotPosition(0);
+  localStorage.setItem('desktop-icon-pos-trash', JSON.stringify({ left: trashPos.left, top: trashPos.top }));
+  // Assign clean slot positions (no seedKey = no jitter) starting from slot 1
+  children.forEach((itemId, index) => {
+    const pos = desktopSlotPosition(index + 1);
+    localStorage.setItem('desktop-icon-pos-' + itemId, JSON.stringify({ left: pos.left, top: pos.top }));
+  });
+  buildDesktopIcons();
+}
+
 function buildDesktopIcons() {
   const wrap = document.getElementById('desktop-icons');
   wrap.innerHTML = '';
@@ -7358,6 +7416,14 @@ function buildDesktopIcons() {
           const newEl = wrap.querySelector('.desktop-icon-item[data-item-id="' + newId + '"]');
           if (newEl) startInlineRename(newEl.querySelector('.label'), newId, () => buildDesktopIcons());
         }
+      });
+      menuEntries.push({
+        label: 'Arrange Icons By',
+        subMenu: [
+          { label: 'Name',          onClick: () => cleanUpDesktopBySort('name') },
+          { label: 'Type',          onClick: () => cleanUpDesktopBySort('type') },
+          { label: 'Date Modified', onClick: () => cleanUpDesktopBySort('date') }
+        ]
       });
       menuEntries.push(
         { label: 'Change Background', onClick: openBackgroundPickerWindow },

@@ -635,7 +635,7 @@
         </div>
         <div class="color-swatch-wrap">
           <button class="color-swatch-btn" id="cc-match-sat-swatch" type="button" title="Color being matched. Click to pick a custom color (sets source to User). Right-click to clear." aria-label="Match sat color swatch"><span class="color-icon" id="match-sat-icon"></span></button>
-          <input type="color" id="cc-match-sat-color" value="#bfbfbf" aria-label="Pick custom saturation source color">
+          <input type="color" id="cc-match-sat-color" value="#fbf432" aria-label="Pick custom saturation source color">
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
@@ -1370,7 +1370,7 @@
   // --- Match Sat helpers ---
   function getMatchSatSourceRgb(){
     switch(matchSatSource){
-      case 'circles': return userChangedTargetColor ? { r:TARGET.r, g:TARGET.g, b:TARGET.b } : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
+      case 'circles': return userChangedTargetColor ? TARGET : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
       case 'skew': return (skewColor !== null) ? hexToRgbObj(skewInput.value) : null;
       case 'buttons': return lastColor ? { r:lastColor.r, g:lastColor.g, b:lastColor.b } : null;
       case 'user': return matchSatUserColor ? { r:matchSatUserColor.r, g:matchSatUserColor.g, b:matchSatUserColor.b } : null;

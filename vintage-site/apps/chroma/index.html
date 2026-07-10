@@ -1389,7 +1389,7 @@
   function roundToGradientPrecision(value){
     return Math.round(value * GRADIENT_KEY_PRECISION) / GRADIENT_KEY_PRECISION;
   }
-  // ITU-R BT.601 luma for choosing readable dark/light foreground text.
+  // Calculates ITU-R BT.601 luma to choose readable dark/light foreground text.
   function calculateLuma(rgb){
     return (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
   }
@@ -1666,9 +1666,11 @@
   const focusSwatchBtn = document.getElementById('cc-focus-swatch');
   const focusInput = document.getElementById('cc-focus-color');
   const focusIcon = document.getElementById('focus-icon');
+  // Returns true when a value is a #RRGGBB color string.
   function isValidHexColor(hex){
     return /^#[0-9a-f]{6}$/i.test(hex);
   }
+  // Applies a validated color to a mode input/icon and then runs its state updater.
   function applyModeHex(hex, inputEl, iconEl, applyModeState){
     inputEl.value = String(hex).toLowerCase();
     const normalizedHex = inputEl.value;

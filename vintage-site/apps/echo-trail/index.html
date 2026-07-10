@@ -1084,9 +1084,20 @@
     reader.readAsDataURL(file);
   }
 
+  // Desktop-drop URLs may contain URI-encoded names; fall back to the raw value
+  // if decoding fails so a single bad escape sequence does not abort the import.
   function decodePathPart(value){
     try{ return decodeURIComponent(value); }
     catch(_){ return value; }
+  }
+
+  function sanitizeFileName(value, fallback){
+    const cleaned = String(value || '')
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^\.+$/, '');
+    return cleaned || fallback;
   }
 
   // ---------- Open Recent (localStorage-backed, this is a standalone saved
@@ -1414,7 +1425,7 @@
     const defaultName = 'echo-trail-' + timestampTag() + '.png';
     const raw = window.prompt('Export image to virtual desktop as:', defaultName);
     if(raw === null) return;
-    let fname = raw.trim() || defaultName;
+    let fname = sanitizeFileName(raw.trim() || defaultName, defaultName);
     if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.png';
     window.parent.postMessage({
       type: 'echo-trail-save-to-desktop',
@@ -1548,12 +1559,13 @@
       }
       try{
         if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
+        if(parsedUrl.pathname.split('/').includes('..')) throw new Error('Invalid desktop image path.');
         const res = await fetch(parsedUrl.href);
         if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
         const blob = await res.blob();
         if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
         const rawName = parsedUrl.pathname.split('/').pop().split('?')[0] || 'image';
-        const name = decodePathPart(rawName);
+        const name = sanitizeFileName(decodePathPart(rawName), 'image');
         loadImageFile(new File([blob], name, { type: blob.type }));
       } catch(err){
         console.warn('Desktop image drop failed.', err);

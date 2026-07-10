@@ -255,6 +255,8 @@
   .desktop-icon-item.chroma-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
   .chroma-diary-window { resize: both; overflow: hidden; }
   .chroma-diary-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
+  .chroma-sam-window { resize: both; overflow: hidden; }
+  .chroma-sam-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
 
   .folder-grid {
     display: grid;
@@ -6897,7 +6899,63 @@ function openChromaDiaryWindow() {
   bringToFront(id);
 }
 
-function openSolitaireWindow(startInProgress) {
+function openSamModeWindow() {
+  const id = 'chroma_sam';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out chroma-sam-window';
+  const openW = 420, openH = 540;
+  win.style.left = Math.max(0, Math.round((window.innerWidth - openW) / 2)) + 'px';
+  win.style.top = Math.max(0, Math.round((window.innerHeight - openH) / 2)) + 'px';
+  win.style.width = openW + 'px';
+  win.style.height = openH + 'px';
+  win.style.minWidth = '280px';
+  win.style.minHeight = '320px';
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">Sam Mode — chroma.exe</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
+  content.innerHTML = `<iframe class="chroma-sam-frame" src="apps/chroma/sam.html" title="Sam Mode — chroma.exe"></iframe>`;
+
+  win.appendChild(titlebar);
+  win.appendChild(content);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  makeDraggable(win, titlebar);
+
+  // Close when clicking outside the window (backdrop behavior).
+  function onOutsideClick(e) {
+    if (!win.contains(e.target)) {
+      closeWindow(id);
+    }
+  }
+  document.addEventListener('mousedown', onOutsideClick, true);
+  openWindows[id] = {
+    el: win,
+    minimized: false,
+    titlebarEl: titlebar,
+    cleanup: function() { document.removeEventListener('mousedown', onOutsideClick, true); }
+  };
+  addTaskbarEntry(id, 'Sam Mode', imgIcon(CHROMA_SHORTCUT_ICON, 14));
+  bringToFront(id);
+}
   console.log('%c[SOLITAIRE CODE VERSION: geometry-hit-test-v3]', 'color:#0f0;font-weight:bold;font-size:14px;');
   const id = 'solitaire';
   if (openWindows[id]) {
@@ -8270,9 +8328,11 @@ window.addEventListener('message', function(e) {
 
   const chromaFrame = document.querySelector('.chroma-frame');
   const diaryFrame = document.querySelector('.chroma-diary-frame');
+  const samFrame = document.querySelector('.chroma-sam-frame');
   const echoTrailFrame = document.querySelector('.echo-trail-frame');
   const isFromChroma = chromaFrame && e.source === chromaFrame.contentWindow;
   const isFromDiary = diaryFrame && e.source === diaryFrame.contentWindow;
+  const isFromSam = samFrame && e.source === samFrame.contentWindow;
   const isFromEchoTrail = echoTrailFrame && e.source === echoTrailFrame.contentWindow;
 
   if (e.data.type === 'chroma-open-diary' && isFromChroma) {
@@ -8283,7 +8343,15 @@ window.addEventListener('message', function(e) {
     closeWindow('chroma_diary');
     return;
   }
-  if (e.data.type === 'chroma-save-to-desktop' && (isFromChroma || isFromDiary)) {
+  if (e.data.type === 'chroma-open-sam' && isFromChroma) {
+    openSamModeWindow();
+    return;
+  }
+  if (e.data.type === 'chroma-sam-close' && isFromSam) {
+    closeWindow('chroma_sam');
+    return;
+  }
+  if (e.data.type === 'chroma-save-to-desktop' && (isFromChroma || isFromDiary || isFromSam)) {
     const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
     const dataUrl = String(e.data.dataUrl || '');
     const newId = 'chroma_' + Date.now();

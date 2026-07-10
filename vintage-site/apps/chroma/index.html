@@ -2486,8 +2486,24 @@
   }
 
   function openSamMode(){
-    renderSamMode();
-    samDialog.classList.add('show');
+    // Serialize current Sam state to localStorage so sam.html can render it.
+    const cells = SAM_CELLS.map(function(cell){
+      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
+      const hex = zoneHex(zone);
+      const rgb = hexToRgbObj(hex);
+      return { hex: hex, r: rgb.r, g: rgb.g, b: rgb.b };
+    });
+    const theoryHtml = buildSamTheoryHtml();
+    localStorage.setItem('chroma.sam-snapshot', JSON.stringify({ cells: cells, theoryHtml: theoryHtml }));
+
+    if(window.self !== window.top){
+      // Running inside the virtual desktop shell — ask it to open the Sam window.
+      window.parent.postMessage({ type: 'chroma-open-sam' }, window.location.origin);
+    } else {
+      // Standalone fallback: show the in-app dialog.
+      renderSamMode();
+      samDialog.classList.add('show');
+    }
   }
 
   function buildSamCanvas(){

@@ -2254,10 +2254,23 @@
           philoDesc = 'this is a monochromatic palette. all 9 swatches come from the same color family, centered at hue ' + Math.round(baseHue) + '\u00b0. the only things changing are how light or dark each swatch is, and how vivid or muted it appears. think of it like looking at one color through different kinds of light.';
           philoExtra = 'look at swatch 1 in the top left (' + hexes[0] + ') versus swatch 9 in the bottom right (' + hexes[8] + '). that gap shows just how far a single hue can travel when you adjust its brightness and intensity. this kind of palette tends to feel calm and cohesive since no competing color is fighting for attention.';
           break;
-        case 1:
-          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses colors that sit close together on the color wheel, within about 30\u00b0 of each other. because they are neighbors, they feel naturally harmonious, almost like the colors you would see together in a sunset or a forest.';
+        case 1: {
+          const h = ((baseHue % 360) + 360) % 360;
+          let analogNature;
+          if (h < 20 || h >= 345) analogNature = 'a sunset sky full of deep reds and crimsons';
+          else if (h < 50) analogNature = 'an autumn forest at golden hour';
+          else if (h < 75) analogNature = 'a sun-lit wheat field in late afternoon';
+          else if (h < 105) analogNature = 'a meadow in early spring';
+          else if (h < 150) analogNature = 'a dense green forest canopy';
+          else if (h < 195) analogNature = 'a shallow coastal bay at midday';
+          else if (h < 250) analogNature = 'a clear open sky over the ocean';
+          else if (h < 285) analogNature = 'the deep blue hour just before dawn';
+          else if (h < 320) analogNature = 'a twilight sky fading from purple to indigo';
+          else analogNature = 'a field of wildflowers at dusk';
+          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses colors that sit close together on the color wheel, within about 30\u00b0 of each other. because they are neighbors, they feel naturally harmonious, almost like the colors you would see together in ' + analogNature + '.';
           philoExtra = 'look across the top row from swatch 1 (' + hexes[0] + ') to swatch 3 (' + hexes[2] + ') to trace that gentle shift. the variation you notice here comes mostly from differences in brightness and intensity rather than big hue changes, which is what keeps the whole palette feeling like it belongs together.';
           break;
+        }
         case 2:
           philoDesc = 'this is a complementary palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses two colors that sit directly across from each other on the color wheel, as far apart as any two colors can be. when placed next to each other, they make each other look more vivid and intense. it is a high-energy combination.';
           philoExtra = 'swatch 1 in the top left (' + hexes[0] + ') and swatch 5 in the center (' + hexes[4] + ') are a good place to feel that push and pull. the contrast between them is the whole point. complementary palettes are designed to create visual tension, which can feel bold or even a little aggressive.';

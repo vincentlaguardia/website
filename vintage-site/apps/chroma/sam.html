@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sam Mode — chroma.exe</title>
+<style>
+  :root{
+    --face:#c0c0c0;
+    --shadow:#808080;
+    --dark:#000000;
+    --hi:#dfdfdf;
+    --white:#ffffff;
+    --navy:#000080;
+    --teal:#008080;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--teal);
+    font-family:Tahoma,'MS Sans Serif','Segoe UI',Arial,sans-serif;
+    font-size:12px;
+    color:#000;
+    -webkit-font-smoothing:none;
+  }
+  .raised{
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  #desktop{
+    min-height:100vh;
+    padding:0;
+    display:flex;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  .window{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    min-width:0;
+    min-height:0;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    padding:3px;
+  }
+  .titlebar{
+    background:var(--navy);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:3px 4px 3px 6px;
+    font-weight:bold;
+    font-size:13px;
+    letter-spacing:.2px;
+    flex:0 0 auto;
+    cursor:default;
+  }
+  .titlebar-left{ display:flex; align-items:center; gap:6px; overflow:hidden; }
+  .titlebar-left span:last-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .titlebar-icon{
+    width:14px; height:14px; flex:0 0 auto;
+    background:linear-gradient(135deg,#ff4d4d,#ffd24d,#4dd2ff,#9b59ff);
+    border:1px solid #000;
+  }
+  .titlebar-btns{ display:flex; gap:2px; flex:0 0 auto; }
+  .tbtn{
+    width:16px; height:14px;
+    font-size:10px; line-height:12px;
+    text-align:center;
+    background:var(--face);
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--hi);
+    user-select:none;
+  }
+  .tbtn:active{ box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white); }
+  .winbody{
+    padding:6px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow:hidden;
+  }
+  .sam-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:4px;
+    padding:4px;
+    flex-shrink:0;
+  }
+  .sam-swatch{
+    position:relative;
+    aspect-ratio:1;
+    cursor:default;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    overflow:hidden;
+    border:1px solid rgba(0,0,0,0.25);
+    padding:0 3px 4px;
+    user-select:none;
+  }
+  .dsw-hex{
+    font-size:9px;
+    font-weight:bold;
+    text-align:center;
+    line-height:1.3;
+    word-break:break-all;
+  }
+  .dsw-rgb{
+    font-size:8px;
+    text-align:center;
+    line-height:1.3;
+    word-break:break-all;
+  }
+  #sam-theory{
+    padding:8px 4px 4px;
+    font-size:12px;
+    line-height:1.6;
+    border-top:1px solid var(--shadow);
+    margin-top:4px;
+    overflow-y:auto;
+    flex:1;
+    min-height:0;
+  }
+  #sam-theory p{ margin:0 0 10px; }
+  #sam-theory p:last-child{ margin-bottom:0; }
+  .footer{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:4px 4px 2px;
+    flex:0 0 auto;
+  }
+  button.win-btn{
+    font-family:inherit;
+    font-size:12px;
+    padding:5px 12px;
+    background:var(--face);
+    border:none;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  button.win-btn:active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  /* embedded mode: loaded inside an iframe in the virtual desktop */
+  html.embedded, body.embedded{ background:var(--face); }
+  body.embedded #desktop{ height:100vh; padding:0; align-items:stretch; justify-content:stretch; }
+  body.embedded .window{ width:100%; max-width:100%; min-width:0; min-height:0; flex:1; box-shadow:none; }
+  body.embedded .titlebar{ display:none; }
+</style>
+</head>
+<body>
+<script>if(window.self !== window.top){ document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
+<div id="desktop">
+  <div class="window">
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <span class="titlebar-icon"></span>
+        <span>Sam Mode — chroma.exe</span>
+      </div>
+      <div class="titlebar-btns">
+        <div class="tbtn" id="btn-close" title="Close">X</div>
+      </div>
+    </div>
+    <div class="winbody">
+      <div id="sam-grid" class="sam-grid"></div>
+      <div id="sam-theory"></div>
+      <div class="footer">
+        <button class="win-btn" id="sam-export">Export JPG</button>
+        <button class="win-btn" id="sam-export-full">Export Full</button>
+        <button class="win-btn" id="sam-save-desktop" style="margin-left:auto;">Save to Desktop</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const SAM_KEY = 'chroma.sam-snapshot';
+  const EXPORT_QUALITY = 0.92;
+
+  function loadSnapshot(){
+    try{ return JSON.parse(localStorage.getItem(SAM_KEY)) || null; }
+    catch(e){ return null; }
+  }
+
+  function swatchTextColor(r,g,b){
+    return (0.299*r + 0.587*g + 0.114*b)/255 > 0.55 ? '#000' : '#fff';
+  }
+
+  function renderSam(){
+    const snap = loadSnapshot();
+    const grid = document.getElementById('sam-grid');
+    const theoryEl = document.getElementById('sam-theory');
+    grid.innerHTML = '';
+    theoryEl.innerHTML = '';
+    if(!snap || !snap.cells){ theoryEl.innerHTML = '<p>No Sam Mode data found. Open Sam Mode from chroma.exe first.</p>'; return; }
+    snap.cells.forEach(function(c){
+      const tc = swatchTextColor(c.r, c.g, c.b);
+      const div = document.createElement('div');
+      div.className = 'sam-swatch';
+      div.style.background = c.hex;
+      div.title = c.hex;
+      const hexSpan = document.createElement('span');
+      hexSpan.className = 'dsw-hex'; hexSpan.style.color = tc; hexSpan.textContent = c.hex;
+      const rgbSpan = document.createElement('span');
+      rgbSpan.className = 'dsw-rgb'; rgbSpan.style.color = tc; rgbSpan.textContent = c.r+','+c.g+','+c.b;
+      div.appendChild(hexSpan); div.appendChild(rgbSpan);
+      grid.appendChild(div);
+    });
+    if(snap.theoryHtml) theoryEl.innerHTML = snap.theoryHtml;
+  }
+
+  function timestampTag(){
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const dd = String(now.getDate()).padStart(2,'0');
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mi = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+  }
+
+  function buildSamCanvas(){
+    const snap = loadSnapshot();
+    if(!snap || !snap.cells) return null;
+    const COLS = 3, ROWS = 3;
+    const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
+    const cw = COLS * SW + (COLS - 1) * GAP + PAD * 2;
+    const ch = ROWS * SH + (ROWS - 1) * GAP + PAD * 2 + HEADER;
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#c0c0c0';
+    cx.fillRect(0, 0, cw, ch);
+    cx.fillStyle = '#000000';
+    cx.font = 'bold 13px Tahoma,Arial,sans-serif';
+    cx.textAlign = 'left';
+    cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
+    snap.cells.forEach(function(cell, i){
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = PAD + col * (SW + GAP);
+      const y = PAD + HEADER + row * (SH + GAP);
+      cx.fillStyle = cell.hex;
+      cx.fillRect(x, y, SW, SH);
+      cx.strokeStyle = 'rgba(0,0,0,0.22)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
+      const tc = swatchTextColor(cell.r, cell.g, cell.b);
+      cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(cell.hex, x + SW / 2, y + SH / 2 - 6);
+      cx.font = '9px Tahoma,Arial,sans-serif';
+      cx.fillText(cell.r + ',' + cell.g + ',' + cell.b, x + SW / 2, y + SH / 2 + 8);
+    });
+    return c;
+  }
+
+  function buildSamFullCanvas(){
+    const snap = loadSnapshot();
+    if(!snap || !snap.cells) return null;
+    const COLS = 3, ROWS = 3;
+    const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
+    const CANVAS_W = 470;
+    const TEXT_FONT = '12px Tahoma,Arial,sans-serif';
+    const LINE_H = 17;
+    const PARA_GAP = 8;
+    const MAX_TEXT_W = CANVAS_W - PAD * 2;
+    const html = snap.theoryHtml || '';
+    const paraTexts = [];
+    html.replace(/<p>([\s\S]*?)<\/p>/g, function(_, content){ paraTexts.push(content); });
+    const tmpC = document.createElement('canvas');
+    const tmpCx = tmpC.getContext('2d');
+    tmpCx.font = TEXT_FONT;
+    function wrapText(text, maxW){
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+      for(let i = 0; i < words.length; i++){
+        const test = line ? line + ' ' + words[i] : words[i];
+        if(tmpCx.measureText(test).width > maxW && line){ lines.push(line); line = words[i]; }
+        else { line = test; }
+      }
+      if(line) lines.push(line);
+      return lines;
+    }
+    const wrappedParas = paraTexts.map(function(p){ return wrapText(p, MAX_TEXT_W); });
+    const totalTextH = wrappedParas.reduce(function(acc, lines){ return acc + lines.length * LINE_H + PARA_GAP; }, 0);
+    const gridH = ROWS * SH + (ROWS - 1) * GAP;
+    const ch = PAD + HEADER + gridH + PAD + totalTextH + PAD;
+    const c = document.createElement('canvas');
+    c.width = CANVAS_W; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#c0c0c0';
+    cx.fillRect(0, 0, CANVAS_W, ch);
+    cx.fillStyle = '#000000';
+    cx.font = 'bold 13px Tahoma,Arial,sans-serif';
+    cx.textAlign = 'left';
+    cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
+    snap.cells.forEach(function(cell, i){
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = PAD + col * (SW + GAP);
+      const y = PAD + HEADER + row * (SH + GAP);
+      cx.fillStyle = cell.hex;
+      cx.fillRect(x, y, SW, SH);
+      cx.strokeStyle = 'rgba(0,0,0,0.22)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
+      const tc = swatchTextColor(cell.r, cell.g, cell.b);
+      cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(cell.hex, x + SW / 2, y + SH / 2 - 6);
+      cx.font = '9px Tahoma,Arial,sans-serif';
+      cx.fillText(cell.r + ',' + cell.g + ',' + cell.b, x + SW / 2, y + SH / 2 + 8);
+    });
+    cx.fillStyle = '#222222';
+    cx.font = TEXT_FONT;
+    cx.textAlign = 'left';
+    let ty = PAD + HEADER + gridH + PAD + LINE_H;
+    wrappedParas.forEach(function(lines){
+      lines.forEach(function(line){ cx.fillText(line, PAD, ty); ty += LINE_H; });
+      ty += PARA_GAP;
+    });
+    return c;
+  }
+
+  // Close button
+  document.getElementById('btn-close').addEventListener('click', function(){
+    if(window.self !== window.top){
+      window.parent.postMessage({ type: 'chroma-sam-close' }, window.location.origin);
+    } else {
+      window.close();
+    }
+  });
+
+  // Export JPG (grid only)
+  document.getElementById('sam-export').addEventListener('click', function(){
+    const c = buildSamCanvas();
+    if(!c){ alert('No Sam Mode data. Open Sam Mode from chroma.exe first.'); return; }
+    const link = document.createElement('a');
+    link.download = 'chroma-sam-mode-' + timestampTag() + '.jpg';
+    link.href = c.toDataURL('image/jpeg', EXPORT_QUALITY);
+    link.click();
+  });
+
+  // Export Full (grid + theory text)
+  document.getElementById('sam-export-full').addEventListener('click', function(){
+    const c = buildSamFullCanvas();
+    if(!c){ alert('No Sam Mode data. Open Sam Mode from chroma.exe first.'); return; }
+    const link = document.createElement('a');
+    link.download = 'chroma-sam-full-' + timestampTag() + '.jpg';
+    link.href = c.toDataURL('image/jpeg', EXPORT_QUALITY);
+    link.click();
+  });
+
+  // Save to Desktop
+  document.getElementById('sam-save-desktop').addEventListener('click', function(){
+    if(window.self === window.top){
+      alert('Save to Desktop is only available when chroma.exe is open inside the virtual desktop.');
+      return;
+    }
+    const c = buildSamCanvas();
+    if(!c){ alert('No Sam Mode data.'); return; }
+    const defaultName = 'chroma-sam-mode-' + timestampTag() + '.jpg';
+    const raw = window.prompt('Save Sam Mode to virtual desktop as:', defaultName);
+    if(raw === null) return;
+    let fname = raw.trim() || defaultName;
+    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.jpg';
+    window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl: c.toDataURL('image/jpeg', EXPORT_QUALITY) }, window.location.origin);
+  });
+
+  // Refresh when chroma writes a new snapshot
+  window.addEventListener('storage', function(e){
+    if(e.key === SAM_KEY) renderSam();
+  });
+
+  // Initial render
+  renderSam();
+})();
+</script>
+</body>
+</html>

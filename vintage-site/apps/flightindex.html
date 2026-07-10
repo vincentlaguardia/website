@@ -94,9 +94,9 @@
   // ---- State ----
   var state = 'ready'; // ready | playing | dead
   var plane = { x: 46, y: H / 2, w: 50, h: 28, vy: 0 };
-  var GRAVITY = 0.096; // 40% gentler than before, so the plane is easier to control
+  var GRAVITY = 0.065; // lighter gravity for easier, more relaxed controls
   var THRUST = -0.204; // 40% gentler than before, so the plane is easier to control
-  var MAX_VY = 1.56; // 40% lower cap so it can't fling itself around as fast
+  var MAX_VY = 1.2; // lower cap so the plane doesn't plummet too fast
 
   var buildings = [];
   var farBuildings = [];

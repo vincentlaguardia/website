@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>NYC Flight Simulator</title>
+<title>nyc_flight_sim</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
@@ -10,11 +10,8 @@
   html, body {
     margin: 0;
     height: 100%;
-    background: #008080;
+    background: #c0c0c0;
     font-family: "Press Start 2P", "MS Sans Serif", monospace;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
   }
 
@@ -127,25 +124,17 @@
 <div>
   <div class="win95">
     <div class="titlebar">
-      <div class="title"><span class="icon">&#9992;</span><span>NYC_FLIGHT_SIMULATOR.EXE</span></div>
+      <div class="title"><span class="icon">&#9992;</span><span>nyc_flight_sim</span></div>
       <div class="winbtns">
         <button>_</button><button>&#9633;</button><button>X</button>
       </div>
-    </div>
-    <div class="menubar">
-      <span>Game</span><span>Options</span><span>Help</span>
     </div>
     <div class="screen-wrap">
       <div class="bevel-in">
         <canvas id="game" width="320" height="180"></canvas>
       </div>
-      <div class="statusbar">
-        <div class="statuspanel">READY.</div>
-        <div class="statuspanel">1994-2026 Skyline Systems</div>
-      </div>
     </div>
   </div>
-  <div class="footer-hint">HOLD [SPACE] OR CLICK/TAP TO CLIMB &mdash; RELEASE TO DIVE</div>
 </div>
 
 <script>
@@ -205,9 +194,9 @@
   var farBuildings = [];
   var distance = 0;
   var elapsed = 0;
-  var baseSpeed = 0.55; // 50% slower than before
+  var baseSpeed = 0.66; // 50% slower than original, then +20%
   var speed = baseSpeed;
-  var maxSpeed = 1.8; // 50% slower than before
+  var maxSpeed = 2.16; // 50% slower than original, then +20%
   var score = 0;
   var best = 0;
   var holding = false;

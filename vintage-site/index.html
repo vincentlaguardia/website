@@ -953,7 +953,7 @@
         <div class="menu-item" id="menu-paint">Paint</div>
         <div class="menu-item" id="menu-chroma">chroma.exe</div>
         <div class="menu-item" id="menu-spectrum">off the spectrum.exe</div>
-        <div class="menu-item" id="menu-flight">flight-simulator.exe</div>
+        <div class="menu-item" id="menu-flight">nyc_flight_sim</div>
         <div class="menu-item" id="menu-notes">Notes</div>
       </div>
     </div>
@@ -6158,14 +6158,14 @@ function openSpectrumWindow() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
-  const openW = Math.max(820, Math.round(window.innerWidth * 0.72));
-  const openH = Math.max(560, Math.round(window.innerHeight * 0.78));
+  const openW = 660;
+  const openH = 440;
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
   win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
-  win.style.minWidth = '620px';
-  win.style.minHeight = '420px';
+
+
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
@@ -6208,19 +6208,19 @@ function openFlightSimWindow() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
-  const openW = Math.max(820, Math.round(window.innerWidth * 0.72));
-  const openH = Math.max(560, Math.round(window.innerHeight * 0.78));
+  const openW = 660;
+  const openH = 440;
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
   win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
-  win.style.minWidth = '620px';
-  win.style.minHeight = '420px';
+
+
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
   titlebar.innerHTML = `
-    <span class="title-text">flight-simulator.exe</span>
+    <span class="title-text">nyc_flight_sim</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
       <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
@@ -6231,7 +6231,7 @@ function openFlightSimWindow() {
   const content = document.createElement('div');
   content.className = 'win98-content';
   content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
-  content.innerHTML = `<iframe src="apps/flightindex.html" title="flight-simulator.exe" style="border:0;width:100%;height:100%;background:#c0c0c0;"></iframe>`;
+  content.innerHTML = `<iframe src="apps/flightindex.html" title="nyc_flight_sim" style="border:0;width:100%;height:100%;background:#c0c0c0;"></iframe>`;
 
   win.appendChild(titlebar);
   win.appendChild(content);
@@ -6244,7 +6244,7 @@ function openFlightSimWindow() {
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
-  addTaskbarEntry(id, 'flight-simulator.exe', genericIcon(14));
+  addTaskbarEntry(id, 'nyc_flight_sim', genericIcon(14));
   bringToFront(id);
 }
 

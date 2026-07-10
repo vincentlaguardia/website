@@ -2206,6 +2206,8 @@
   // --- Sam Mode ---
   const SAM_CELLS = TARGET_CELLS; // 9 evenly-distributed cells already defined
   enableDialogDragging(samDialog);
+  // Build a quick O(1) lookup map for zones by "col,row" used by Sam Mode renders.
+  const samZoneByPos = new Map(zones.map(function(z){ return [z.col + ',' + z.row, z]; }));
 
   function buildSamTheoryHtml(){
     const paras = [];
@@ -2257,7 +2259,7 @@
     const grid = document.getElementById('sam-grid');
     grid.innerHTML = '';
     SAM_CELLS.forEach(function(cell){
-      const zone = zones.find(function(z){ return z.col === cell.col && z.row === cell.row; });
+      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
       const hex = zoneHex(zone);
       const rgb = hexToRgbObj(hex);
       const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
@@ -2300,7 +2302,7 @@
     cx.textAlign = 'left';
     cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
     SAM_CELLS.forEach(function(cell, i){
-      const zone = zones.find(function(z){ return z.col === cell.col && z.row === cell.row; });
+      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
       const hex = zoneHex(zone);
       const rgb = hexToRgbObj(hex);
       const col = i % COLS;

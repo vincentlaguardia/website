@@ -58,7 +58,7 @@
   }
 
   .titlebar {
-    height: 20px;
+    min-height: 20px;
     padding: 0 3px 0 4px;
     display: flex;
     align-items: center;
@@ -162,7 +162,7 @@
   .control output,
   .status {
     padding: 2px 4px;
-    background: #fff;
+    background: var(--paper);
     box-shadow:
       inset 1px 1px 0 var(--win-dark),
       inset -1px -1px 0 var(--win-light);
@@ -268,6 +268,17 @@
       margin-left: 0;
     }
   }
+
+  @media (pointer: coarse) {
+    .titlebar {
+      min-height: 24px;
+    }
+
+    .window-button {
+      width: 24px;
+      height: 24px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -349,7 +360,7 @@
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
       };
 
-      const val = (id) => Number($('#' + id).value);
+      const getControlValue = (id) => Number($('#' + id).value);
 
       function sync() {
         controls.forEach((id) => {
@@ -358,7 +369,7 @@
             : id === 'thickness' || id === 'depth'
               ? ' px'
               : '';
-          const display = id === 'thickness' ? val(id).toFixed(1) : val(id);
+          const display = id === 'thickness' ? getControlValue(id).toFixed(1) : getControlValue(id);
           $('#' + id + 'Out').value = display + suffix;
         });
         draw();
@@ -386,11 +397,11 @@
         const grid = 100;
         const size = canvas.width;
         const cell = size / grid;
-        const wear = val('wear') / 100;
+        const wear = getControlValue('wear') / 100;
         const perf = 0.36;
-        const line = val('thickness');
-        const depth = val('depth');
-        const sat = val('saturation');
+        const line = getControlValue('thickness');
+        const depth = getControlValue('depth');
+        const sat = getControlValue('saturation');
 
         source.width = grid;
         source.height = grid;
@@ -480,7 +491,7 @@
         }
 
         for (let i = 1; i < grid; i += 1) {
-          if (i % every) continue;
+          if (i % every !== 0) continue;
           const position = i * cell;
           for (let distance = cell * 0.5; distance < size; distance += cell * 0.72) {
             punch(position, distance);

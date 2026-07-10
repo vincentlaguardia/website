@@ -2256,18 +2256,20 @@
           break;
         case 1: {
           const h = ((baseHue % 360) + 360) % 360;
-          let analogNature;
-          if (h < 20 || h >= 345) analogNature = 'a sunset sky full of deep reds and crimsons';
-          else if (h < 50) analogNature = 'an autumn forest at golden hour';
-          else if (h < 75) analogNature = 'a sun-lit wheat field in late afternoon';
-          else if (h < 105) analogNature = 'a meadow in early spring';
-          else if (h < 150) analogNature = 'a dense green forest canopy';
-          else if (h < 195) analogNature = 'a shallow coastal bay at midday';
-          else if (h < 250) analogNature = 'a clear open sky over the ocean';
-          else if (h < 285) analogNature = 'the deep blue hour just before dawn';
-          else if (h < 320) analogNature = 'a twilight sky fading from purple to indigo';
-          else analogNature = 'a field of wildflowers at dusk';
-          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses colors that sit close together on the color wheel, within about 30\u00b0 of each other. because they are neighbors, they feel naturally harmonious, almost like the colors you would see together in ' + analogNature + '.';
+          const hueNatureRanges = [
+            [20,  'a sunset sky full of deep reds and crimsons'],
+            [50,  'an autumn forest at golden hour'],
+            [75,  'a sun-lit wheat field in late afternoon'],
+            [105, 'a meadow in early spring'],
+            [150, 'a dense green forest canopy'],
+            [195, 'a shallow coastal bay at midday'],
+            [250, 'a clear open sky over the ocean'],
+            [285, 'the deep blue hour just before dawn'],
+            [320, 'a twilight sky fading from purple to indigo'],
+            [345, 'a field of wildflowers at dusk'],
+          ];
+          const natureAnalogy = (hueNatureRanges.find(([max]) => h < max) || hueNatureRanges[0])[1];
+          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses colors that sit close together on the color wheel, within about 30\u00b0 of each other. because they are neighbors, they feel naturally harmonious, almost like the colors you would see together in ' + natureAnalogy + '.';
           philoExtra = 'look across the top row from swatch 1 (' + hexes[0] + ') to swatch 3 (' + hexes[2] + ') to trace that gentle shift. the variation you notice here comes mostly from differences in brightness and intensity rather than big hue changes, which is what keeps the whole palette feeling like it belongs together.';
           break;
         }

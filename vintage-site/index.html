@@ -6680,17 +6680,12 @@ function openColorMixer95Window() {
   const COLORMIXER95_MARGIN = 8;
   const maxContentW = Math.max(80, window.innerWidth - COLORMIXER95_MARGIN * 2);
   const maxContentH = Math.max(80, availH - COLORMIXER95_CHROME_H - COLORMIXER95_MARGIN * 2);
-  const minContentW = Math.max(80, Math.min(320, maxContentW, Math.round(maxContentH * COLORMIXER95_ASPECT)));
-  let contentH = Math.max(80, Math.round(maxContentH * 0.98));
-  let contentW = Math.round(contentH * COLORMIXER95_ASPECT);
-  if (contentW > maxContentW) {
-    contentW = maxContentW;
-    contentH = Math.round(contentW / COLORMIXER95_ASPECT);
-  }
-  if (contentW < minContentW) {
-    contentW = minContentW;
-    contentH = Math.round(contentW / COLORMIXER95_ASPECT);
-  }
+  const minContentW = Math.max(80, Math.min(320, maxContentW));
+  // Width-first: open at the app's natural base width so the 2-column layout
+  // is never horizontally clipped.  Height is clamped to the viewport; the
+  // embedded body95 scrolls vertically for any overflow.
+  let contentW = Math.max(minContentW, Math.min(COLORMIXER95_BASE_W, maxContentW));
+  let contentH = Math.max(80, Math.min(Math.round(contentW / COLORMIXER95_ASPECT), maxContentH));
   const openW = contentW;
   const openH = contentH + COLORMIXER95_CHROME_H;
   const proposedLeft = Math.round((window.innerWidth - openW) / 2);
@@ -6781,9 +6776,10 @@ function openColorMixer95Window() {
     const runtimeAvailH = window.innerHeight - runtimeTaskbarHeight;
     const runtimeMaxContentW = Math.max(80, window.innerWidth - COLORMIXER95_MARGIN * 2);
     const runtimeMaxContentH = Math.max(80, runtimeAvailH - COLORMIXER95_CHROME_H - COLORMIXER95_MARGIN * 2);
-    const runtimeMaxWFromH = Math.round(runtimeMaxContentH * COLORMIXER95_ASPECT);
-    const clampedContentW = Math.min(runtimeMaxContentW, runtimeMaxWFromH, Math.max(80, win.offsetWidth));
-    const clampedContentH = Math.round(clampedContentW / COLORMIXER95_ASPECT);
+    // Clamp width independently (do not enforce aspect ratio so the 2-column
+    // layout is never narrowed below the viewport-allowed width).
+    const clampedContentW = Math.min(runtimeMaxContentW, Math.max(80, win.offsetWidth));
+    const clampedContentH = Math.min(runtimeMaxContentH, Math.max(80, win.offsetHeight - COLORMIXER95_CHROME_H));
     win.style.width = clampedContentW + 'px';
     win.style.height = (clampedContentH + COLORMIXER95_CHROME_H) + 'px';
     const currentLeft = parseFloat(win.style.left) || 0;

@@ -6310,8 +6310,15 @@ function openExorcistWindow() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
-  const openW = 800;
-  const openH = 620;
+  const scenePaddingX = 16;
+  const scenePaddingY = 16;
+  const titlebarAndFrameH = 56;
+  const targetSceneW = Math.round((800 - scenePaddingX) * 1.35);
+  const maxSceneW = Math.max(320, window.innerWidth - 80 - scenePaddingX);
+  const maxSceneH = Math.max(240, window.innerHeight - 120 - scenePaddingY - titlebarAndFrameH);
+  const sceneW = Math.min(targetSceneW, maxSceneW, Math.round(maxSceneH * 16 / 10));
+  const openW = sceneW + scenePaddingX;
+  const openH = Math.round(sceneW * 10 / 16) + scenePaddingY + titlebarAndFrameH;
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
   win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';

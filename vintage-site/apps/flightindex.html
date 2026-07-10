@@ -200,9 +200,9 @@
   var farBuildings = [];
   var distance = 0;
   var elapsed = 0;
-  var baseSpeed = 0.858; // +30% faster baseline cruise speed
+  var baseSpeed = 0.858; // +30% from prior tuned baseline (0.66)
   var speed = baseSpeed;
-  var maxSpeed = 2.808; // +30% faster top speed
+  var maxSpeed = 2.808; // +30% from prior tuned top speed (2.16)
   var score = 0;
   var best = 0;
   var holding = false;
@@ -481,6 +481,9 @@
 
   var crashX = 0, crashY = 0;
   var crashElapsed = 0;
+  var FIRE_SIZE_BASE = 0.65;
+  var FIRE_SIZE_GROWTH_MULT = 0.8;
+  var FIRE_SIZE_CRASH_MULT = 0.6;
   // several staggered follow-up bursts spread across the full 10s so the
   // explosion keeps re-flaring instead of just fading out early
   var explosionWaveTimes = [18, 38, 62, 95, 140, 200, 280, 380, 480];
@@ -569,7 +572,7 @@
         explosionParticles.push({
           x: px + rand(-4, 4), y: py + rand(-2, 2),
           vx: rand(-0.25, 0.25), vy: -rand(0.2, 0.65 + crashProgress * 0.55),
-          life: rand(16, 34), maxLife: 34, size: rand(2.2, 5.8) * (0.65 + 0.8 * growth + crashProgress * 0.6),
+          life: rand(16, 34), maxLife: 34, size: rand(2.2, 5.8) * (FIRE_SIZE_BASE + FIRE_SIZE_GROWTH_MULT * growth + crashProgress * FIRE_SIZE_CRASH_MULT),
           type: 'fire'
         });
       }
@@ -1268,6 +1271,7 @@
   }
 
   function isSpaceKey(e) {
+    // keep keyCode fallback for legacy/embedded browsers used in older environments
     return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 32;
   }
 

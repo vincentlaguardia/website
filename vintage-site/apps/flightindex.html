@@ -22,9 +22,9 @@
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     cursor: default;
-    /* Fill viewport while maintaining 16:9 aspect ratio */
-    width: min(100vw, calc(100vh * 320 / 180));
-    height: min(100vh, calc(100vw * 180 / 320));
+    /* Fill viewport while maintaining 16:9 aspect ratio (320:180 = 16:9) */
+    width: min(100vw, calc(100vh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
   }
 </style>
 </head>
@@ -542,7 +542,9 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
       return;
     }
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {
+      console.warn('nyc_flight_sim: Web Audio API not available', e);
+    }
   }
 
   function startEngineSounds() {
@@ -598,9 +600,9 @@
 
   function stopEngineSounds() {
     sndEngineRunning = false;
-    if (sndEngineOsc1) { try { sndEngineOsc1.stop(); } catch (e) {} sndEngineOsc1 = null; }
-    if (sndEngineOsc2) { try { sndEngineOsc2.stop(); } catch (e) {} sndEngineOsc2 = null; }
-    if (sndWindSrc)    { try { sndWindSrc.stop();    } catch (e) {} sndWindSrc = null; }
+    if (sndEngineOsc1) { try { sndEngineOsc1.stop(); } catch (e) { console.warn('sndEngineOsc1 stop:', e); } sndEngineOsc1 = null; }
+    if (sndEngineOsc2) { try { sndEngineOsc2.stop(); } catch (e) { console.warn('sndEngineOsc2 stop:', e); } sndEngineOsc2 = null; }
+    if (sndWindSrc)    { try { sndWindSrc.stop();    } catch (e) { console.warn('sndWindSrc stop:', e);    } sndWindSrc = null; }
     sndEngineGain = null;
     sndWindGain = null;
   }

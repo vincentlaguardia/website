@@ -1303,7 +1303,7 @@
   let skewColor = null;
   let skewActive = false;
   let focusActive = false;
-  let focusHex = '#1fff8b';
+  let focusHex = '';
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
@@ -1666,6 +1666,7 @@
   const focusSwatchBtn = document.getElementById('cc-focus-swatch');
   const focusInput = document.getElementById('cc-focus-color');
   const focusIcon = document.getElementById('focus-icon');
+  focusHex = focusInput.value.toLowerCase();
   /** Returns true when a value is a #RRGGBB color string. */
   function isValidHexColor(hex){
     return /^#[0-9a-f]{6}$/i.test(hex);
@@ -1739,6 +1740,7 @@
   skewInput.addEventListener('input', ()=>{
     applySkewHex(skewInput.value);
   });
+  // Initialize the skew swatch color without enabling skew mode.
   applySkewHex(skewInput.value, false);
   function setFocusHex(hex){
     applyModeHex(hex, focusInput, focusIcon, appliedHex=>{

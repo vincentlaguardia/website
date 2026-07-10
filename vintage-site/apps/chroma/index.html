@@ -586,7 +586,7 @@
       </div>
       <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
       <div class="picker-with-hex">
-        <input type="color" id="cc-target-color" value="#bfbfbf">
+        <input type="color" id="cc-target-color" value="#ec93d9">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
@@ -598,7 +598,7 @@
         <div class="picker-with-hex">
           <div class="color-swatch-wrap">
             <button class="color-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="color-icon" id="skew-icon"></span></button>
-            <input type="color" id="cc-skew-color" value="#bfbfbf" aria-labelledby="cc-skew-btn cc-skew-swatch">
+            <input type="color" id="cc-skew-color" value="#05fffb" aria-labelledby="cc-skew-btn cc-skew-swatch">
           </div>
         </div>
       </div>
@@ -614,7 +614,7 @@
           <div class="picker-with-hex">
             <div class="color-swatch-wrap">
               <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
-              <input type="color" id="cc-focus-color" value="#bfbfbf" aria-labelledby="cc-focus-btn cc-focus-swatch">
+              <input type="color" id="cc-focus-color" value="#1fff8b" aria-labelledby="cc-focus-btn cc-focus-swatch">
             </div>
           </div>
         </div>
@@ -1303,7 +1303,7 @@
   let skewColor = null;
   let skewActive = false;
   let focusActive = false;
-  let focusHex = '#bfbfbf';
+  let focusHex = '#1fff8b';
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
@@ -1680,12 +1680,14 @@
     drawScene();
     return true;
   }
-  function applySkewHex(hex){
+  function applySkewHex(hex, activateSkew = true){
     applyModeHex(hex, skewInput, skewIcon, appliedHex=>{
       const rgb = hexToRgbObj(appliedHex);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
-      skewActive = true;
+      if(activateSkew){
+        skewActive = true;
+      }
       syncSkewButtonState();
     });
   }
@@ -1737,6 +1739,7 @@
   skewInput.addEventListener('input', ()=>{
     applySkewHex(skewInput.value);
   });
+  applySkewHex(skewInput.value, false);
   function setFocusHex(hex){
     applyModeHex(hex, focusInput, focusIcon, appliedHex=>{
       focusHex = appliedHex;

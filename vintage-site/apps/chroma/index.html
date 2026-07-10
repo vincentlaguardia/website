@@ -456,6 +456,37 @@
     background:var(--focus-active-color, var(--face));
     color:var(--focus-active-text, #000);
   }
+  /* match sat control */
+  .match-sat-control{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  #cc-match-sat.is-active{
+    background:var(--match-sat-active-color, var(--face));
+    color:var(--match-sat-active-text, #000);
+  }
+  .match-source-wrap{ position:relative; }
+  .match-source-dropdown{
+    display:none;
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:2px;
+    min-width:100px;
+    z-index:25;
+    padding:2px;
+  }
+  .match-source-dropdown.show{ display:block; }
+  .match-source-dropdown .menu-option.active{ background:var(--navy); color:#fff; }
+  #cc-match-sat-color{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    pointer-events:none;
+  }
   .color-swatch-wrap{
     position:relative;
     width:var(--swatch-size);
@@ -590,7 +621,22 @@
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
-      <button class="ctrl-btn" id="cc-match-sat" title="Set the Saturation slider to match the swatch color">Match Sat</button>
+      <div class="match-sat-control">
+        <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Sat: continuously lock Saturation to the selected source color" aria-pressed="false">Match Sat</button>
+        <div class="match-source-wrap">
+          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select saturation match source">Circles &#9662;</button>
+          <div class="match-source-dropdown raised" id="cc-match-source-dropdown">
+            <div class="menu-option active" data-source="circles">Circles</div>
+            <div class="menu-option" data-source="skew">Skew</div>
+            <div class="menu-option" data-source="buttons">Buttons</div>
+            <div class="menu-option" data-source="user" id="cc-match-source-user" style="display:none">User</div>
+          </div>
+        </div>
+        <div class="color-swatch-wrap">
+          <button class="color-swatch-btn" id="cc-match-sat-swatch" type="button" title="Color being matched. Click to pick a custom color (sets source to User). Right-click to clear." aria-label="Match sat color swatch"><span class="color-icon" id="match-sat-icon"></span></button>
+          <input type="color" id="cc-match-sat-color" value="#bfbfbf" aria-label="Pick custom saturation source color">
+        </div>
+      </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
       <div class="skew-control">
@@ -898,6 +944,7 @@
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
     document.getElementById('cc-style-dropdown').classList.remove('show');
+    document.getElementById('cc-match-source-dropdown').classList.remove('show');
   }
   menuItems.forEach(item=>{
     item.addEventListener('click', e=>{
@@ -1115,6 +1162,12 @@
   const hideTargetsBtn = document.getElementById('cc-hide-targets');
   const satSlider = document.getElementById('cc-sat');
   const matchSatBtn = document.getElementById('cc-match-sat');
+  const matchSourceBtn = document.getElementById('cc-match-source-btn');
+  const matchSourceDropdown = document.getElementById('cc-match-source-dropdown');
+  const matchSourceOptions = matchSourceDropdown.querySelectorAll('.menu-option');
+  const matchSatSwatchBtn = document.getElementById('cc-match-sat-swatch');
+  const matchSatColorInput = document.getElementById('cc-match-sat-color');
+  const matchSatIcon = document.getElementById('match-sat-icon');
   const hueSlider = document.getElementById('cc-hue');
   const weirdSlider = document.getElementById('cc-weird');
   const styleBtn = document.getElementById('cc-style-btn');
@@ -1304,9 +1357,68 @@
   let skewActive = false;
   let focusActive = false;
   let focusHex = '#bfbfbf';
+  let matchSatActive = false;
+  let matchSatSource = 'circles'; // 'circles' | 'skew' | 'buttons' | 'user'
+  let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
+  }
+  // --- Match Sat helpers ---
+  function getMatchSatSourceRgb(){
+    switch(matchSatSource){
+      case 'circles': return { r:TARGET.r, g:TARGET.g, b:TARGET.b };
+      case 'skew': return (skewColor !== null) ? hexToRgbObj(skewInput.value) : null;
+      case 'buttons': return lastColor ? { r:lastColor.r, g:lastColor.g, b:lastColor.b } : null;
+      case 'user': return matchSatUserColor ? { r:matchSatUserColor.r, g:matchSatUserColor.g, b:matchSatUserColor.b } : null;
+      default: return null;
+    }
+  }
+  function applyMatchSat(){
+    const rgb = getMatchSatSourceRgb();
+    if(!rgb) return;
+    const sourceSat = rgbToHsl(rgb.r, rgb.g, rgb.b).s;
+    const satMin = +satSlider.min, satMax = +satSlider.max;
+    const pct = Math.max(satMin, Math.min(satMax, Math.round((sourceSat/BASE_SAT)*100)));
+    satSlider.value = pct;
+    globalSatMul = pct/100;
+  }
+  function syncMatchSatUI(){
+    const rgb = getMatchSatSourceRgb();
+    matchSatBtn.classList.toggle('is-active', matchSatActive);
+    matchSatBtn.setAttribute('aria-pressed', String(matchSatActive));
+    if(matchSatActive && rgb){
+      const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+      const luma = calculateLuma(rgb);
+      matchSatBtn.style.setProperty('--match-sat-active-color', hex);
+      matchSatBtn.style.setProperty('--match-sat-active-text', luma > ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+    } else {
+      matchSatBtn.style.removeProperty('--match-sat-active-color');
+      matchSatBtn.style.removeProperty('--match-sat-active-text');
+    }
+    // Sync swatch display
+    if(rgb){
+      const swatchHex = rgbToHex(rgb.r, rgb.g, rgb.b);
+      matchSatIcon.style.background = swatchHex;
+    } else {
+      matchSatIcon.style.background = 'var(--face)';
+    }
+  }
+  function setMatchSatSource(src){
+    matchSatSource = src;
+    const userOption = document.getElementById('cc-match-source-user');
+    matchSourceOptions.forEach(o=>{
+      o.classList.toggle('active', o.dataset.source === src);
+    });
+    if(src === 'user'){
+      userOption.style.display = '';
+    } else {
+      userOption.style.display = 'none';
+    }
+    const labels = { circles:'Circles', skew:'Skew', buttons:'Buttons', user:'User' };
+    matchSourceBtn.innerHTML = (labels[src] || 'Source') + ' &#9662;';
+    syncMatchSatUI();
+    if(matchSatActive){ applyMatchSat(); drawScene(); }
   }
   function getTargetRadius(cw, ch){
     const cellMin = Math.min(cw, ch);
@@ -1316,6 +1428,7 @@
   function drawScene(){
     const size = canvas.clientWidth;
     if(size === 0) return;
+    if(matchSatActive){ applyMatchSat(); syncMatchSatUI(); }
     syncPastramiButtonGradient();
     ctx.clearRect(0,0,size,size);
     const cw = size/COLS, ch = size/ROWS;
@@ -1499,13 +1612,47 @@
   });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
   matchSatBtn.addEventListener('click', ()=>{
-    const targetSat = rgbToHsl(TARGET.r, TARGET.g, TARGET.b).s;
-    const satMin = +satSlider.min, satMax = +satSlider.max;
-    const pct = Math.max(satMin, Math.min(satMax, Math.round((targetSat/BASE_SAT)*100)));
-    satSlider.value = pct;
-    globalSatMul = pct/100;
+    matchSatActive = !matchSatActive;
+    if(matchSatActive){ applyMatchSat(); }
+    syncMatchSatUI();
     drawScene();
   });
+  matchSourceBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const isOpen = matchSourceDropdown.classList.contains('show');
+    closeAllMenus();
+    if(!isOpen) matchSourceDropdown.classList.add('show');
+  });
+  matchSourceOptions.forEach(opt=>{
+    opt.addEventListener('click', e=>{
+      e.stopPropagation();
+      const src = opt.dataset.source;
+      if(!src) return;
+      setMatchSatSource(src);
+      matchSourceDropdown.classList.remove('show');
+    });
+  });
+  matchSatSwatchBtn.addEventListener('click', ()=>{
+    if(typeof matchSatColorInput.showPicker === 'function'){
+      try{ matchSatColorInput.showPicker(); return; }
+      catch(err){ console.warn('chroma: match sat picker showPicker failed', err); }
+    }
+    matchSatColorInput.click();
+  });
+  matchSatColorInput.addEventListener('input', ()=>{
+    const hex = matchSatColorInput.value;
+    const rgb = hexToRgbObj(hex);
+    matchSatUserColor = { r:rgb.r, g:rgb.g, b:rgb.b, hex };
+    setMatchSatSource('user');
+  });
+  matchSatSwatchBtn.addEventListener('contextmenu', e=>{
+    e.preventDefault();
+    if(matchSatSource === 'user'){
+      matchSatUserColor = null;
+      setMatchSatSource('circles');
+    }
+  });
+  syncMatchSatUI();
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);

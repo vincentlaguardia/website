@@ -1130,7 +1130,7 @@
   const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
   let TARGET = hexToRgbObj(targetColorInput.value);
-  let hasUserSelectedTargetColor = false;
+  let userChangedTargetColor = false;
   const TARGET_CELLS = [
     {col:1,row:1}, {col:3,row:1}, {col:5,row:1},
     {col:1,row:3}, {col:3,row:3}, {col:5,row:3},
@@ -1489,7 +1489,7 @@
   });
   function applyTargetHex(hex){
     targetColorInput.value = hex;
-    hasUserSelectedTargetColor = true;
+    userChangedTargetColor = true;
     importedMode = false;
     TARGET = hexToRgbObj(hex);
     drawScene();
@@ -1503,7 +1503,7 @@
   });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
   matchSatBtn.addEventListener('click', ()=>{
-    const matchSatColor = hasUserSelectedTargetColor ? TARGET : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
+    const matchSatColor = userChangedTargetColor ? TARGET : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
     const targetSat = rgbToHsl(matchSatColor.r, matchSatColor.g, matchSatColor.b).s;
     const satMin = +satSlider.min, satMax = +satSlider.max;
     const pct = Math.max(satMin, Math.min(satMax, Math.round((targetSat/BASE_SAT)*100)));
@@ -1668,7 +1668,6 @@
   const focusSwatchBtn = document.getElementById('cc-focus-swatch');
   const focusInput = document.getElementById('cc-focus-color');
   const focusIcon = document.getElementById('focus-icon');
-  focusHex = focusInput.value.toLowerCase();
   /** Returns true when a value is a #RRGGBB color string. */
   function isValidHexColor(hex){
     return /^#[0-9a-f]{6}$/i.test(hex);

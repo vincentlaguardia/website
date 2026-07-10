@@ -602,7 +602,7 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
-          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Lock one diagonal band to the selected focus color." aria-label="Focus Mode" aria-pressed="false">Focus</button>
+          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Lock one diagonal band to the selected focus color" aria-label="Focus Mode" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
             <div class="skew-swatch-wrap">
               <button class="skew-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color." aria-label="Choose focus color"><span class="skew-icon" id="focus-icon"></span></button>
@@ -1293,7 +1293,7 @@
   let skewColor = null;
   let skewActive = false;
   let focusActive = false;
-  let focusHex = '#BFBFBF';
+  let focusHex = '#bfbfbf';
   function getTargetRadius(cw, ch){
     const cellMin = Math.min(cw, ch);
     const ratio = (DOT_SIZE_CONFIG[dotSizeMode] || DOT_SIZE_CONFIG[DEFAULT_DOT_SIZE_MODE]).radiusRatio;
@@ -1709,8 +1709,8 @@
     applySkewHex(skewInput.value);
   });
   function setFocusHex(hex){
-    focusInput.value = hex;
-    focusHex = hex.toUpperCase();
+    focusInput.value = hex.toLowerCase();
+    focusHex = focusInput.value;
     focusIcon.style.background = focusHex;
     syncFocusButtonState();
     drawScene();
@@ -1748,8 +1748,6 @@
     setFocusHex(focusInput.value);
   });
   setFocusHex(focusInput.value);
-  focusActive = false;
-  syncFocusButtonState();
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;

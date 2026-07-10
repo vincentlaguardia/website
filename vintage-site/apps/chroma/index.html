@@ -2237,7 +2237,14 @@
     } else if(pastramiMode){
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       paras.push('techno mode is active, running on a ' + philoName + ' base with its starting hue at ' + Math.round(baseHue) + '\u00b0. in normal mode, colors follow predictable rules for how bright or vivid they get. techno mode throws those rules out and randomly pushes each zone toward either a washed-out pastel or a full-blast neon. no middle ground.');
-      paras.push('compare swatch 1 in the top left (' + hexes[0] + ') against swatch 5 in the center (' + hexes[4] + ') to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+      const pastramiHsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
+      const neonIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s > pastramiHsls[best].s ? i : best; }, 0);
+      const pastelIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s < pastramiHsls[best].s ? i : best; }, 0);
+      if(neonIdx !== pastelIdx){
+        paras.push('compare ' + SAM_SWATCH_POS[neonIdx] + ' (' + hexes[neonIdx] + '), which landed on the neon end, against ' + SAM_SWATCH_POS[pastelIdx] + ' (' + hexes[pastelIdx] + '), which landed on the pastel end, to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+      } else {
+        paras.push('despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+      }
     } else {
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       let philoDesc = '';

@@ -283,7 +283,7 @@
     const MAX_TEXT_W = CANVAS_W - PAD * 2;
     const html = snap.theoryHtml || '';
     const paraTexts = [];
-    html.replace(/<p>([\s\S]*?)<\/p>/g, function(_, content){ paraTexts.push(content); });
+    (html.match(/<p>[\s\S]*?<\/p>/g) || []).forEach(function(tag){ paraTexts.push(tag.replace(/<\/?p>/g, '')); });
     const tmpC = document.createElement('canvas');
     const tmpCx = tmpC.getContext('2d');
     tmpCx.font = TEXT_FONT;
@@ -382,7 +382,7 @@
     const raw = window.prompt('Save Sam Mode to virtual desktop as:', defaultName);
     if(raw === null) return;
     let fname = raw.trim() || defaultName;
-    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.jpg';
+    if(!/\.(jpe?g)$/i.test(fname)) fname = fname.replace(/\.[a-zA-Z0-9]+$/, '') + '.jpg';
     window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl: c.toDataURL('image/jpeg', EXPORT_QUALITY) }, window.location.origin);
   });
 

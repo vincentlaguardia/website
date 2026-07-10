@@ -6505,8 +6505,9 @@ function openEchoTrailWindow() {
   const maxTop = Math.max(0, window.innerHeight - openH);
   const centeredLeft = Math.round((window.innerWidth - openW) / 2);
   const centeredTop = Math.round((window.innerHeight - openH) / 2);
+  const nearTop = Math.min(maxTop, 24 + cascade * 18);
   win.style.left = Math.min(maxLeft, Math.max(0, centeredLeft + cascade * 20)) + 'px';
-  win.style.top = Math.min(maxTop, Math.max(0, centeredTop + cascade * 18)) + 'px';
+  win.style.top = Math.max(0, nearTop) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
   win.style.minWidth = minOpenW + 'px';

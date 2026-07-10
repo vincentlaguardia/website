@@ -398,7 +398,7 @@
 (function(){
   "use strict";
   const $ = id => document.getElementById(id);
-  const EMBEDDED_MODE = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
+  const isEmbeddedMode = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
 
   function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
 
@@ -1368,7 +1368,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
-    if(EMBEDDED_MODE){
+    if(isEmbeddedMode){
       document.body.classList.add('embedded', 'maximized');
     }
     updateAllSpans();

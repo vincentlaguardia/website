@@ -15,15 +15,16 @@
   *{ box-sizing:border-box; }
   body{
     margin:0;
-    min-height:100vh;
+    height:100vh;
     background:#008080;
     font-family:"MS Sans Serif","Tahoma","Segoe UI",sans-serif;
     font-size:12px;
     color:#000;
     display:flex;
-    align-items:flex-start;
+    align-items:stretch;
     justify-content:center;
     padding:24px 12px;
+    overflow:hidden;
   }
   body.embedded{
     min-height:100%;
@@ -103,11 +104,11 @@
 
   .main-area{ display:flex; flex-direction:column; gap:8px; padding:8px; flex:1; min-height:0; overflow:auto; }
   .canvas-panel{
-    height:520px; background:#000;
+    flex:1; min-height:80px; background:#000;
     display:flex; align-items:center; justify-content:center; position:relative; overflow:auto;
   }
   .sunken{ box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf; }
-  #preview-canvas{ max-width:100%; max-height:520px; image-rendering:auto; transform-origin:center center; flex-shrink:0; }
+  #preview-canvas{ max-width:100%; max-height:100%; image-rendering:auto; transform-origin:center center; flex-shrink:0; }
   .drop-hint{ position:absolute; color:#999; text-align:center; font-size:12px; pointer-events:none; line-height:1.6; }
   .canvas-panel.drag-over{ outline:2px dashed #1084d0; outline-offset:-6px; }
 

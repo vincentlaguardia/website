@@ -2435,6 +2435,9 @@
     'swatch 4 (middle left)', 'swatch 5 (center)', 'swatch 6 (middle right)',
     'swatch 7 (bottom left)', 'swatch 8 (bottom center)', 'swatch 9 (bottom right)'
   ];
+  function samGridCellLabel(zone){
+    return 'grid cell (row ' + (zone.row + 1) + ', col ' + (zone.col + 1) + ')';
+  }
   function buildSamPaletteMathParagraph(){
     const zoneData = getSamZoneData();
     if(!zoneData.length) return '';
@@ -2472,21 +2475,22 @@
     const satMin = analyzed.reduce(function(best, item){ return item.hsl.s < best.hsl.s ? item : best; }, analyzed[0]);
     const lightMax = analyzed.reduce(function(best, item){ return item.hsl.l > best.hsl.l ? item : best; }, analyzed[0]);
     const lightMin = analyzed.reduce(function(best, item){ return item.hsl.l < best.hsl.l ? item : best; }, analyzed[0]);
-    function zoneLabel(zone){
-      return 'grid cell (row ' + (zone.row + 1) + ', col ' + (zone.col + 1) + ')';
-    }
     const coreText = uniqueCoreAnchors.map(function(anchor){
       const expected = Math.round(anchor.expectedHue);
       const actual = Math.round(anchor.item.hsl.h);
       const dist = Math.round(anchor.dist);
-      return zoneLabel(anchor.item.zone) + ' ' + anchor.item.hex + ' aligns to target ' + expected + '\u00b0 at ' + actual + '\u00b0 (' + dist + '\u00b0 offset)';
+      return samGridCellLabel(anchor.item.zone) + ' ' + anchor.item.hex + ' aligns to target ' + expected + '\u00b0 at ' + actual + '\u00b0 (' + dist + '\u00b0 offset)';
     }).join('; ');
     let text = 'full-grid scan across all ' + zoneData.length + ' cells: core anchors are ' + coreText + '. ';
-    text += 'the strongest outlier is ' + zoneLabel(top.zone) + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), ' + Math.round(top.minDist) + '\u00b0 from the nearest target hue. ';
+    text += 'the strongest outlier is ' + samGridCellLabel(top.zone) + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), ' + Math.round(top.minDist) + '\u00b0 from the nearest target hue. ';
     if(second){
-      text += 'the second outlier is ' + zoneLabel(second.zone) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 from the nearest target hue. ';
+      text += 'the second outlier is ' + samGridCellLabel(second.zone) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 from the nearest target hue. ';
     }
-    text += 'extremes in this same full-grid scan: highest saturation ' + satMax.hex + ' at ' + Math.round(satMax.hsl.s) + '%, lowest saturation ' + satMin.hex + ' at ' + Math.round(satMin.hsl.s) + '%, highest lightness ' + lightMax.hex + ' at ' + Math.round(lightMax.hsl.l) + '%, lowest lightness ' + lightMin.hex + ' at ' + Math.round(lightMin.hsl.l) + '%.';
+    text += 'extremes in this same full-grid scan: '
+      + 'highest saturation ' + satMax.hex + ' at ' + Math.round(satMax.hsl.s) + '%, '
+      + 'lowest saturation ' + satMin.hex + ' at ' + Math.round(satMin.hsl.s) + '%, '
+      + 'highest lightness ' + lightMax.hex + ' at ' + Math.round(lightMax.hsl.l) + '%, '
+      + 'lowest lightness ' + lightMin.hex + ' at ' + Math.round(lightMin.hsl.l) + '%.';
     return text;
   }
 

@@ -849,8 +849,18 @@ document.getElementById('imagePickApplyBg').addEventListener('click', ()=>{
   setMiniSwatch('applyBgIndicator', hex);
 });
 document.getElementById('imagePickX').addEventListener('click', closeImagePicker);
-document.getElementById('imagePickOverlay').addEventListener('click', (e)=>{
+const imagePickOverlay = document.getElementById('imagePickOverlay');
+imagePickOverlay.addEventListener('click', (e)=>{
   if(e.target.id === 'imagePickOverlay') closeImagePicker();
+});
+// Allow dropping a new image onto the picker overlay to replace the current one
+['dragenter','dragover'].forEach(evt=>{
+  imagePickOverlay.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); });
+});
+imagePickOverlay.addEventListener('drop', e=>{
+  e.preventDefault(); e.stopPropagation();
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(file && file.type.startsWith('image/')) handleImageFile(file);
 });
 
 /* ---------- export palette ---------- */

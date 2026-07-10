@@ -6658,10 +6658,13 @@ function openColorMixer95Window() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
-  const openW = 750;
-  const openH = 1000;
+  const taskbar = document.getElementById('taskbar');
+  const taskbarHeight = taskbar ? taskbar.offsetHeight : 30;
+  const availH = window.innerHeight - taskbarHeight;
+  const openW = Math.min(750, Math.max(400, window.innerWidth - 40));
+  const openH = Math.max(400, Math.round(availH * 0.95));
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
-  win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
+  win.style.top = (Math.max(0, Math.round((availH - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
   win.style.resize = 'none';

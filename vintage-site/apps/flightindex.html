@@ -6,136 +6,30 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    margin: 0;
+    width: 100%;
     height: 100%;
-    background: #c0c0c0;
-    font-family: "Press Start 2P", "MS Sans Serif", monospace;
     overflow: hidden;
-  }
-
-  .win95 {
-    background: #c0c0c0;
-    border: 2px solid #fff;
-    border-right-color: #000;
-    border-bottom-color: #000;
-    box-shadow: 1px 1px 0 #000, 2px 2px 0 #808080 inset;
-    padding: 2px;
-    width: 660px;
-    user-select: none;
-  }
-
-  .titlebar {
-    background: linear-gradient(90deg, #000080, #1084d0);
-    color: #fff;
-    font-size: 12px;
-    padding: 3px 4px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    letter-spacing: 0.5px;
-  }
-  .titlebar .title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-  .titlebar .icon { font-size: 12px; }
-  .winbtns { display: flex; gap: 2px; }
-  .winbtns button {
-    width: 16px; height: 14px;
-    background: #c0c0c0;
-    border: 1px solid #fff;
-    border-right-color: #000;
-    border-bottom-color: #000;
-    font-size: 9px;
-    line-height: 1;
-    padding: 0;
-    cursor: default;
-    color: #000;
-    font-family: monospace;
-  }
-
-  .menubar {
-    background: #c0c0c0;
-    font-size: 10px;
-    padding: 3px 6px;
-    display: flex;
-    gap: 12px;
-    border-bottom: 1px solid #808080;
-    color: #000;
-  }
-
-  .screen-wrap {
-    padding: 8px;
-    background: #c0c0c0;
-  }
-
-  .bevel-in {
-    border: 2px solid #808080;
-    border-right-color: #fff;
-    border-bottom-color: #fff;
-    box-shadow: -1px -1px 0 #000 inset, 1px 1px 0 #dfdfdf inset;
-    padding: 2px;
     background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-
   canvas {
     display: block;
-    width: 640px;
-    height: 360px;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     cursor: default;
-  }
-
-  .statusbar {
-    display: flex;
-    gap: 6px;
-    padding: 4px 8px 8px;
-    font-size: 9px;
-    color: #000;
-  }
-  .statuspanel {
-    flex: 1;
-    background: #c0c0c0;
-    border: 1px solid #808080;
-    border-right-color: #fff;
-    border-bottom-color: #fff;
-    box-shadow: -1px -1px 0 #000 inset;
-    padding: 3px 6px;
-  }
-
-  .footer-hint {
-    text-align: center;
-    font-size: 9px;
-    color: #e8e8e8;
-    margin-top: 10px;
-    letter-spacing: 0.5px;
+    /* Fill viewport while maintaining 16:9 aspect ratio */
+    width: min(100vw, calc(100vh * 320 / 180));
+    height: min(100vh, calc(100vw * 180 / 320));
   }
 </style>
 </head>
 <body>
-
-<div>
-  <div class="win95">
-    <div class="titlebar">
-      <div class="title"><span class="icon">&#9992;</span><span>nyc_flight_sim</span></div>
-      <div class="winbtns">
-        <button>_</button><button>&#9633;</button><button>X</button>
-      </div>
-    </div>
-    <div class="screen-wrap">
-      <div class="bevel-in">
-        <canvas id="game" width="320" height="180"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
+<canvas id="game" width="320" height="180"></canvas>
 
 <script>
 (function () {
@@ -248,6 +142,8 @@
     milestoneSpawned = false;
     landReached = false;
     state = 'playing';
+    stopEngineSounds();
+    startEngineSounds();
   }
 
   function spawnBuilding() {
@@ -370,6 +266,7 @@
     if (!milestoneSpawned && score >= 25) {
       spawnMilestonePair();
       milestoneSpawned = true;
+      playMilestoneSound();
     }
   }
 
@@ -440,6 +337,7 @@
     score = Math.floor(distance / 8);
     if (score > best) best = score;
     checkMilestone();
+    updateEngineSounds();
 
     if (holding) {
       plane.vy += THRUST;
@@ -542,6 +440,7 @@
     spawnRing(crashX, crashY, 6);
     spawnExplosion(crashX, crashY, true, 3.1); // +30% blast intensity
     spawnDebris(crashX, crashY);
+    playCrashSound();
 
     damagedBuilding = null;
     if (hitBuilding) {
@@ -629,6 +528,148 @@
       p.size += 0.05 * dt;
       p.life -= dt;
       if (p.life <= 0) plumeParticles.splice(i, 1);
+    }
+  }
+
+  // ---- Sound (Web Audio API) ----
+  var audioCtx = null;
+  var sndEngineOsc1 = null, sndEngineOsc2 = null, sndEngineGain = null;
+  var sndWindSrc = null, sndWindGain = null;
+  var sndEngineRunning = false;
+
+  function initAudio() {
+    if (audioCtx) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return;
+    }
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+
+  function startEngineSounds() {
+    if (!audioCtx || sndEngineRunning) return;
+    sndEngineRunning = true;
+
+    var master = audioCtx.createGain();
+    master.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    master.connect(audioCtx.destination);
+    sndEngineGain = master;
+
+    // Low engine hum
+    var f1 = audioCtx.createBiquadFilter();
+    f1.type = 'lowpass';
+    f1.frequency.setValueAtTime(300, audioCtx.currentTime);
+    sndEngineOsc1 = audioCtx.createOscillator();
+    sndEngineOsc1.type = 'sawtooth';
+    sndEngineOsc1.frequency.setValueAtTime(80, audioCtx.currentTime);
+    sndEngineOsc1.connect(f1);
+    f1.connect(master);
+    sndEngineOsc1.start();
+
+    // Higher whine
+    var g2 = audioCtx.createGain();
+    g2.gain.setValueAtTime(0.25, audioCtx.currentTime);
+    sndEngineOsc2 = audioCtx.createOscillator();
+    sndEngineOsc2.type = 'triangle';
+    sndEngineOsc2.frequency.setValueAtTime(220, audioCtx.currentTime);
+    sndEngineOsc2.connect(g2);
+    g2.connect(master);
+    sndEngineOsc2.start();
+
+    // Filtered wind noise
+    var wLen = audioCtx.sampleRate * 2;
+    var wBuf = audioCtx.createBuffer(1, wLen, audioCtx.sampleRate);
+    var wd = wBuf.getChannelData(0);
+    for (var i = 0; i < wLen; i++) wd[i] = Math.random() * 2 - 1;
+    sndWindSrc = audioCtx.createBufferSource();
+    sndWindSrc.buffer = wBuf;
+    sndWindSrc.loop = true;
+    var wf = audioCtx.createBiquadFilter();
+    wf.type = 'bandpass';
+    wf.frequency.setValueAtTime(600, audioCtx.currentTime);
+    wf.Q.setValueAtTime(0.8, audioCtx.currentTime);
+    var wg = audioCtx.createGain();
+    wg.gain.setValueAtTime(0.02, audioCtx.currentTime);
+    sndWindSrc.connect(wf);
+    wf.connect(wg);
+    wg.connect(audioCtx.destination);
+    sndWindGain = wg;
+    sndWindSrc.start();
+  }
+
+  function stopEngineSounds() {
+    sndEngineRunning = false;
+    if (sndEngineOsc1) { try { sndEngineOsc1.stop(); } catch (e) {} sndEngineOsc1 = null; }
+    if (sndEngineOsc2) { try { sndEngineOsc2.stop(); } catch (e) {} sndEngineOsc2 = null; }
+    if (sndWindSrc)    { try { sndWindSrc.stop();    } catch (e) {} sndWindSrc = null; }
+    sndEngineGain = null;
+    sndWindGain = null;
+  }
+
+  function updateEngineSounds() {
+    if (!audioCtx || !sndEngineRunning) return;
+    var t = audioCtx.currentTime;
+    if (sndEngineOsc1) sndEngineOsc1.frequency.setTargetAtTime(75 + (speed / maxSpeed) * 55, t, 0.08);
+    if (sndEngineOsc2) sndEngineOsc2.frequency.setTargetAtTime(200 + (speed / maxSpeed) * 120 + (holding ? 40 : 0), t, 0.08);
+    if (sndEngineGain) sndEngineGain.gain.setTargetAtTime(holding ? 0.09 : 0.06, t, 0.05);
+    if (sndWindGain)   sndWindGain.gain.setTargetAtTime(0.015 + (speed / maxSpeed) * 0.025, t, 0.08);
+  }
+
+  function playCrashSound() {
+    if (!audioCtx) return;
+    if (sndEngineGain) sndEngineGain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.15);
+    if (sndWindGain)   sndWindGain.gain.setTargetAtTime(0.001, audioCtx.currentTime, 0.15);
+    setTimeout(stopEngineSounds, 500);
+    var dur = 1.8;
+    var bLen = Math.round(audioCtx.sampleRate * dur);
+    var buf = audioCtx.createBuffer(1, bLen, audioCtx.sampleRate);
+    var bd = buf.getChannelData(0);
+    for (var i = 0; i < bLen; i++) bd[i] = Math.random() * 2 - 1;
+    var src = audioCtx.createBufferSource(); src.buffer = buf;
+    var flt = audioCtx.createBiquadFilter(); flt.type = 'lowpass';
+    flt.frequency.setValueAtTime(900, audioCtx.currentTime);
+    flt.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + dur);
+    var g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.55, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start();
+  }
+
+  function playSecondaryBlastSound() {
+    if (!audioCtx) return;
+    var dur = 2.5;
+    var bLen = Math.round(audioCtx.sampleRate * dur);
+    var buf = audioCtx.createBuffer(1, bLen, audioCtx.sampleRate);
+    var bd = buf.getChannelData(0);
+    for (var i = 0; i < bLen; i++) bd[i] = Math.random() * 2 - 1;
+    var src = audioCtx.createBufferSource(); src.buffer = buf;
+    var flt = audioCtx.createBiquadFilter(); flt.type = 'lowpass';
+    flt.frequency.setValueAtTime(300, audioCtx.currentTime);
+    flt.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + dur);
+    var g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.8, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start();
+  }
+
+  function playMilestoneSound() {
+    if (!audioCtx) return;
+    var freqs = [880, 1100, 1320];
+    for (var fi = 0; fi < freqs.length; fi++) {
+      (function (f, delay) {
+        var osc = audioCtx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(f, audioCtx.currentTime + delay);
+        var g = audioCtx.createGain();
+        g.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.09, audioCtx.currentTime + delay + 0.01);
+        g.gain.setValueAtTime(0.09, audioCtx.currentTime + delay + 0.07);
+        g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + delay + 0.13);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + 0.15);
+      })(freqs[fi], fi * 0.12);
     }
   }
 
@@ -838,6 +879,7 @@
   function triggerSecondaryBlast(b) {
     if (secondaryBlastTriggered) return;
     secondaryBlastTriggered = true;
+    playSecondaryBlastSound();
     var bx = b ? b.x + b.damageLocalX : crashX;
     var by = b ? (GROUND_Y - b.h) + b.damageLocalY : crashY;
     spawnRing(bx, by);
@@ -1359,6 +1401,7 @@
   }
 
   function pressStart() {
+    initAudio();
     if (state === 'ready' || state === 'dead') {
       resetGame();
     }

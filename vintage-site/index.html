@@ -6246,6 +6246,7 @@ function openFlightSimWindow() {
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
   addTaskbarEntry(id, 'nyc_flight_sim', genericIcon(14));
   bringToFront(id);
+  toggleMaximize(id);
 }
 
 

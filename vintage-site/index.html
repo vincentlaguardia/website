@@ -6857,11 +6857,11 @@ function openMyComputerWindow() {
   }
 
   function renderThumbnails(sorted) {
-    const iconSz = 32;
+    const iconSz = 42;
     filePane.style.cssText = 'display:flex;flex-wrap:wrap;align-content:flex-start;padding:6px 4px;gap:0;min-height:100%;';
     sorted.forEach(entry => {
       const el = document.createElement('div');
-      el.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:82px;padding:4px 2px;cursor:default;box-sizing:border-box;';
+      el.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:107px;padding:4px 2px;cursor:default;box-sizing:border-box;';
       el.title = entry.name + (entry.type === 'file' && entry.size ? '\\n' + fmtSize(entry.size) : '');
 
       const iconWrap = document.createElement('div');
@@ -6870,7 +6870,7 @@ function openMyComputerWindow() {
 
       const label = document.createElement('div');
       label.dataset.mcLabel = '1';
-      label.style.cssText = 'font-family:inherit;font-size:11px;text-align:center;word-break:break-word;max-width:78px;margin-top:3px;line-height:1.2;color:#000;';
+      label.style.cssText = 'font-family:inherit;font-size:11px;text-align:center;word-break:break-word;max-width:103px;margin-top:3px;line-height:1.2;color:#000;';
       label.textContent = entry.name;
 
       el.appendChild(iconWrap);
@@ -6910,7 +6910,7 @@ function openMyComputerWindow() {
       row.className = 'details-row';
       row.title = entry.name;
       row.innerHTML =
-        '<td class="details-name">' + (entry.type === 'dir' ? folderIconSvg(20) : fileIconSvg(entry.name, 20)) + '<span data-mc-label="1"></span></td>' +
+        '<td class="details-name">' + (entry.type === 'dir' ? folderIconSvg(26) : fileIconSvg(entry.name, 26)) + '<span data-mc-label="1"></span></td>' +
         '<td class="details-type">' + typeLabel(entry) + '</td>' +
         '<td class="details-size">' + (entry.type === 'dir' ? '' : fmtSize(entry.size)) + '</td>' +
         '<td class="details-date">' + fmtDate(entry.modified) + '</td>';

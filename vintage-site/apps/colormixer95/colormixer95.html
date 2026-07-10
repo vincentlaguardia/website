@@ -263,7 +263,7 @@
       </div>
       <div class="menuitem" id="aboutMenuBtn">About</div>
     </div>
-    <input type="file" id="importInput" accept="application/json,.json" style="display:none;">
+    <input type="file" id="importInput" accept="image/*" style="display:none;">
     <div class="body95">
       <div class="samplewrap">
         <div class="samplerow">
@@ -979,53 +979,48 @@ document.getElementById('aboutMenuBtn').addEventListener('click', ()=>{
 });
 
 /* ---------- save / import ---------- */
-function exportStateJSON(){
-  const out = {};
-  MODE_ORDER.forEach(key=>{ out[key] = state[key]; });
-  return JSON.stringify(out, null, 2);
+
+// Build a 2×2 composite PNG of all four venn canvases and return a data URL.
+function buildCompositeDataURL(){
+  const cols = 2, rows = 2;
+  const src = document.getElementById('venn_' + MODE_ORDER[0]);
+  const cw = src.width, ch = src.height;
+  const out = document.createElement('canvas');
+  out.width = cw * cols;
+  out.height = ch * rows;
+  const ctx = out.getContext('2d');
+  MODE_ORDER.forEach((key, i)=>{
+    const c = document.getElementById('venn_' + key);
+    ctx.drawImage(c, (i % cols) * cw, Math.floor(i / cols) * ch);
+  });
+  return out.toDataURL('image/png');
 }
-function downloadFile(filename, content){
-  const blob = new Blob([content], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
+
+function downloadDataURL(filename, dataUrl){
   const a = document.createElement('a');
-  a.href = url; a.download = filename;
+  a.href = dataUrl; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
 }
-async function writeWithPicker(filename, content, startInDesktop){
-  if(window.showSaveFilePicker){
-    try{
-      const opts = {
-        suggestedName: filename,
-        types: [{description:'Color Mixer save', accept:{'application/json':['.json']}}],
-      };
-      if(startInDesktop) opts.startIn = 'desktop';
-      const handle = await window.showSaveFilePicker(opts);
-      const writable = await handle.createWritable();
-      await writable.write(content);
-      await writable.close();
-      return true; // saved via native picker
-    }catch(err){
-      if(err.name === 'AbortError') return null; // user cancelled, do nothing
-      // fall through to download fallback
-    }
-  }
-  downloadFile(filename, content);
-  return false; // saved via plain download fallback
-}
-async function saveToDesktopFlow(filename, content){
-  const result = await writeWithPicker(filename, content, true);
-  if(result === null) return;
-  if(result === true) openInfoDialog('Saved to your Desktop.');
-  else openInfoDialog('Your browser can’t target the Desktop directly, so this downloaded to your usual downloads folder instead.');
-}
+
+// Save to Desktop → post to parent virtual desktop
 document.getElementById('menuSaveDesktop').addEventListener('click', ()=>{
   closeFileMenu();
-  saveToDesktopFlow('color-mixer.json', exportStateJSON());
+  const dataUrl = buildCompositeDataURL();
+  const name = 'color-mix-' + new Date().toISOString().slice(0,10) + '.png';
+  window.parent.postMessage({ type: 'colormixer95-save-to-desktop', name, dataUrl }, '*');
+  openInfoDialog('Saved to Desktop.');
 });
 
-// generic "Save As" dialog — whoever opens it decides what content and
-// default filename get saved when the user confirms.
+// Save... → download PNG to the user's computer
+document.getElementById('menuSaveAs').addEventListener('click', ()=>{
+  closeFileMenu();
+  const dataUrl = buildCompositeDataURL();
+  const name = 'color-mix-' + new Date().toISOString().slice(0,10) + '.png';
+  downloadDataURL(name, dataUrl);
+  openInfoDialog('Saved as ' + name + '.');
+});
+
+// "Save As" dialog is still used by the palette export buttons — keep its wiring.
 let pendingSaveContent = '';
 let pendingSaveDefaultName = 'color-mixer.json';
 function openSaveAsDialog(content, defaultName){
@@ -1036,22 +1031,22 @@ function openSaveAsDialog(content, defaultName){
   document.getElementById('saveAsOverlay').classList.add('show');
   input.focus(); input.select();
 }
-document.getElementById('menuSaveAs').addEventListener('click', ()=>{
-  closeFileMenu();
-  openSaveAsDialog(exportStateJSON(), 'color-mixer.json');
-});
 function closeSaveAsDialog(){ document.getElementById('saveAsOverlay').classList.remove('show'); }
 document.getElementById('saveAsCancel').addEventListener('click', closeSaveAsDialog);
 document.getElementById('saveAsX').addEventListener('click', closeSaveAsDialog);
-document.getElementById('saveAsConfirm').addEventListener('click', async ()=>{
+document.getElementById('saveAsConfirm').addEventListener('click', ()=>{
   let filename = document.getElementById('saveAsInput').value.trim() || pendingSaveDefaultName;
   if(!filename.toLowerCase().endsWith('.json')) filename += '.json';
   closeSaveAsDialog();
-  const result = await writeWithPicker(filename, pendingSaveContent, false);
-  if(result === null) return;
+  const blob = new Blob([pendingSaveContent], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
   openInfoDialog('Saved as ' + filename + '.');
 });
 
+// Import... → open image file picker, same as the drop zone
 document.getElementById('menuImport').addEventListener('click', ()=>{
   closeFileMenu();
   document.getElementById('importInput').click();
@@ -1059,21 +1054,7 @@ document.getElementById('menuImport').addEventListener('click', ()=>{
 document.getElementById('importInput').addEventListener('change', (e)=>{
   const file = e.target.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ()=>{
-    try{
-      const parsed = JSON.parse(reader.result);
-      MODE_ORDER.forEach(key=>{
-        if(parsed[key]) Object.assign(state[key], parsed[key]);
-      });
-      resyncAllControls();
-      scheduleRenderAll();
-      openInfoDialog('Imported ' + file.name + '.');
-    }catch(err){
-      openInfoDialog('Could not read that file — is it a Color Mixer save?');
-    }
-  };
-  reader.readAsText(file);
+  handleImageFile(file);
   e.target.value = '';
 });
 

@@ -2463,7 +2463,7 @@
     const seenCore = new Set();
     coreAnchors.forEach(function(anchor){
       if(!anchor) return;
-      const key = anchor.item.zone.col + ',' + anchor.item.zone.row + ',' + anchor.expectedHue;
+      const key = JSON.stringify([anchor.item.zone.col, anchor.item.zone.row, anchor.expectedHue]);
       if(seenCore.has(key)) return;
       seenCore.add(key);
       uniqueCoreAnchors.push(anchor);
@@ -2486,11 +2486,13 @@
     if(second){
       text += 'the second outlier is ' + samGridCellLabel(second.zone) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 from the nearest target hue. ';
     }
-    text += 'extremes in this same full-grid scan: '
-      + 'highest saturation ' + satMax.hex + ' at ' + Math.round(satMax.hsl.s) + '%, '
-      + 'lowest saturation ' + satMin.hex + ' at ' + Math.round(satMin.hsl.s) + '%, '
-      + 'highest lightness ' + lightMax.hex + ' at ' + Math.round(lightMax.hsl.l) + '%, '
-      + 'lowest lightness ' + lightMin.hex + ' at ' + Math.round(lightMin.hsl.l) + '%.';
+    const extremes = [
+      'highest saturation ' + satMax.hex + ' at ' + Math.round(satMax.hsl.s) + '%',
+      'lowest saturation ' + satMin.hex + ' at ' + Math.round(satMin.hsl.s) + '%',
+      'highest lightness ' + lightMax.hex + ' at ' + Math.round(lightMax.hsl.l) + '%',
+      'lowest lightness ' + lightMin.hex + ' at ' + Math.round(lightMin.hsl.l) + '%'
+    ];
+    text += 'extremes in this same full-grid scan: ' + extremes.join(', ') + '.';
     return text;
   }
 

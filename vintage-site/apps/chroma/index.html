@@ -1106,8 +1106,7 @@
     [
       { dialog: aboutDialog, close: closeAbout },
       { dialog: helpDialog, close: closeHelp },
-      { dialog: theoryDialog, close: closeTheory },
-      { dialog: samDialog, close: closeSamMode }
+      { dialog: theoryDialog, close: closeTheory }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
       const contentPanel = dialog.querySelector('.content-panel');

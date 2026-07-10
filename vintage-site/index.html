@@ -6744,6 +6744,11 @@ function openMyComputerWindow() {
   filePane.style.cssText = 'display:flex;flex-wrap:wrap;align-content:flex-start;padding:6px 4px;gap:0;min-height:100%;';
   content.appendChild(filePane);
 
+  content.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    showContextMenu(e.clientX, e.clientY, buildMcBackgroundContextMenu());
+  });
+
   const statusbar = document.createElement('div');
   statusbar.className = 'win98-statusbar';
 
@@ -6833,6 +6838,35 @@ function openMyComputerWindow() {
     return sorted;
   }
 
+  function buildMcItemContextMenu(entry) {
+    const openAction = entry.type === 'dir'
+      ? () => navigateTo(entry.path)
+      : () => openFile(entry);
+    const copyUrl = entry.download_url || entry.html_url ||
+      ('https://github.com/' + REPO + '/blob/' + BRANCH + '/' + entry.path);
+    return [
+      { label: 'Open', onClick: openAction },
+      { label: 'Copy', onClick: () => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(copyUrl).catch(() => {});
+        }
+        statusbar.textContent = 'Copied: ' + entry.name;
+      }}
+    ];
+  }
+
+  function buildMcBackgroundContextMenu() {
+    return [
+      { label: 'Sort By', subMenu: [
+        { label: 'Name', onClick: () => { setCurrentSortMode('name'); setNavState(); renderItems(currentEntries); } },
+        { label: 'Size', onClick: () => { setCurrentSortMode('size'); setNavState(); renderItems(currentEntries); } },
+        { label: 'Date', onClick: () => { setCurrentSortMode('date'); setNavState(); renderItems(currentEntries); } },
+        { label: 'Type', onClick: () => { setCurrentSortMode('type'); setNavState(); renderItems(currentEntries); } }
+      ]},
+      { label: 'Clean Up', onClick: () => { setCurrentSortMode('name'); setNavState(); renderItems(currentEntries); } }
+    ];
+  }
+
   function setNavState() {
     toolbar.querySelector('.mc-back').disabled = navHistory.length === 0;
     toolbar.querySelector('.mc-up').disabled = !currentPath.includes('/');
@@ -6887,6 +6921,17 @@ function openMyComputerWindow() {
       if (entry.type === 'dir') el.addEventListener('dblclick', () => navigateTo(entry.path));
       else el.addEventListener('dblclick', () => openFile(entry));
 
+      el.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearSelectedItems();
+        el.classList.add('mc-sel');
+        el.style.background = '#000080';
+        label.style.background = '#000080';
+        label.style.color = '#fff';
+        showContextMenu(e.clientX, e.clientY, buildMcItemContextMenu(entry));
+      });
+
       filePane.appendChild(el);
     });
   }
@@ -6924,6 +6969,15 @@ function openMyComputerWindow() {
 
       if (entry.type === 'dir') row.addEventListener('dblclick', () => navigateTo(entry.path));
       else row.addEventListener('dblclick', () => openFile(entry));
+
+      row.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearSelectedItems();
+        row.classList.add('mc-sel', 'selected');
+        showContextMenu(e.clientX, e.clientY, buildMcItemContextMenu(entry));
+      });
+
       tbody.appendChild(row);
     });
 

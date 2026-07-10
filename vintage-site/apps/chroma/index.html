@@ -1680,8 +1680,8 @@
     drawScene();
   }
   function applySkewHex(hex){
-    applyModeHex(hex, skewInput, skewIcon, skewHex=>{
-      const rgb = hexToRgbObj(skewHex);
+    applyModeHex(hex, skewInput, skewIcon, normalizedHex=>{
+      const rgb = hexToRgbObj(normalizedHex);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
       skewActive = true;
@@ -1737,8 +1737,8 @@
     applySkewHex(skewInput.value);
   });
   function setFocusHex(hex){
-    applyModeHex(hex, focusInput, focusIcon, focusHexValue=>{
-      focusHex = focusHexValue;
+    applyModeHex(hex, focusInput, focusIcon, normalizedHex=>{
+      focusHex = normalizedHex;
       syncFocusButtonState();
     });
   }

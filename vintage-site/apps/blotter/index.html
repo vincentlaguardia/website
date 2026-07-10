@@ -88,8 +88,7 @@
     justify-content: center;
     color: #000;
     background: var(--win-face);
-    font-family: "Marlett", Tahoma, sans-serif;
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1;
     box-shadow:
       inset -1px -1px 0 var(--win-black),
@@ -277,9 +276,9 @@
       <div class="titlebar">
         <span class="titlebar-text">Blotter</span>
         <span class="window-buttons" aria-hidden="true">
-          <span class="window-button">0</span>
-          <span class="window-button">1</span>
-          <span class="window-button">r</span>
+          <span class="window-button">_</span>
+          <span class="window-button">□</span>
+          <span class="window-button">×</span>
         </span>
       </div>
       <div class="menubar" aria-label="Application menu">
@@ -401,12 +400,18 @@
         source.height = grid;
 
         const scale = Math.max(grid / img.width, grid / img.height);
-        const width = img.width * scale;
-        const height = img.height * scale;
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
 
         sctx.clearRect(0, 0, grid, grid);
         sctx.filter = 'saturate(' + sat + '%) contrast(112%)';
-        sctx.drawImage(img, (grid - width) / 2, (grid - height) / 2, width, height);
+        sctx.drawImage(
+          img,
+          (grid - scaledWidth) / 2,
+          (grid - scaledHeight) / 2,
+          scaledWidth,
+          scaledHeight,
+        );
         sctx.filter = 'none';
 
         ctx.fillStyle = paper();

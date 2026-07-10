@@ -788,6 +788,7 @@
       <div id="sam-theory-text"></div>
       <div class="diary-footer">
         <button class="win-btn" id="sam-export">Export JPG</button>
+        <button class="win-btn" id="sam-export-full">Export Full</button>
         <button class="win-btn" id="sam-save-desktop" style="margin-left:auto;">Save to Desktop</button>
       </div>
     </div>
@@ -2277,7 +2278,141 @@
     if(matchSatActive){
       paras.push('match sat is turned on. the saturation of the entire grid is being synced to match the vividness of a specific source color you selected. instead of letting each zone set its own intensity, they are all held to that shared level. swatches 1 (' + hexes[0] + ') and 9 (' + hexes[8] + ') should feel similarly vivid — or similarly muted — as a result.');
     }
+    paras.push(buildSamOutlierParagraph(hexes));
     return paras.map(function(p){ return '<p>' + p + '</p>'; }).join('');
+  }
+
+  function hueDist(a, b){ const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+  function hueColorName(h){
+    h = ((h % 360) + 360) % 360;
+    if(h < 15 || h >= 345) return 'red';
+    if(h < 45) return 'orange';
+    if(h < 75) return 'yellow';
+    if(h < 105) return 'yellow-green';
+    if(h < 150) return 'green';
+    if(h < 195) return 'cyan';
+    if(h < 255) return 'blue';
+    if(h < 285) return 'violet';
+    if(h < 315) return 'magenta';
+    return 'pink';
+  }
+  const SAM_SWATCH_POS = [
+    'swatch 1 (top left)', 'swatch 2 (top center)', 'swatch 3 (top right)',
+    'swatch 4 (middle left)', 'swatch 5 (center)', 'swatch 6 (middle right)',
+    'swatch 7 (bottom left)', 'swatch 8 (bottom center)', 'swatch 9 (bottom right)'
+  ];
+  function buildSamOutlierParagraph(hexes){
+    let expectedHues;
+    if(importedMode){
+      const hsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
+      const sinSum = hsls.reduce(function(s, hsl){ return s + Math.sin(hsl.h * Math.PI / 180); }, 0);
+      const cosSum = hsls.reduce(function(s, hsl){ return s + Math.cos(hsl.h * Math.PI / 180); }, 0);
+      expectedHues = [(Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360];
+    } else {
+      expectedHues = PHILOSOPHIES[philoIdx].hueOffsets.map(function(off){ return (baseHue + off + 3600) % 360; });
+    }
+    const scored = hexes.map(function(hex, i){
+      const rgb = hexToRgbObj(hex);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      const minDist = expectedHues.reduce(function(best, eh){ return Math.min(best, hueDist(hsl.h, eh)); }, 360);
+      return { i: i, hex: hex, hsl: hsl, minDist: minDist, score: minDist * (hsl.s / 100) };
+    });
+    scored.sort(function(a, b){ return b.score - a.score; });
+    const top = scored[0];
+    const second = scored[1];
+    if(top.score < 8){
+      return 'every swatch in this grid sits close to where the palette rules say it should — no color is pulling far outside its expected zone. the palette looks consistent and orderly, with no obvious outliers to call out.';
+    }
+    const colorName = hueColorName(top.hsl.h);
+    const distRounded = Math.round(top.minDist);
+    let text = 'the most unusual swatch is ' + SAM_SWATCH_POS[top.i] + ' — ' + top.hex + ' reads as ' + colorName + ' and sits ' + distRounded + '\u00b0 away from the nearest color the palette rule would predict. ';
+    if(second && second.score > top.score * 0.55 && second.score > 8){
+      const colorName2 = hueColorName(second.hsl.h);
+      const distRounded2 = Math.round(second.minDist);
+      text += 'close behind it is ' + SAM_SWATCH_POS[second.i] + ' (' + second.hex + '), a ' + colorName2 + ' tone sitting ' + distRounded2 + '\u00b0 off. these two are the swatches most responsible for any unexpected energy or tension you feel in the grid.';
+    } else {
+      text += 'that gap is what makes it feel like it doesn\'t quite belong — and that friction is often the most interesting part of the palette.';
+    }
+    return text;
+  }
+
+  function buildSamFullCanvas(){
+    const COLS = 3, ROWS = 3;
+    const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
+    const CANVAS_W = 470;
+    const TEXT_FONT = '12px Tahoma,Arial,sans-serif';
+    const LINE_H = 17;
+    const PARA_GAP = 8;
+    const MAX_TEXT_W = CANVAS_W - PAD * 2;
+    const html = buildSamTheoryHtml();
+    const paraTexts = [];
+    html.replace(/<p>([\s\S]*?)<\/p>/g, function(_, content){ paraTexts.push(content); });
+    const tmpC = document.createElement('canvas');
+    const tmpCx = tmpC.getContext('2d');
+    tmpCx.font = TEXT_FONT;
+    function wrapText(text, maxW){
+      const words = text.split(' ');
+      const lines = [];
+      let line = '';
+      for(let i = 0; i < words.length; i++){
+        const test = line ? line + ' ' + words[i] : words[i];
+        if(tmpCx.measureText(test).width > maxW && line){ lines.push(line); line = words[i]; }
+        else { line = test; }
+      }
+      if(line) lines.push(line);
+      return lines;
+    }
+    const wrappedParas = paraTexts.map(function(p){ return wrapText(p, MAX_TEXT_W); });
+    const totalTextH = wrappedParas.reduce(function(acc, lines){ return acc + lines.length * LINE_H + PARA_GAP; }, 0);
+    const gridH = ROWS * SH + (ROWS - 1) * GAP;
+    const ch = PAD + HEADER + gridH + PAD + totalTextH + PAD;
+    const c = document.createElement('canvas');
+    c.width = CANVAS_W; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#c0c0c0';
+    cx.fillRect(0, 0, CANVAS_W, ch);
+    cx.fillStyle = '#000000';
+    cx.font = 'bold 13px Tahoma,Arial,sans-serif';
+    cx.textAlign = 'left';
+    cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
+    SAM_CELLS.forEach(function(cell, i){
+      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
+      const hex = zoneHex(zone);
+      const rgb = hexToRgbObj(hex);
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = PAD + col * (SW + GAP);
+      const y = PAD + HEADER + row * (SH + GAP);
+      cx.fillStyle = hex;
+      cx.fillRect(x, y, SW, SH);
+      cx.strokeStyle = 'rgba(0,0,0,0.22)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
+      const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
+      cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(hex, x + SW / 2, y + SH / 2 - 6);
+      cx.font = '9px Tahoma,Arial,sans-serif';
+      cx.fillText(rgb.r + ',' + rgb.g + ',' + rgb.b, x + SW / 2, y + SH / 2 + 8);
+    });
+    cx.fillStyle = '#222222';
+    cx.font = TEXT_FONT;
+    cx.textAlign = 'left';
+    let ty = PAD + HEADER + gridH + PAD + LINE_H;
+    wrappedParas.forEach(function(lines){
+      lines.forEach(function(line){ cx.fillText(line, PAD, ty); ty += LINE_H; });
+      ty += PARA_GAP;
+    });
+    return c;
+  }
+
+  function exportSamFullJPG(){
+    const c = buildSamFullCanvas();
+    const link = document.createElement('a');
+    link.download = 'chroma-sam-full-' + timestampTag() + '.jpg';
+    link.href = c.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
+    link.click();
   }
 
   function renderSamMode(){
@@ -2380,6 +2515,7 @@
   document.getElementById('menu-sam').addEventListener('click', function(e){ e.stopPropagation(); closeAllMenus(); openSamMode(); });
   document.getElementById('sam-close').addEventListener('click', closeSamMode);
   document.getElementById('sam-export').addEventListener('click', exportSamJPG);
+  document.getElementById('sam-export-full').addEventListener('click', exportSamFullJPG);
   document.getElementById('sam-save-desktop').addEventListener('click', saveSamToDesktop);
   document.getElementById('sm-sam').addEventListener('click', function(e){ e.stopPropagation(); closeStartMenu(); openSamMode(); });
 

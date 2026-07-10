@@ -571,9 +571,25 @@
     left:36px;
     transform:none;
     z-index:76;
+    resize:both;
+    overflow:hidden;
+    max-height:none;
+  }
+  #sam-dialog .winbody{
+    flex:1;
+    min-height:0;
+    overflow:hidden;
+  }
+  #sam-dialog .content-panel{
+    max-height:none;
+    height:100%;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
   }
   #sam-grid{
     --diary-grid-columns:3;
+    flex-shrink:0;
   }
   #sam-theory-text{
     padding:8px 4px 4px;
@@ -2221,7 +2237,14 @@
     } else if(pastramiMode){
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       paras.push('techno mode is active, running on a ' + philoName + ' base with its starting hue at ' + Math.round(baseHue) + '\u00b0. in normal mode, colors follow predictable rules for how bright or vivid they get. techno mode throws those rules out and randomly pushes each zone toward either a washed-out pastel or a full-blast neon. no middle ground.');
-      paras.push('compare swatch 1 in the top left (' + hexes[0] + ') against swatch 5 in the center (' + hexes[4] + ') to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+      const pastramiHsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
+      const neonIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s > pastramiHsls[best].s ? i : best; }, 0);
+      const pastelIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s < pastramiHsls[best].s ? i : best; }, 0);
+      if(neonIdx !== pastelIdx){
+        paras.push('compare ' + SAM_SWATCH_POS[neonIdx] + ' (' + hexes[neonIdx] + '), which landed on the neon end, against ' + SAM_SWATCH_POS[pastelIdx] + ' (' + hexes[pastelIdx] + '), which landed on the pastel end, to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+      } else {
+        paras.push('despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+      }
     } else {
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       let philoDesc = '';
@@ -2330,9 +2353,9 @@
       const colorName2 = hueColorName(second.hsl.h);
       const distRounded2 = Math.round(second.minDist);
       text += 'close behind it is ' + SAM_SWATCH_POS[second.i] + ' (' + second.hex + '), a ' + colorName2 + ' tone sitting ' + distRounded2 + '\u00b0 off. ';
-      text += 'these two are the swatches most responsible for any unexpected energy or tension you feel in the grid. in color theory, a palette that follows its rules without any deviation can start to feel mechanical or generated. one or two colors bending the formula introduce what designers sometimes call controlled dissonance, a note that shouldn\'t quite fit but does. the strange slider puts those notes there on purpose. they create a focal point, pull the eye across the grid, and give the palette a feeling of having been chosen rather than calculated.';
+      text += 'these two are the swatches most responsible for any unexpected energy or tension you feel in the grid.';
     } else {
-      text += 'that distance from the expected hue is what creates friction in the palette. a perfectly on-formula color does what it\'s supposed to do, nothing more. a color this far off the predicted hue introduces a note the eye doesn\'t expect. in color theory this kind of controlled deviation is often what separates a palette that feels alive from one that just feels correct. the strange slider places these off-formula colors intentionally. they give the grid a focal point, somewhere for the eye to land and linger, and that friction is frequently the most memorable part of the whole palette.';
+      text += 'that distance from the expected hue is what creates friction in the palette.';
     }
     return text;
   }

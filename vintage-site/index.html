@@ -6753,8 +6753,11 @@ function openColorMixer95Window() {
       }
       const currentLeft = parseFloat(win.style.left) || 0;
       const currentTop = parseFloat(win.style.top) || 0;
+      const runtimeTaskbar = document.getElementById('taskbar');
+      const runtimeTaskbarHeight = runtimeTaskbar ? runtimeTaskbar.offsetHeight : 30;
+      const runtimeAvailH = window.innerHeight - runtimeTaskbarHeight;
       const maxContentWAtPos = Math.max(minContentW, window.innerWidth - currentLeft - COLORMIXER95_MARGIN);
-      const maxContentHAtPos = Math.max(Math.round(minContentW / COLORMIXER95_ASPECT), availH - currentTop - COLORMIXER95_CHROME_H - COLORMIXER95_MARGIN);
+      const maxContentHAtPos = Math.max(Math.round(minContentW / COLORMIXER95_ASPECT), runtimeAvailH - currentTop - COLORMIXER95_CHROME_H - COLORMIXER95_MARGIN);
       const maxContentWFromHeight = Math.round(maxContentHAtPos * COLORMIXER95_ASPECT);
       const maxAllowedContentW = Math.max(minContentW, Math.min(maxContentWAtPos, maxContentWFromHeight));
       nextContentW = Math.max(minContentW, nextContentW);

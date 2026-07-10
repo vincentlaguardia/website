@@ -5544,7 +5544,10 @@ function openNotepadWindow(initialText, initialFilename) {
 
   function buildSiteTxtEntries() {
     const trashedIds = new Set(trashItems.map(t => t.id));
-    const entries = Object.entries(items).filter(([id, it]) => it.type === 'text' && !trashedIds.has(id));
+    const entries = Object.entries(items).filter(([id, it]) => {
+      if (trashedIds.has(id) || it.type !== 'text') return false;
+      return id === 'readme' || it.name === 'ABOUTME.txt';
+    });
     if (!entries.length) return [{ label: '(no .txt files on site)', onClick: () => {} }];
     return entries.map(([iid, it]) => ({
       label: it.name,

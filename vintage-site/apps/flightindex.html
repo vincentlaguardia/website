@@ -499,8 +499,8 @@
   var FIRE_SIZE_BASE = 0.65;
   var FIRE_SIZE_GROWTH_MULT = 0.8;
   var FIRE_SIZE_CRASH_MULT = 0.6;
-  var EXTINGUISH_RATE_FAST = 0.0012;
-  var EXTINGUISH_RATE_SLOW = 0.00058;
+  var EXTINGUISH_RATE_PRE_BLAST = 0.0012;
+  var EXTINGUISH_RATE_POST_BLAST = 0.00058;
   var SECONDARY_BLAST_TRIGGER_PROGRESS = 0.9;
   var SECONDARY_BLAST_PRE_CAP = 0.96;
   var SECONDARY_BLAST_RESET_PROGRESS = 0.22;
@@ -514,6 +514,8 @@
   var SMOKE_DARK_THRESHOLD = 0.82;
   var HEAT_STAGE_BASE = 0.75;
   var HEAT_STAGE_HEAT_MULT = 0.55;
+  var HEAT_STAGE_CORE_THRESHOLD = 0.72;
+  var HEAT_STAGE_HOT_THRESHOLD = 0.34;
   var DEFAULT_PARTICLE_INTENSITY = 0.7;
   // several staggered follow-up bursts spread across the full 10s so the
   // explosion keeps re-flaring instead of just fading out early
@@ -605,7 +607,7 @@
       }
       // visible flame licking at the wound, growing right alongside the smoke
       var fireIntensityMultiplier = 0.35 + growth * 0.8 + crashProgress * 1.45 + (secondaryBlastTriggered ? 0.5 : 0);
-      var flameChance = Math.min(1, CRASH_FIRE_BASE_CHANCE * growth * fireIntensityMultiplier * (0.5 + suppress * 0.5));
+      var flameChance = Math.min(1, CRASH_FIRE_BASE_CHANCE * fireIntensityMultiplier * (0.5 + suppress * 0.5));
       if (Math.random() < flameChance) {
         explosionParticles.push({
           x: px + rand(-4, 4), y: py + rand(-2, 2),
@@ -695,10 +697,10 @@
       var bb = buildings[bj];
       if (!bb.damaged || bb.extinguished) continue;
       if (bb.activeSprayers > 0 && (bb.fireAge || 0) > 300) {
-        var extinguishRate = secondaryBlastTriggered ? EXTINGUISH_RATE_SLOW : EXTINGUISH_RATE_FAST;
+        var extinguishRate = secondaryBlastTriggered ? EXTINGUISH_RATE_POST_BLAST : EXTINGUISH_RATE_PRE_BLAST;
         bb.extinguishProgress = (bb.extinguishProgress || 0) + bb.activeSprayers * extinguishRate * dt;
         if (!secondaryBlastTriggered) {
-          if (bb.extinguishProgress > SECONDARY_BLAST_PRE_CAP) bb.extinguishProgress = SECONDARY_BLAST_PRE_CAP;
+          bb.extinguishProgress = Math.min(bb.extinguishProgress, SECONDARY_BLAST_PRE_CAP);
           if (bb.extinguishProgress >= SECONDARY_BLAST_TRIGGER_PROGRESS && crashElapsed > SECONDARY_BLAST_MIN_ELAPSED) {
             triggerSecondaryBlast(bb);
           }
@@ -851,7 +853,7 @@
       var progress = bb.extinguishProgress || 0;
       if (progress < 1) {
         bb.extinguished = false;
-        bb.extinguishProgress = Math.min(SECONDARY_BLAST_RESET_PROGRESS, progress);
+        bb.extinguishProgress = SECONDARY_BLAST_RESET_PROGRESS;
       }
       bb.fireAge = Math.max(bb.fireAge || 0, SECONDARY_BLAST_MIN_ELAPSED);
     }
@@ -952,7 +954,7 @@
         // three-stage cooling: hot core -> orange flame -> deep red ember
         var heat = p.heat === undefined ? DEFAULT_PARTICLE_INTENSITY : p.heat;
         var heatStage = t * (HEAT_STAGE_BASE + heat * HEAT_STAGE_HEAT_MULT);
-        ctx.fillStyle = heatStage > 0.72 ? PAL.fireCore : (heatStage > 0.34 ? PAL.fireHot : PAL.fireDeep);
+        ctx.fillStyle = heatStage > HEAT_STAGE_CORE_THRESHOLD ? PAL.fireCore : (heatStage > HEAT_STAGE_HOT_THRESHOLD ? PAL.fireHot : PAL.fireDeep);
         ctx.globalAlpha = Math.min(1, 0.45 + t * (0.8 + heat * 0.3));
         var s = Math.max(1, Math.round(p.size * (0.6 + t * (0.75 + heat * 0.35))) + 1);
         ctx.fillRect(Math.floor(p.x - s / 2), Math.floor(p.y - s / 2), s, s);

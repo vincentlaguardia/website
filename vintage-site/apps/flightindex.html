@@ -514,6 +514,7 @@
   var SMOKE_DARK_THRESHOLD = 0.82;
   var HEAT_STAGE_BASE = 0.75;
   var HEAT_STAGE_HEAT_MULT = 0.55;
+  var DEFAULT_PARTICLE_INTENSITY = 0.7;
   // several staggered follow-up bursts spread across the full 10s so the
   // explosion keeps re-flaring instead of just fading out early
   var explosionWaveTimes = [18, 38, 62, 95, 140, 200, 280, 380, 480];
@@ -590,21 +591,21 @@
       var topOfBuilding = GROUND_Y - b.h;
       var px = b.x + b.damageLocalX;
       var py = topOfBuilding + b.damageLocalY;
-      var windDrift = 0.03 + crashProgress * 0.16 + (secondaryBlastTriggered ? 0.22 : 0);
+      var maxWindDrift = 0.03 + crashProgress * 0.16 + (secondaryBlastTriggered ? 0.22 : 0);
       var smokeChance = Math.min(1, (CRASH_SMOKE_BASE_CHANCE + growth * CRASH_SMOKE_GROWTH_CHANCE) * outOfControl * suppress);
       if (Math.random() < smokeChance) {
         plumeParticles.push({
           x: px + rand(-3, 3), y: py + rand(-2, 2),
           vx: rand(-0.08, 0.08), vy: -rand(0.28, PLUME_VY_BASE_MAX + crashProgress * PLUME_VY_CRASH_GROWTH),
-          drift: rand(windDrift * 0.5, windDrift),
+          drift: rand(maxWindDrift * 0.5, maxWindDrift),
           life: rand(130, 240), maxLife: 240,
           size: rand(5, 10 + crashProgress * 6),
           darkness: Math.min(1, rand(0.65, 0.9) + crashProgress * 0.22 + (secondaryBlastTriggered ? 0.15 : 0))
         });
       }
       // visible flame licking at the wound, growing right alongside the smoke
-      var fireFury = 0.35 + growth * 0.8 + crashProgress * 1.45 + (secondaryBlastTriggered ? 0.5 : 0);
-      var flameChance = Math.min(1, CRASH_FIRE_BASE_CHANCE * growth * fireFury * (0.5 + suppress * 0.5));
+      var fireIntensityMultiplier = 0.35 + growth * 0.8 + crashProgress * 1.45 + (secondaryBlastTriggered ? 0.5 : 0);
+      var flameChance = Math.min(1, CRASH_FIRE_BASE_CHANCE * growth * fireIntensityMultiplier * (0.5 + suppress * 0.5));
       if (Math.random() < flameChance) {
         explosionParticles.push({
           x: px + rand(-4, 4), y: py + rand(-2, 2),
@@ -753,7 +754,7 @@
   }
 
   function getSmokeColor(darkness) {
-    return (darkness || 0.7) > SMOKE_DARK_THRESHOLD ? PAL.smokeDark : PAL.smokeMid;
+    return (darkness || DEFAULT_PARTICLE_INTENSITY) > SMOKE_DARK_THRESHOLD ? PAL.smokeDark : PAL.smokeMid;
   }
 
   function drawPlume() {
@@ -761,7 +762,7 @@
       var p = plumeParticles[i];
       var t = Math.max(0, p.life / p.maxLife);
       ctx.fillStyle = getSmokeColor(p.darkness);
-      ctx.globalAlpha = Math.min(0.85, (0.22 + (1 - t) * 0.6) * (p.darkness || 0.7));
+      ctx.globalAlpha = Math.min(0.85, (0.22 + (1 - t) * 0.6) * (p.darkness || DEFAULT_PARTICLE_INTENSITY));
       var s = Math.max(2, Math.round(p.size * (0.9 + (1 - t) * 1.7)));
       ctx.fillRect(Math.floor(p.x - s / 2), Math.floor(p.y - s / 2), s, s);
     }
@@ -949,7 +950,7 @@
         ctx.fillRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), Math.ceil(p.size), Math.ceil(p.size));
       } else if (p.type === 'fire') {
         // three-stage cooling: hot core -> orange flame -> deep red ember
-        var heat = p.heat === undefined ? 0.7 : p.heat;
+        var heat = p.heat === undefined ? DEFAULT_PARTICLE_INTENSITY : p.heat;
         var heatStage = t * (HEAT_STAGE_BASE + heat * HEAT_STAGE_HEAT_MULT);
         ctx.fillStyle = heatStage > 0.72 ? PAL.fireCore : (heatStage > 0.34 ? PAL.fireHot : PAL.fireDeep);
         ctx.globalAlpha = Math.min(1, 0.45 + t * (0.8 + heat * 0.3));
@@ -958,7 +959,7 @@
       } else {
         // smoke billows larger as it ages, and stays dark enough to cloud the sky
         ctx.fillStyle = getSmokeColor(p.darkness);
-        ctx.globalAlpha = Math.min(0.75, (0.18 + (1 - t) * 0.62) * (p.darkness || 0.7));
+        ctx.globalAlpha = Math.min(0.75, (0.18 + (1 - t) * 0.62) * (p.darkness || DEFAULT_PARTICLE_INTENSITY));
         var s2 = Math.max(1, Math.round(p.size * (0.85 + 1.8 * (1 - t))));
         ctx.fillRect(Math.floor(p.x - s2 / 2), Math.floor(p.y - s2 / 2), s2, s2);
       }

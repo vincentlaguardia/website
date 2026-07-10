@@ -1049,7 +1049,7 @@ const items = {
   ieshortcut:   { type: 'shortcut', name: 'Internet Explorer', customIcon: 'ieshortcut', action: 'browser', modified: '2026-07-07' },
   solitaireshortcut: { type: 'shortcut', name: 'Solitaire', customIcon: 'solitaireshortcut', action: 'solitaire', modified: '2026-07-07' },
   paintshortcut: { type: 'shortcut', name: 'Paint', customIcon: 'paintshortcut', action: 'paint', modified: '2026-07-07' },
-  chromashortcut: { type: 'shortcut', name: 'chroma.exe', customIcon: 'chromashortcut', action: 'chroma', iconSize: 96, modified: '2026-07-09' },
+  chromashortcut: { type: 'shortcut', name: 'chroma.exe', customIcon: 'chromashortcut', action: 'chroma', iconSize: 96, defaultDesktopPosition: 'rightOfTrash', modified: '2026-07-09' },
   notepadshortcut: { type: 'shortcut', name: 'Notes', customIcon: 'notepadshortcut', action: 'notepad', modified: '2026-07-09' },
 
   // Fully GitHub-driven: nothing under here is hardcoded. Adding an album
@@ -6874,6 +6874,17 @@ function desktopDefaultPosition(itemId, item, slotIndex) {
     return {
       left: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, (window.innerWidth - iconWidth) / 2), maxLeft),
       top: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, (window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT) / 2), maxTop)
+    };
+  }
+  if (item && item.defaultDesktopPosition === 'rightOfTrash') {
+    const trashPos = desktopSlotPosition(0);
+    const iconWidth = DESKTOP_ICON_WIDTH;
+    const iconHeight = getDesktopIconSize(item) + DESKTOP_ICON_LABEL_HEIGHT;
+    const maxLeft = Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerWidth - iconWidth - DESKTOP_ICON_MIN_MARGIN);
+    const maxTop = Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT - DESKTOP_TASKBAR_GAP);
+    return {
+      left: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, trashPos.left + DESKTOP_ICON_WIDTH + 12), maxLeft),
+      top: Math.min(Math.max(DESKTOP_ICON_MIN_MARGIN, trashPos.top + 6), maxTop)
     };
   }
   return desktopSlotPosition(slotIndex, itemId);

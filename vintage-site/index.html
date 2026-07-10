@@ -1758,6 +1758,7 @@ function buildItemContextMenuEntries(itemId, parentId, renameAction) {
   if (item.type === 'pdf') menuEntries.push({ label: 'Download', onClick: () => downloadItem(itemId) });
   if (item.type === 'shortcut' && item.action === 'browser-url' && item.url) menuEntries.push({ label: 'Download', onClick: () => downloadUrlItem(item.url, item.name) });
   if (item.type === 'audio') menuEntries.push({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
+  menuEntries.push({ label: 'Delete', onClick: () => deleteItem(itemId, parentId) });
   return menuEntries;
 }
 

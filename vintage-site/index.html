@@ -7190,8 +7190,8 @@ async function openMediaPlayerWindow(trackId) {
 /* ---------- desktop icon ---------- */
 const DESKTOP_LEFT_GRID_JITTER = 0.15;
 const DESKTOP_DEFAULT_LAYOUT_SEED = 'desktop-default-v2';
-const DESKTOP_LEFT_REQUIRED_IDS = ['notepadshortcut', 'chromashortcut', 'solitaireshortcut', 'ieshortcut', 'paintshortcut'];
-const DESKTOP_LEFT_REQUIRED_LABELS = new Set(['applications', 'notes', 'chroma.exe', 'solitaire', 'internet', 'internet explorer', 'paint']);
+const DESKTOP_LEFT_REQUIRED_IDS = ['chromashortcut', 'solitaireshortcut', 'ieshortcut', 'paintshortcut'];
+const DESKTOP_LEFT_REQUIRED_LABELS = new Set(['applications', 'chroma.exe', 'solitaire', 'internet', 'internet explorer', 'paint']);
 
 function hashString32(seed) {
   let h = 2166136261;

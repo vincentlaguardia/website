@@ -6346,7 +6346,7 @@ function openSolitaireWindow(startInProgress) {
   });
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
-  addTaskbarEntry(id, 'Solitaire', getIcon(map.solitaireshortcut, 14));
+  addTaskbarEntry(id, 'Solitaire', getIcon(items.solitaireshortcut, 14));
   bringToFront(id);
 
   if (startInProgress) solDealInProgress(); else solDeal();

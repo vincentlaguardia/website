@@ -1151,7 +1151,8 @@ const DIARY_SW = 110, DIARY_SH = 110, DIARY_GAP = 6, DIARY_PAD = 16, DIARY_HEADE
 const DIARY_JPEG_QUALITY = 0.92;
 const LUM_R = 0.299, LUM_G = 0.587, LUM_B = 0.114, LUM_THRESH = 0.55;
 
-let diaryColors = (()=>{ try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }catch(e){ return []; } })();
+let diaryColors;
+try { diaryColors = JSON.parse(localStorage.getItem(DIARY_KEY)) || []; } catch(e) { diaryColors = []; }
 let diaryLastColor = null;
 let diaryCtxIdx = -1;
 let diaryCtxColor = null;
@@ -1228,9 +1229,9 @@ MODE_ORDER.forEach(key=>{
   canvas.style.cursor = 'crosshair';
   canvas.addEventListener('click', e=>{
     const rect = canvas.getBoundingClientRect();
-    const cx = Math.max(0, Math.min(canvas.width - 1, Math.floor((e.clientX - rect.left) * canvas.width / rect.width)));
-    const cy = Math.max(0, Math.min(canvas.height - 1, Math.floor((e.clientY - rect.top) * canvas.height / rect.height)));
-    const px = canvas.getContext('2d').getImageData(cx, cy, 1, 1).data;
+    const pixelX = Math.max(0, Math.min(canvas.width - 1, Math.floor((e.clientX - rect.left) * canvas.width / rect.width)));
+    const pixelY = Math.max(0, Math.min(canvas.height - 1, Math.floor((e.clientY - rect.top) * canvas.height / rect.height)));
+    const px = canvas.getContext('2d').getImageData(pixelX, pixelY, 1, 1).data;
     setLastClickedColor(px[0], px[1], px[2]);
   });
 });
@@ -1258,24 +1259,25 @@ document.getElementById('diaryExportBtn').addEventListener('click', ()=>{
   const cw = DIARY_EXPORT_COLS * DIARY_SW + (DIARY_EXPORT_COLS - 1) * DIARY_GAP + DIARY_PAD * 2;
   const ch = rows * DIARY_SH + (rows - 1) * DIARY_GAP + DIARY_PAD * 2 + DIARY_HEADER;
   const c = document.createElement('canvas'); c.width = cw; c.height = ch;
-  const cx = c.getContext('2d');
-  cx.fillStyle = '#c0c0c0'; cx.fillRect(0, 0, cw, ch);
-  cx.fillStyle = '#000'; cx.font = 'bold 13px Tahoma,Arial,sans-serif';
-  cx.textAlign = 'left'; cx.fillText('colormixer95 — Color Diary', DIARY_PAD, DIARY_PAD + 14);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#c0c0c0'; ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = '#000'; ctx.font = 'bold 13px Tahoma,Arial,sans-serif';
+  ctx.textAlign = 'left'; ctx.fillText('colormixer95 — Color Diary', DIARY_PAD, DIARY_PAD + 14);
   diaryColors.forEach((color, i)=>{
     const col = i % DIARY_EXPORT_COLS, row = Math.floor(i / DIARY_EXPORT_COLS);
     const x = DIARY_PAD + col * (DIARY_SW + DIARY_GAP);
     const y = DIARY_PAD + DIARY_HEADER + row * (DIARY_SH + DIARY_GAP);
-    cx.fillStyle = color.hex; cx.fillRect(x, y, DIARY_SW, DIARY_SH);
-    cx.strokeStyle = 'rgba(0,0,0,0.22)'; cx.lineWidth = 1; cx.strokeRect(x+0.5, y+0.5, DIARY_SW-1, DIARY_SH-1);
+    ctx.fillStyle = color.hex; ctx.fillRect(x, y, DIARY_SW, DIARY_SH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, DIARY_SW-1, DIARY_SH-1);
     const tc = diarySwatchTextColor(color.r, color.g, color.b);
-    cx.fillStyle = tc; cx.font = 'bold 10px Tahoma,Arial,sans-serif'; cx.textAlign = 'center';
-    cx.fillText(color.hex, x + DIARY_SW/2, y + DIARY_SH/2 - 6);
-    cx.font = '9px Tahoma,Arial,sans-serif'; cx.fillText(color.r+','+color.g+','+color.b, x + DIARY_SW/2, y + DIARY_SH/2 + 8);
+    ctx.fillStyle = tc; ctx.font = 'bold 10px Tahoma,Arial,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(color.hex, x + DIARY_SW/2, y + DIARY_SH/2 - 6);
+    ctx.font = '9px Tahoma,Arial,sans-serif'; ctx.fillText(color.r+','+color.g+','+color.b, x + DIARY_SW/2, y + DIARY_SH/2 + 8);
   });
   const link = document.createElement('a');
   link.download = 'colormixer95-diary-' + diaryTimestampTag() + '.jpg';
-  link.href = c.toDataURL('image/jpeg', DIARY_JPEG_QUALITY); link.click();
+  link.href = c.toDataURL('image/jpeg', DIARY_JPEG_QUALITY);
+  link.click();
 });
 
 document.getElementById('cmDiaryCopyHex').addEventListener('click', e=>{

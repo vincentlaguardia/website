@@ -91,7 +91,7 @@
   }
   .sam-grid{
     display:grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap:4px;
     padding:4px;
     flex-shrink:0;
@@ -190,6 +190,7 @@
 (function(){
   const SAM_KEY = 'chroma.sam-snapshot';
   const EXPORT_QUALITY = 0.92;
+  const SAM_SWATCH_COLUMNS = 4;
 
   function loadSnapshot(){
     try{ return JSON.parse(localStorage.getItem(SAM_KEY)) || null; }
@@ -237,7 +238,7 @@
   function buildSamCanvas(){
     const snap = loadSnapshot();
     if(!snap || !snap.cells) return null;
-    const COLS = 3, ROWS = 3;
+    const COLS = SAM_SWATCH_COLUMNS, ROWS = Math.ceil(snap.cells.length / COLS);
     const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
     const cw = COLS * SW + (COLS - 1) * GAP + PAD * 2;
     const ch = ROWS * SH + (ROWS - 1) * GAP + PAD * 2 + HEADER;
@@ -274,9 +275,9 @@
   function buildSamFullCanvas(){
     const snap = loadSnapshot();
     if(!snap || !snap.cells) return null;
-    const COLS = 3, ROWS = 3;
+    const COLS = SAM_SWATCH_COLUMNS, ROWS = Math.ceil(snap.cells.length / COLS);
     const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
-    const CANVAS_W = 470;
+    const CANVAS_W = COLS * SW + (COLS - 1) * GAP + PAD * 2;
     const TEXT_FONT = '12px Tahoma,Arial,sans-serif';
     const LINE_H = 17;
     const PARA_GAP = 8;

@@ -2485,20 +2485,20 @@
       const expected = Math.round(anchor.expectedHue);
       const actual = Math.round(anchor.item.hsl.h);
       const dist = Math.round(anchor.dist);
-      return samGridCellLabel(anchor.item.zone) + ' ' + anchor.item.hex + ' aligns to target ' + expected + '\u00b0 at ' + actual + '\u00b0 (' + dist + '\u00b0 offset)';
+      return samGridCellLabel(anchor.item.zone) + ' ' + anchor.item.hex + ' sits almost right on the ' + expected + '\u00b0 lane at ' + actual + '\u00b0 (' + dist + '\u00b0 off)';
     }).join('; ');
-    let text = 'full-grid scan across all ' + zoneData.length + ' cells: core anchors are ' + coreText + '. ';
-    text += 'the strongest outlier is ' + samGridCellLabel(top.zone) + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), ' + Math.round(top.minDist) + '\u00b0 from the nearest target hue. ';
+    let text = 'looking at all ' + zoneData.length + ' cells, this grid mostly settles into a few clear color lanes. the closest matches are ' + coreText + '. ';
+    text += 'the biggest wild card is ' + samGridCellLabel(top.zone) + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), which sits ' + Math.round(top.minDist) + '\u00b0 away from the nearest target hue. ';
     if(second){
-      text += 'the second outlier is ' + samGridCellLabel(second.zone) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 from the nearest target hue. ';
+      text += 'the next biggest wild card is ' + samGridCellLabel(second.zone) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 away. ';
     }
     const extremes = [
-      'highest saturation ' + satMax.hex + ' at ' + Math.round(satMax.hsl.s) + '%',
-      'lowest saturation ' + satMin.hex + ' at ' + Math.round(satMin.hsl.s) + '%',
-      'highest lightness ' + lightMax.hex + ' at ' + Math.round(lightMax.hsl.l) + '%',
-      'lowest lightness ' + lightMin.hex + ' at ' + Math.round(lightMin.hsl.l) + '%'
+      satMax.hex + ' is the most vivid at ' + Math.round(satMax.hsl.s) + '% saturation',
+      satMin.hex + ' is the most muted at ' + Math.round(satMin.hsl.s) + '% saturation',
+      lightMax.hex + ' is the lightest at ' + Math.round(lightMax.hsl.l) + '% lightness',
+      lightMin.hex + ' is the darkest at ' + Math.round(lightMin.hsl.l) + '% lightness'
     ];
-    text += 'extremes in this same full-grid scan: ' + extremes.join(', ') + '.';
+    text += 'at the extremes, ' + extremes.join(', ') + '.';
     return text;
   }
 

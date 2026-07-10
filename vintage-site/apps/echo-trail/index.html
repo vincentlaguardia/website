@@ -1088,7 +1088,7 @@
   // if decoding fails so a single bad escape sequence does not abort the import.
   function decodePathPart(value){
     try{ return decodeURIComponent(value); }
-    catch(_){ return value; }
+    catch(err){ return value; }
   }
 
   function sanitizeFileName(value, fallback){
@@ -1364,7 +1364,7 @@
   }
 
   function timestampTag(){
-    return new Date().toISOString().replace(/[:.]/g,'-').replace('T','-').replace('Z','');
+    return new Date().toISOString().slice(0,19).replace('T','-').replace(/:/g,'-');
   }
 
   function renderOutputCanvas(){

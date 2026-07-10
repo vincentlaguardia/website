@@ -46,7 +46,8 @@
     position:relative;
     display:flex;
     flex-direction:column;
-    width:834px;
+    width:900px;
+    height:900px;
     max-width:96vw;
     min-width:320px;
     min-height:480px;
@@ -617,7 +618,7 @@
       </div>
       <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
       <div class="picker-with-hex">
-        <input type="color" id="cc-target-color" value="#bfbfbf">
+        <input type="color" id="cc-target-color" value="#ec93d9">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
@@ -634,7 +635,7 @@
         </div>
         <div class="color-swatch-wrap">
           <button class="color-swatch-btn" id="cc-match-sat-swatch" type="button" title="Color being matched. Click to pick a custom color (sets source to User). Right-click to clear." aria-label="Match sat color swatch"><span class="color-icon" id="match-sat-icon"></span></button>
-          <input type="color" id="cc-match-sat-color" value="#bfbfbf" aria-label="Pick custom saturation source color">
+          <input type="color" id="cc-match-sat-color" value="#fbf432" aria-label="Pick custom saturation source color">
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
@@ -644,7 +645,7 @@
         <div class="picker-with-hex">
           <div class="color-swatch-wrap">
             <button class="color-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="color-icon" id="skew-icon"></span></button>
-            <input type="color" id="cc-skew-color" value="#bfbfbf" aria-labelledby="cc-skew-btn cc-skew-swatch">
+            <input type="color" id="cc-skew-color" value="#05fffb" aria-labelledby="cc-skew-btn cc-skew-swatch">
           </div>
         </div>
       </div>
@@ -660,7 +661,7 @@
           <div class="picker-with-hex">
             <div class="color-swatch-wrap">
               <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
-              <input type="color" id="cc-focus-color" value="#bfbfbf" aria-labelledby="cc-focus-btn cc-focus-swatch">
+              <input type="color" id="cc-focus-color" value="#1fff8b" aria-labelledby="cc-focus-btn cc-focus-swatch">
             </div>
           </div>
         </div>
@@ -1182,6 +1183,7 @@
   const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
   let TARGET = hexToRgbObj(targetColorInput.value);
+  let userChangedTargetColor = false;
   const TARGET_CELLS = [
     {col:1,row:1}, {col:3,row:1}, {col:5,row:1},
     {col:1,row:3}, {col:3,row:3}, {col:5,row:3},
@@ -1194,6 +1196,7 @@
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
+  const DEFAULT_MATCH_SAT_HEX = '#fbf432';
   const PHILOSOPHIES = [
     { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
     { name:'Analogous', hueOffsets:[-30,0,30], pattern:[0,1,2,1] },
@@ -1356,7 +1359,7 @@
   let skewColor = null;
   let skewActive = false;
   let focusActive = false;
-  let focusHex = '#bfbfbf';
+  let focusHex = '#1fff8b';
   let matchSatActive = false;
   let matchSatSource = 'circles'; // 'circles' | 'skew' | 'buttons' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
@@ -1367,7 +1370,7 @@
   // --- Match Sat helpers ---
   function getMatchSatSourceRgb(){
     switch(matchSatSource){
-      case 'circles': return { r:TARGET.r, g:TARGET.g, b:TARGET.b };
+      case 'circles': return userChangedTargetColor ? TARGET : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
       case 'skew': return (skewColor !== null) ? hexToRgbObj(skewInput.value) : null;
       case 'buttons': return lastColor ? { r:lastColor.r, g:lastColor.g, b:lastColor.b } : null;
       case 'user': return matchSatUserColor ? { r:matchSatUserColor.r, g:matchSatUserColor.g, b:matchSatUserColor.b } : null;
@@ -1599,6 +1602,7 @@
   });
   function applyTargetHex(hex){
     targetColorInput.value = hex;
+    userChangedTargetColor = true;
     importedMode = false;
     TARGET = hexToRgbObj(hex);
     drawScene();
@@ -1753,12 +1757,9 @@
   resizeCanvas();
   (function fitInitialWindowSize(){
     if(window.self !== window.top) return; // skip in embedded/iframe mode
-    const winRect = win.getBoundingClientRect();
-    const wrapRect = ccWrap.getBoundingClientRect();
-    const chromeW = winRect.width - wrapRect.width;
-    const chromeH = winRect.height - wrapRect.height;
-    const targetW = Math.min(Math.round(800 + chromeW), Math.floor(window.innerWidth*0.96));
-    const targetH = Math.min(Math.round(800 + chromeH), Math.floor(window.innerHeight*0.96));
+    const DEFAULT_WINDOW_SIZE = 900;
+    const targetW = Math.min(DEFAULT_WINDOW_SIZE, Math.floor(window.innerWidth*0.96));
+    const targetH = Math.min(DEFAULT_WINDOW_SIZE, Math.floor(window.innerHeight*0.96));
     win.style.width = targetW + 'px';
     win.style.height = targetH + 'px';
     resizeCanvas();
@@ -1827,12 +1828,14 @@
     drawScene();
     return true;
   }
-  function applySkewHex(hex){
+  function applySkewHex(hex, shouldActivateSkew = true){
     applyModeHex(hex, skewInput, skewIcon, appliedHex=>{
       const rgb = hexToRgbObj(appliedHex);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
-      skewActive = true;
+      if(shouldActivateSkew){
+        skewActive = true;
+      }
       syncSkewButtonState();
     });
   }
@@ -1884,6 +1887,8 @@
   skewInput.addEventListener('input', ()=>{
     applySkewHex(skewInput.value);
   });
+  // Initialize the skew swatch color without enabling skew mode.
+  applySkewHex(skewInput.value, false);
   function setFocusHex(hex){
     applyModeHex(hex, focusInput, focusIcon, appliedHex=>{
       focusHex = appliedHex;

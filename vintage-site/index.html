@@ -8773,10 +8773,12 @@ window.addEventListener('message', function(e) {
   const diaryFrame = document.querySelector('.chroma-diary-frame');
   const samFrame = document.querySelector('.chroma-sam-frame');
   const echoTrailFrame = document.querySelector('.echo-trail-frame');
+  const colorMixer95Frame = document.querySelector('iframe[title="colormixer95"]');
   const isFromChroma = chromaFrame && e.source === chromaFrame.contentWindow;
   const isFromDiary = diaryFrame && e.source === diaryFrame.contentWindow;
   const isFromSam = samFrame && e.source === samFrame.contentWindow;
   const isFromEchoTrail = echoTrailFrame && e.source === echoTrailFrame.contentWindow;
+  const isFromColorMixer95 = colorMixer95Frame && e.source === colorMixer95Frame.contentWindow;
 
   if (e.data.type === 'chroma-open-diary' && isFromChroma) {
     openChromaDiaryWindow();
@@ -8819,6 +8821,27 @@ window.addEventListener('message', function(e) {
     const name = String(e.data.name || '').trim() || 'echo-trail.png';
     const dataUrl = String(e.data.dataUrl || '');
     const newId = 'echo_trail_' + Date.now();
+    const newItem = {
+      type: 'picture',
+      name: name,
+      file: dataUrl,
+      thumb: dataUrl,
+      modified: new Date().toISOString().slice(0, 10),
+      custom: true
+    };
+    items[newId] = newItem;
+    customFolders[newId] = newItem;
+    saveCustomFolders();
+    if (!items.desktop.children.includes(newId)) {
+      items.desktop.children.push(newId);
+      persistFolderChildren('desktop');
+    }
+    buildDesktopIcons();
+  }
+  if (e.data.type === 'colormixer95-save-to-desktop' && isFromColorMixer95) {
+    const name = String(e.data.name || '').trim() || 'color-mix.png';
+    const dataUrl = String(e.data.dataUrl || '');
+    const newId = 'colormixer95_' + Date.now();
     const newItem = {
       type: 'picture',
       name: name,

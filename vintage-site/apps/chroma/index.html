@@ -2402,7 +2402,7 @@
       paras.push(philoDesc);
       paras.push(philoExtra);
     }
-    paras.push(buildSamPaletteMathParagraph());
+    paras.push(buildSamPaletteMathText());
     const w = strange;
     if(w <= 20){
       paras.push('strange is set low (' + w + '). each zone sticks close to its assigned color, so the palette feels tight and consistent. think of it as the algorithm following its rules strictly. the grid looks clean and orderly. notice how ' + swatchRef(0) + ' and ' + swatchRef(1) + ' feel like they were picked from the same set.');
@@ -2449,13 +2449,14 @@
     const col = index % SAM_SWATCH_COLUMNS;
     return String.fromCharCode(65 + row) + (col + 1);
   }
-  function buildSamPaletteMathParagraph(){
+  function buildSamPaletteMathText(){
     const swatches = getSamSwatches();
     if(!swatches.length) return '';
     const expectedHues = getSamExpectedHues(swatches);
     const analyzed = swatches.map(function(item, index){
       const minDist = expectedHues.reduce(function(best, eh){ return Math.min(best, hueDist(item.hsl.h, eh)); }, 360);
       return {
+        index: index,
         coord: samSwatchCoordLabel(index),
         hex: item.hex,
         hsl: item.hsl,
@@ -2474,7 +2475,7 @@
     const seenCore = new Set();
     coreAnchors.forEach(function(anchor){
       if(!anchor) return;
-      const key = `${anchor.item.coord}-${anchor.expectedHue}`;
+      const key = `${anchor.item.index}-${anchor.expectedHue}`;
       if(seenCore.has(key)) return;
       seenCore.add(key);
       uniqueCoreAnchors.push(anchor);

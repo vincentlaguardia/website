@@ -6610,7 +6610,7 @@ function openMyComputerWindow() {
     <button class="win98-button mc-back" style="padding:2px 8px;font-size:11px;" disabled title="Back">← Back</button>
     <button class="win98-button mc-up" style="padding:2px 8px;font-size:11px;" disabled title="Up one level">↑ Up</button>
     <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">Address:</span>
-    <input class="mc-addr" style="flex:1;font-family:inherit;font-size:11px;padding:2px 4px;border:none;box-shadow:inset 1px 1px 0 #0a0a0a,inset -1px -1px 0 #fff,inset 2px 2px 0 #808080,inset -2px -2px 0 #dfdfdf;" readonly value="${escapeHtml(START_PATH)}">
+    <input class="mc-addr" style="flex:1;font-family:inherit;font-size:11px;padding:2px 4px;border:none;box-shadow:inset 1px 1px 0 #0a0a0a,inset -1px -1px 0 #fff,inset 2px 2px 0 #808080,inset -2px -2px 0 #dfdfdf;" readonly value="${mcEsc(START_PATH)}">
   `;
 
   const content = document.createElement('div');

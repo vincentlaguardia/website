@@ -24,6 +24,15 @@
     justify-content:center;
     padding:24px 12px;
   }
+  body.embedded{
+    min-height:100%;
+    height:100%;
+    background:var(--face);
+    align-items:stretch;
+    justify-content:stretch;
+    padding:0;
+    overflow:hidden;
+  }
   .window{
     background:var(--face);
     width:750px;
@@ -33,6 +42,14 @@
   }
   .window.minimized{ transform:scale(0.04); opacity:0; transform-origin: bottom left; }
   body.maximized .window{ width:98vw; }
+  body.embedded #app-window{
+    width:100%;
+    max-width:none;
+    box-shadow:none;
+  }
+  body.embedded #btn-min,
+  body.embedded #btn-max,
+  body.embedded #btn-close{ display:none; }
 
   .title-bar{
     background:linear-gradient(90deg,#000080,#1084d0);
@@ -381,6 +398,7 @@
 (function(){
   "use strict";
   const $ = id => document.getElementById(id);
+  const embeddedMode = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
 
   function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
 
@@ -1350,6 +1368,9 @@
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
+    if(embeddedMode){
+      document.body.classList.add('embedded', 'maximized');
+    }
     updateAllSpans();
     setImage(generateDemoImage());
 

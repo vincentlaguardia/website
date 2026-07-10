@@ -249,6 +249,7 @@
   }
   .ie-window, .chroma-window { resize: both; overflow: hidden; }
   .chroma-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
+  .echo-trail-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
   .desktop-icon-item.chroma-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
   .chroma-diary-window { resize: both; overflow: hidden; }
@@ -956,6 +957,7 @@
         <div class="menu-item" id="menu-flight">nyc_flight_sim</div>
         <div class="menu-item" id="menu-blotter">Blotter</div>
         <div class="menu-item" id="menu-notes">Notes</div>
+        <div class="menu-item" id="menu-echo-trail">Echo Trail</div>
         <div class="menu-item" id="menu-exorcist">The Exorcist</div>
       </div>
     </div>
@@ -6346,6 +6348,54 @@ function openExorcistWindow() {
   bringToFront(id);
 }
 
+function openEchoTrailWindow() {
+  const id = 'echo_trail';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out';
+  cascade = (cascade + 1) % 8;
+  const openW = 780;
+  const openH = 700;
+  win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
+  win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
+  win.style.width = openW + 'px';
+  win.style.height = openH + 'px';
+  win.style.minWidth = openW + 'px';
+  win.style.minHeight = openH + 'px';
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">Echo Trail</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
+  content.innerHTML = `<iframe class="echo-trail-frame" src="apps/echo-trail/index.html?embedded=1" title="Echo Trail"></iframe>`;
+
+  win.appendChild(titlebar);
+  win.appendChild(content);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  makeDraggable(win, titlebar);
+
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  addTaskbarEntry(id, 'Echo Trail', genericIcon(14));
+  bringToFront(id);
+}
+
 function openChromaDiaryWindow() {
   const id = 'chroma_diary';
   if (openWindows[id]) {
@@ -7348,6 +7398,11 @@ document.getElementById('menu-notes').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';
   document.getElementById('start-button').classList.remove('pressed');
   openNotepadWindow();
+});
+document.getElementById('menu-echo-trail').addEventListener('click', () => {
+  document.getElementById('start-menu').style.display = 'none';
+  document.getElementById('start-button').classList.remove('pressed');
+  openEchoTrailWindow();
 });
 document.getElementById('menu-exorcist').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';

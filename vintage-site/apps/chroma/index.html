@@ -2257,16 +2257,11 @@
     const pickedHexes = new Set();
     const pickedZoneKeys = new Set();
     function zoneKey(item){ return item.zone.col + ',' + item.zone.row; }
-    function addPick(item){
-      if(!item || pickedHexes.has(item.hex)) return;
-      picked.push(item);
-      pickedHexes.add(item.hex);
-      pickedZoneKeys.add(zoneKey(item));
-    }
-    function addAnyPick(item){
+    function addPick(item, allowDuplicateHex){
       if(!item) return;
       const key = zoneKey(item);
       if(pickedZoneKeys.has(key)) return;
+      if(!allowDuplicateHex && pickedHexes.has(item.hex)) return;
       picked.push(item);
       pickedHexes.add(item.hex);
       pickedZoneKeys.add(key);
@@ -2288,24 +2283,32 @@
     // Fill remaining slots by maximizing diversity from already-picked samples.
     const unpicked = candidates.filter(function(item){ return !pickedHexes.has(item.hex); });
     while(picked.length < SAM_SWATCH_COUNT && unpicked.length){
-      const next = pickMost(unpicked, function(item){
-        if(!picked.length) return 0;
-        return picked.reduce(function(minDist, chosen){
+      let bestIdx = -1;
+      let bestScore = -Infinity;
+      for(let i = 0; i < unpicked.length; i++){
+        const item = unpicked[i];
+        let score = Infinity;
+        for(let j = 0; j < picked.length; j++){
+          const chosen = picked[j];
           const dHue = hueDist(item.hsl.h, chosen.hsl.h);
           const dSat = Math.abs(item.hsl.s - chosen.hsl.s);
           const dLight = Math.abs(item.hsl.l - chosen.hsl.l);
           const d = dHue * 0.7 + dSat * 0.15 + dLight * 0.15;
-          return Math.min(minDist, d);
-        }, Infinity);
-      });
-      addPick(next);
-      const nextIdx = unpicked.findIndex(function(item){ return item.hex === next.hex; });
-      if(nextIdx >= 0) unpicked.splice(nextIdx, 1);
+          if(d < score) score = d;
+        }
+        if(score > bestScore){
+          bestScore = score;
+          bestIdx = i;
+        }
+      }
+      if(bestIdx === -1) break;
+      const next = unpicked.splice(bestIdx, 1)[0];
+      addPick(next, false);
     }
     if(picked.length < SAM_SWATCH_COUNT){
       pool.forEach(function(item){
         if(picked.length >= SAM_SWATCH_COUNT) return;
-        addAnyPick(item);
+        addPick(item, true);
       });
     }
     return picked.slice(0, SAM_SWATCH_COUNT);

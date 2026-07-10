@@ -2210,47 +2210,51 @@
   const samZoneByPos = new Map(zones.map(function(z){ return [z.col + ',' + z.row, z]; }));
 
   function buildSamTheoryHtml(){
+    const hexes = SAM_CELLS.map(function(cell){
+      return zoneHex(samZoneByPos.get(cell.col + ',' + cell.row));
+    });
     const paras = [];
+    paras.push('hey sam, i know this is all really confusing stuff for you so i made you this little color buddy. a \u201csam mode\u201d if you will');
     if(importedMode){
-      paras.push('This palette was distilled from an imported photograph. The image was sampled, reduced to its most significant color bins, and fed through the band/group composition logic as a custom source palette. The 9 key colors shown above are the cells at the evenly-distributed reference positions within that derived palette.');
+      paras.push('this palette was pulled from an imported photo. the image was sampled down to its most important color groups and used as the source for the grid you are looking at. the 9 swatches represent evenly spaced positions across that derived palette. swatch 1 in the top left (' + hexes[0] + ') and swatch 9 in the bottom right (' + hexes[8] + ') show you two ends of that color range.');
     } else if(pastramiMode){
-      const philoName = PHILOSOPHIES[philoIdx].name;
-      paras.push('Techno mode is active over a ' + philoName + ' base centered at hue ' + Math.round(baseHue) + '\u00b0. Rather than following standard saturation and lightness curves, Techno mode divides zones stochastically between deeply unsaturated pastels (50\u201380% saturation, 72\u201388% lightness) and extreme neon/fluorescent tones (92\u2013100% saturation, 47\u201367% lightness). The two states coexist inside the same spatial band logic, which is what creates the controlled instability.');
+      const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
+      paras.push('techno mode is running on a ' + philoName + ' base at hue ' + Math.round(baseHue) + '\u00b0. instead of normal saturation and lightness rules, techno mode randomly splits zones between soft washed out pastels and intense neon tones. compare swatch 1 in the top left (' + hexes[0] + ') against swatch 5 in the center (' + hexes[4] + ') to see that split in action. both states share the same band structure which is what makes the grid feel electric and a little unstable.');
     } else {
-      const philoName = PHILOSOPHIES[philoIdx].name;
+      const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       let philoDesc = '';
       switch(philoIdx){
-        case 0: philoDesc = 'All zones share one hue family, varying only in lightness and saturation. Simultaneous contrast is low because no opposing hue is present, but subtle value differences across zones create a quiet optical push.'; break;
-        case 1: philoDesc = 'Three hues cluster within \u00b130\u00b0 of the base, making the palette feel close and naturalistic. Simultaneous contrast operates mainly through lightness and saturation rather than hue opposition.'; break;
-        case 2: philoDesc = 'Two hues sit directly opposite each other on the 360\u00b0 wheel. Their relationship is maximally polar \u2014 each one activates the other through simultaneous contrast, producing the highest possible hue tension.'; break;
-        case 3: philoDesc = 'The two accent hues flank the pure complement at \u00b130\u00b0, preserving strong contrast while softening the binary sharpness of direct complementarity. The palette reads as tense but not quite resolved.'; break;
-        case 4: philoDesc = 'Three hues are exactly 120\u00b0 apart, dividing the wheel into an equilateral triangle. The balance is mathematical \u2014 no single hue dominates and each supports the others equally.'; break;
-        case 5: philoDesc = 'Four hues at 90\u00b0 intervals form a rectangle on the wheel. The structure has more variety than triadic while retaining geometric order; one pair of opposites tends to read as dominant, giving the eye a subtle hierarchy.'; break;
+        case 0: philoDesc = 'all 9 swatches share one hue family and only vary in lightness and saturation. simultaneous contrast is low because no competing hue is present. look at the difference between swatch 1 in the top left (' + hexes[0] + ') and swatch 9 in the bottom right (' + hexes[8] + ') to see how much a single hue can shift just by changing value.'; break;
+        case 1: philoDesc = 'three hues cluster within 30\u00b0 of the base hue which is why the palette feels close and naturalistic. simultaneous contrast works here mainly through lightness and saturation rather than hue opposition. look across the top row from swatch 1 (' + hexes[0] + ') to swatch 3 (' + hexes[2] + ') to see this gradual shift.'; break;
+        case 2: philoDesc = 'two hues sit directly opposite each other on the color wheel at 180\u00b0 apart. their relationship is maximally polar and each one activates the other through simultaneous contrast. swatch 1 in the top left (' + hexes[0] + ') and swatch 5 in the center (' + hexes[4] + ') are a good place to spot this tension.'; break;
+        case 3: philoDesc = 'the two accent hues flank the pure complement at 30\u00b0 on each side, keeping strong contrast while softening the sharpness of direct complementarity. compare swatch 3 in the top right (' + hexes[2] + ') against swatch 7 in the bottom left (' + hexes[6] + ') to feel that tension.'; break;
+        case 4: philoDesc = 'three hues are exactly 120\u00b0 apart, dividing the color wheel into an equilateral triangle. the balance is mathematical and no single hue dominates. swatches 1 (' + hexes[0] + '), 5 (' + hexes[4] + '), and 9 (' + hexes[8] + ') each likely land in a different hue family to show you that even spread.'; break;
+        case 5: philoDesc = 'four hues at 90\u00b0 intervals form a rectangle on the color wheel. the structure has more variety than triadic while keeping geometric order. swatch 1 in the top left (' + hexes[0] + ') and swatch 2 next to it (' + hexes[1] + ') are a good example of how two adjacent zones can feel related but still carry distinct hue character.'; break;
       }
       paras.push(philoName + ' palette centered at hue ' + Math.round(baseHue) + '\u00b0. ' + philoDesc);
     }
     const w = strange;
     if(w <= 20){
-      paras.push('Strange is low (' + w + '). Zone hue assignments stay close to the palette rule \u2014 coherence is high and deviations are minimal. The grid reads as an orderly application of the chosen philosophy.');
+      paras.push('strange is low (' + w + '). zone hue assignments stay close to the palette rule so coherence is high and deviations are minimal. the grid reads as an orderly application of the chosen philosophy. notice how swatch 1 (' + hexes[0] + ') and swatch 2 (' + hexes[1] + ') feel like they belong together.');
     } else if(w <= 55){
-      paras.push('Strange is moderate (' + w + '). Occasional wildcard hue jumps introduce tension while the underlying philosophy stays readable. Some zones wander further than the palette would normally permit.');
+      paras.push('strange is moderate (' + w + '). occasional wildcard hue jumps introduce tension while the underlying philosophy stays readable. some zones wander further than the palette would normally allow. swatch 5 in the center (' + hexes[4] + ') might be one of those wanderers.');
     } else {
-      paras.push('Strange is high (' + w + '). Wildcard zones can drift far from their assigned palette hue. Structure persists in the spatial band geometry, but individual color relationships feel unstable or ambiguous.');
+      paras.push('strange is high (' + w + '). wildcard zones can drift far from their assigned palette hue. structure persists in the spatial band geometry but individual color relationships feel unstable or ambiguous. look at swatch 9 in the bottom right (' + hexes[8] + ') to see how far a zone can stray from the base hue.');
     }
     const satPct = Math.round(globalSatMul * 100);
     if(satPct < 100){
-      paras.push('Saturation is scaled to ' + satPct + '% of its natural value, pulling all colors toward gray. Simultaneous contrast weakens as chroma drops.');
+      paras.push('saturation is scaled to ' + satPct + '% of its natural value, pulling all colors toward gray. simultaneous contrast weakens as chroma drops. compare swatch 1 (' + hexes[0] + ') against swatch 9 (' + hexes[8] + ') to see how muted the range becomes.');
     } else if(satPct > 100){
-      paras.push('Saturation is scaled to ' + satPct + '%, amplifying chroma beyond the base palette range. Colors become more intense and hue relationships more assertive.');
+      paras.push('saturation is scaled to ' + satPct + '%, amplifying chroma beyond the base palette range. colors become more intense and hue relationships more assertive. swatch 5 in the center (' + hexes[4] + ') is a good example of what that amplification looks like.');
     }
     if(skewActive && skewColor !== null){
-      paras.push('Skew is active at hue ' + Math.round(skewColor.h) + '\u00b0, pulling every zone\u2019s hue ' + Math.round(SKEW_STRENGTH * 100) + '% toward that anchor. The internal palette relationships are preserved, but the overall temperature shifts uniformly.');
+      paras.push('skew is active at hue ' + Math.round(skewColor.h) + '\u00b0, pulling every zone\u2019s hue ' + Math.round(SKEW_STRENGTH * 100) + '% toward that anchor. the internal palette relationships are preserved but the overall temperature shifts uniformly. look at swatch 1 (' + hexes[0] + ') and swatch 9 (' + hexes[8] + ') to see that shared temperature pull.');
     }
     if(focusActive){
-      paras.push('Focus mode locks one repeating diagonal band (the (row\u202fcol)\u202fmod\u202f4\u202f=\u202f0 cycle) to ' + focusHex + ', inserting a fixed-color stripe at regular intervals and giving the eye a constant anchor point.');
+      paras.push('focus mode locks one repeating diagonal band to ' + focusHex + ', inserting a fixed color stripe at regular intervals and giving the eye a constant anchor point. swatch 3 in the top right (' + hexes[2] + ') or swatch 7 in the bottom left (' + hexes[6] + ') may be one of those locked focus swatches.');
     }
     if(matchSatActive){
-      paras.push('Match Sat is active, locking the saturation slider continuously to the chroma level of the selected source color, creating a shared saturation reference across all zones.');
+      paras.push('match sat is active, locking the saturation slider continuously to the chroma level of the selected source color, creating a shared saturation reference across all zones. swatches 1 (' + hexes[0] + ') and 9 (' + hexes[8] + ') should share a similar chroma level as a result.');
     }
     return paras.map(function(p){ return '<p>' + p + '</p>'; }).join('');
   }
@@ -2266,7 +2270,7 @@
       const div = document.createElement('div');
       div.className = 'diary-swatch';
       div.style.background = hex;
-      div.title = hex;
+      div.title = hex + ' (right-click to add to diary)';
       const hexSpan = document.createElement('span');
       hexSpan.className = 'dsw-hex';
       hexSpan.style.color = tc;
@@ -2277,6 +2281,11 @@
       rgbSpan.textContent = rgb.r + ',' + rgb.g + ',' + rgb.b;
       div.appendChild(hexSpan);
       div.appendChild(rgbSpan);
+      div.addEventListener('contextmenu', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        showCanvasCtxMenu(e, { hex: hex, r: rgb.r, g: rgb.g, b: rgb.b });
+      });
       grid.appendChild(div);
     });
     document.getElementById('sam-theory-text').innerHTML = buildSamTheoryHtml();

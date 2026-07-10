@@ -7,6 +7,7 @@
   const sctx = source.getContext('2d');
   const imageInput = $('#imageInput');
   const openImage = $('#openImage');
+  const PAPER = '#ffffff';
   let img = null;
   let seed = 48271;
   const controls = ['thickness', 'depth', 'wear', 'saturation'];
@@ -33,12 +34,8 @@
     draw();
   }
 
-  function paper() {
-    return '#ffffff';
-  }
-
   function drawPlaceholder() {
-    ctx.fillStyle = paper();
+    ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = 'rgba(0,0,0,.45)';
     ctx.font = '28px Tahoma';
@@ -79,7 +76,7 @@
     );
     sctx.filter = 'none';
 
-    ctx.fillStyle = paper();
+    ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, size, size);
     ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = 0.93;
@@ -149,7 +146,7 @@
     }
 
     for (let i = 1; i < grid; i += 1) {
-      if (i % every) continue;
+      if (i % every !== 0) continue;
       const position = i * cell;
       for (let distance = cell * 0.5; distance < size; distance += cell * 0.72) {
         punch(position, distance);

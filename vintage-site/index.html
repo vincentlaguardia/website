@@ -1111,6 +1111,14 @@ Object.keys(childrenOverrides).forEach(pid => {
 const FOLDER_ICON_POS_KEY = 'site-folder-icon-positions';
 let folderIconPositions = {};
 try { folderIconPositions = JSON.parse(localStorage.getItem(FOLDER_ICON_POS_KEY) || '{}'); } catch (e) { folderIconPositions = {}; }
+const DESKTOP_RENAME_MAP_KEY = 'desktopRenameMap';
+let desktopRenameMap = {};
+try {
+  const parsedDesktopRenameMap = JSON.parse(localStorage.getItem(DESKTOP_RENAME_MAP_KEY) || '{}');
+  desktopRenameMap = parsedDesktopRenameMap && typeof parsedDesktopRenameMap === 'object' ? parsedDesktopRenameMap : {};
+} catch (e) {
+  desktopRenameMap = {};
+}
 const DEFAULT_NEW_FOLDER_NAME_RE = /^New Folder(?: \(\d+\))?$/;
 
 function saveCustomFolders() {
@@ -1124,6 +1132,34 @@ function persistFolderChildren(parentId) {
 }
 function saveFolderIconPositions() {
   localStorage.setItem(FOLDER_ICON_POS_KEY, JSON.stringify(folderIconPositions));
+}
+function saveDesktopRenameMap() {
+  localStorage.setItem(DESKTOP_RENAME_MAP_KEY, JSON.stringify(desktopRenameMap));
+}
+function getItemRenameMapKey(id, item) {
+  const target = item || items[id];
+  if (!target) return '';
+  if (target.syncFolder) return 'folder:' + target.syncFolder;
+  if (target.filePath) return 'file:' + target.filePath;
+  return 'item:' + id;
+}
+function getItemDisplayName(id, item) {
+  const target = item || items[id];
+  if (!target) return '';
+  const renameKey = getItemRenameMapKey(id, target);
+  const displayName = renameKey ? desktopRenameMap[renameKey] : '';
+  return (typeof displayName === 'string' && displayName.trim()) ? displayName.trim() : target.name;
+}
+function setItemDisplayNameOverride(id, nextLabel) {
+  const item = items[id];
+  if (!item) return false;
+  const renameKey = getItemRenameMapKey(id, item);
+  if (!renameKey) return false;
+  const trimmedLabel = (nextLabel || '').trim();
+  if (!trimmedLabel || trimmedLabel === item.name) delete desktopRenameMap[renameKey];
+  else desktopRenameMap[renameKey] = trimmedLabel;
+  saveDesktopRenameMap();
+  return true;
 }
 function getFolderIconPosition(parentId, itemId) {
   return folderIconPositions[parentId] && folderIconPositions[parentId][itemId]
@@ -1516,7 +1552,7 @@ function buildItemContextMenuEntries(itemId, parentId, renameAction) {
   if (item.type === 'folder' && canPasteIntoFolder(itemId)) {
     menuEntries.push({ label: 'Paste', onClick: () => pasteClipboardInto(itemId) });
   }
-  if (item.custom && renameAction) {
+  if (item.type === 'folder' && renameAction) {
     menuEntries.push({ label: 'Rename', onClick: renameAction });
   }
   if (item.type === 'pdf') menuEntries.push({ label: 'Download', onClick: () => downloadItem(itemId) });
@@ -1591,6 +1627,23 @@ function renameItem(id, newName) {
     customFolders[id].modified = items[id].modified;
     saveCustomFolders();
   }
+}
+
+function promptRenameFolderLabel(id, onDone) {
+  const item = items[id];
+  if (!item || item.type !== 'folder') return;
+  if (item.custom && !item.syncFolder) {
+    const raw = window.prompt('Rename folder as:', item.name || '');
+    if (raw === null) return;
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+    renameItem(id, trimmed);
+  } else {
+    const raw = window.prompt('Rename folder label (leave blank to restore original):', getItemDisplayName(id, item) || item.name || '');
+    if (raw === null) return;
+    setItemDisplayNameOverride(id, raw);
+  }
+  if (onDone) onDone();
 }
 
 // Swaps a desktop-icon / grid-item's name label element for an editable
@@ -3492,8 +3545,9 @@ function renderFolderContent(id) {
     // Tab-to-icon navigation would need full arrow-key support to be useful.
     // TODO (future): add tabIndex=0 + arrow-key handler for full keyboard navigation.
     el.tabIndex = -1;
-    el.innerHTML = getIcon(child, 64) +
-      '<div class="label">' + child.name + '</div>';
+    el.innerHTML = getIcon(child, 64) + '<div class="label"></div>';
+    const gridLabel = el.querySelector('.label');
+    if (gridLabel) gridLabel.textContent = getItemDisplayName(childId, child);
     el.addEventListener('click', e => {
       clearAllSelections();
       el.classList.add('selected');
@@ -3504,10 +3558,7 @@ function renderFolderContent(id) {
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, () => {
-        const label = el.querySelector('.label');
-        startInlineRename(label, childId, () => refreshFolderView(id));
-      }));
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, () => promptRenameFolderLabel(childId, () => refreshFolderView(id))));
     });
     const savedPos = getFolderIconPosition(id, childId);
     const defaultPos = folderSlotPosition(index, childId, grid);
@@ -3543,10 +3594,12 @@ function renderDetailsContent(id) {
     row.dataset.parentId = id;
     row.tabIndex = -1; // programmatically focusable; not in Tab order (see grid-item TODO above)
     row.innerHTML =
-      '<td class="details-name">' + getIcon(child, 20) + '<span class="label">' + child.name + '</span></td>' +
+      '<td class="details-name">' + getIcon(child, 20) + '<span class="label"></span></td>' +
       '<td class="details-type">' + fileTypeLabel(child) + '</td>' +
       '<td class="details-size">' + formatFileSize(child.size) + '</td>' +
       '<td class="details-date">' + formatDate(child.modified) + '</td>';
+    const detailsLabel = row.querySelector('.label');
+    if (detailsLabel) detailsLabel.textContent = getItemDisplayName(childId, child);
     row.addEventListener('click', e => {
       clearAllSelections();
       row.classList.add('selected');
@@ -3557,9 +3610,7 @@ function renderDetailsContent(id) {
     row.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, () => {
-        startInlineRename(row.querySelector('.label'), childId, () => refreshFolderView(id));
-      }));
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, () => promptRenameFolderLabel(childId, () => refreshFolderView(id))));
     });
     makeDraggableToTrash(row, () => deleteItem(childId, id), childId, id);
     tbody.appendChild(row);
@@ -7266,7 +7317,9 @@ function buildDesktopIcons() {
     el.className = 'desktop-icon-item';
     el.dataset.itemId = itemId;
     el.dataset.parentId = 'desktop';
-    el.innerHTML = getIcon(item, getDesktopIconSize(item)) + '<div class="label">' + item.name + '</div>';
+    el.innerHTML = getIcon(item, getDesktopIconSize(item)) + '<div class="label"></div>';
+    const desktopLabel = el.querySelector('.label');
+    if (desktopLabel) desktopLabel.textContent = getItemDisplayName(itemId, item);
     const savedPos = JSON.parse(localStorage.getItem('desktop-icon-pos-' + itemId) || 'null');
     const defaultPos = desktopDefaultPosition(itemId, item, index + 1);
     el.style.left = (savedPos ? savedPos.left : defaultPos.left) + 'px';
@@ -7275,9 +7328,7 @@ function buildDesktopIcons() {
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(itemId, 'desktop', () => {
-        startInlineRename(el.querySelector('.label'), itemId, () => buildDesktopIcons());
-      }));
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(itemId, 'desktop', () => promptRenameFolderLabel(itemId, () => buildDesktopIcons())));
     });
     wrap.appendChild(el);
   });

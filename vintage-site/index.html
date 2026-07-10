@@ -6727,13 +6727,6 @@ function openMyComputerWindow() {
       <option value="thumbnails">Thumbnails</option>
       <option value="list">List</option>
     </select>
-    <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">Sort by:</span>
-    <select class="mc-toolbar-select mc-sort">
-      <option value="name">Name</option>
-      <option value="type">Type</option>
-      <option value="size">Size</option>
-      <option value="date">Date</option>
-    </select>
   `;
 
   const content = document.createElement('div');
@@ -7051,11 +7044,6 @@ function openMyComputerWindow() {
   toolbar.querySelector('.mc-up').addEventListener('click',   () => { if (!toolbar.querySelector('.mc-up').disabled)   goUp();  });
   toolbar.querySelector('.mc-view').addEventListener('change', e => {
     setViewMode(e.target.value);
-    setNavState();
-    renderItems(dirCache[currentPath] || currentEntries);
-  });
-  toolbar.querySelector('.mc-sort').addEventListener('change', e => {
-    setCurrentSortMode(e.target.value);
     setNavState();
     renderItems(dirCache[currentPath] || currentEntries);
   });

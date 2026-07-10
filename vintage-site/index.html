@@ -953,6 +953,7 @@
         <div class="menu-item" id="menu-paint">Paint</div>
         <div class="menu-item" id="menu-chroma">chroma.exe</div>
         <div class="menu-item" id="menu-spectrum">off the spectrum.exe</div>
+        <div class="menu-item" id="menu-flight">flight-simulator.exe</div>
         <div class="menu-item" id="menu-notes">Notes</div>
       </div>
     </div>
@@ -6197,6 +6198,56 @@ function openSpectrumWindow() {
   bringToFront(id);
 }
 
+function openFlightSimWindow() {
+  const id = 'flightsim';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out';
+  cascade = (cascade + 1) % 8;
+  const openW = Math.max(820, Math.round(window.innerWidth * 0.72));
+  const openH = Math.max(560, Math.round(window.innerHeight * 0.78));
+  win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
+  win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
+  win.style.width = openW + 'px';
+  win.style.height = openH + 'px';
+  win.style.minWidth = '620px';
+  win.style.minHeight = '420px';
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">flight-simulator.exe</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
+  content.innerHTML = `<iframe src="apps/flightindex.html" title="flight-simulator.exe" style="border:0;width:100%;height:100%;background:#c0c0c0;"></iframe>`;
+
+  win.appendChild(titlebar);
+  win.appendChild(content);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  attachMaximizeHandlers(titlebar, id);
+  makeDraggable(win, titlebar);
+
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  addTaskbarEntry(id, 'flight-simulator.exe', genericIcon(14));
+  bringToFront(id);
+}
+
 
 function openChromaDiaryWindow() {
   const id = 'chroma_diary';
@@ -7185,6 +7236,11 @@ document.getElementById('menu-spectrum').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';
   document.getElementById('start-button').classList.remove('pressed');
   openSpectrumWindow();
+});
+document.getElementById('menu-flight').addEventListener('click', () => {
+  document.getElementById('start-menu').style.display = 'none';
+  document.getElementById('start-button').classList.remove('pressed');
+  openFlightSimWindow();
 });
 document.getElementById('menu-notes').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';

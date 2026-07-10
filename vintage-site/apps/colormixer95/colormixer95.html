@@ -28,6 +28,12 @@
     padding:30px 12px;
     user-select:none;
   }
+  body.embedded{
+    background:var(--face);
+    min-height:100%;
+    display:block;
+    padding:0;
+  }
 
   .raised{
     background:var(--face);
@@ -47,6 +53,12 @@
   #mainWindow{
     width:750px; height:1000px;
     resize:none; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  body.embedded #mainWindow{
+    width:100%;
+    height:100%;
+    min-height:0;
   }
   @media (max-width:460px){ #mainWindow{ width:100%; } }
   .titlebar{
@@ -101,7 +113,7 @@
   }
   .dropdown-item:hover{background:var(--titleblue2);color:#fff;}
 
-  .body95{ background:var(--face); padding:12px; }
+  .body95{ background:var(--face); padding:12px; flex:1; overflow:auto; }
   .lede95{ font-size:11.5px;line-height:1.6;margin:0 0 12px; }
 
   fieldset{
@@ -343,6 +355,9 @@
   </div>
 
 <script>
+const EMBEDDED = new URLSearchParams(window.location.search).get('embedded') === '1';
+if(EMBEDDED) document.body.classList.add('embedded');
+
 /* ---------- blend math ---------- */
 function screen(a,b){ return 1-(1-a)*(1-b); }
 function multiply(a,b){ return a*b; }

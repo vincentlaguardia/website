@@ -598,7 +598,7 @@
         <div class="picker-with-hex">
           <div class="color-swatch-wrap">
             <button class="color-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="color-icon" id="skew-icon"></span></button>
-            <input type="color" id="cc-skew-color" value="#bfbfbf">
+            <input type="color" id="cc-skew-color" value="#bfbfbf" aria-label="Skew color">
           </div>
         </div>
       </div>
@@ -614,7 +614,7 @@
           <div class="picker-with-hex">
             <div class="color-swatch-wrap">
               <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
-              <input type="color" id="cc-focus-color" value="#bfbfbf">
+              <input type="color" id="cc-focus-color" value="#bfbfbf" aria-label="Focus color">
             </div>
           </div>
         </div>
@@ -1666,16 +1666,20 @@
   const focusSwatchBtn = document.getElementById('cc-focus-swatch');
   const focusInput = document.getElementById('cc-focus-color');
   const focusIcon = document.getElementById('focus-icon');
-  function applyModeHex(hex, inputEl, iconEl, applyState){
+  function isValidHexColor(hex){
+    return /^#[0-9a-f]{6}$/i.test(hex);
+  }
+  function applyModeHex(hex, inputEl, iconEl, applyModeState){
     inputEl.value = String(hex).toLowerCase();
     const normalizedHex = inputEl.value;
+    if(!isValidHexColor(normalizedHex)) return;
     iconEl.style.background = normalizedHex;
-    applyState(normalizedHex);
+    applyModeState(normalizedHex);
     drawScene();
   }
   function applySkewHex(hex){
-    applyModeHex(hex, skewInput, skewIcon, normalizedHex=>{
-      const rgb = hexToRgbObj(normalizedHex);
+    applyModeHex(hex, skewInput, skewIcon, skewHex=>{
+      const rgb = hexToRgbObj(skewHex);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
       skewActive = true;
@@ -1731,8 +1735,8 @@
     applySkewHex(skewInput.value);
   });
   function setFocusHex(hex){
-    applyModeHex(hex, focusInput, focusIcon, normalizedHex=>{
-      focusHex = normalizedHex;
+    applyModeHex(hex, focusInput, focusIcon, focusHexValue=>{
+      focusHex = focusHexValue;
       syncFocusButtonState();
     });
   }

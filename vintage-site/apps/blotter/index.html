@@ -286,41 +286,37 @@
         <span class="menu-item">View</span>
       </div>
       <div class="window-body">
-        <div class="controls-pane">
-          <input id="imageInput" class="sr-only" type="file" accept="image/*">
-          <fieldset>
-            <legend>Blotter settings</legend>
-            <div class="controls" aria-label="Blotter style controls">
-              <div class="control">
-                <label for="thickness">Perforation thickness</label>
-                <output id="thicknessOut">0.6 px</output>
-                <input id="thickness" type="range" min="0.1" max="1" step="0.1" value="0.6">
-              </div>
-              <div class="control">
-                <label for="depth">Punch depth</label>
-                <output id="depthOut">4 px</output>
-                <input id="depth" type="range" min="0" max="10" value="4">
-              </div>
-              <div class="control">
-                <label for="wear">Age / wear</label>
-                <output id="wearOut">18%</output>
-                <input id="wear" type="range" min="0" max="100" value="18">
-              </div>
-              <div class="control">
-                <label for="saturation">Ink saturation</label>
-                <output id="saturationOut">115%</output>
-                <input id="saturation" type="range" min="30" max="190" value="115">
-              </div>
+        <input id="imageInput" class="sr-only" type="file" accept="image/*">
+        <fieldset>
+          <legend>Blotter settings</legend>
+          <div class="controls" aria-label="Blotter style controls">
+            <div class="control">
+              <label for="thickness">Perforation thickness</label>
+              <output id="thicknessOut">0.6 px</output>
+              <input id="thickness" type="range" min="0.1" max="1" step="0.1" value="0.6">
             </div>
-          </fieldset>
-          <div class="tool-row">
-            <div class="bottom-row">
-              <button type="button" class="win-btn" id="openImage">Open image…</button>
-              <button type="button" class="win-btn" id="randomize">Randomize wear</button>
-              <button type="button" class="win-btn" id="download">Save PNG</button>
-              <span class="status" id="status" aria-live="polite">100 × 100 squares · ready</span>
+            <div class="control">
+              <label for="depth">Punch depth</label>
+              <output id="depthOut">4 px</output>
+              <input id="depth" type="range" min="0" max="10" value="4">
+            </div>
+            <div class="control">
+              <label for="wear">Age / wear</label>
+              <output id="wearOut">18%</output>
+              <input id="wear" type="range" min="0" max="100" value="18">
+            </div>
+            <div class="control">
+              <label for="saturation">Ink saturation</label>
+              <output id="saturationOut">115%</output>
+              <input id="saturation" type="range" min="30" max="190" value="115">
             </div>
           </div>
+        </fieldset>
+        <div class="bottom-row">
+          <button type="button" class="win-btn" id="openImage">Open image…</button>
+          <button type="button" class="win-btn" id="randomize">Randomize wear</button>
+          <button type="button" class="win-btn" id="download">Save PNG</button>
+          <span class="status" id="status" aria-live="polite">100 × 100 squares · ready</span>
         </div>
         <section class="preview-window" aria-label="Generated blotter preview">
           <div class="preview-title">blotter-art.gif</div>

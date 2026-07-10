@@ -180,7 +180,13 @@
     hull: '#2a160e',
     hullLight: '#603a27',
     cabin: '#9a9c8d',
-    crane: '#5f7679'
+    crane: '#5f7679',
+    policeBody: '#111111',
+    policeStripe: '#f0f0eb',
+    policeBeaconBlue: '#3f6fa6',
+    fireBody: '#b12822',
+    ambulanceBody: '#e7e7e0',
+    vehicleRoof: '#9aa3ac'
   };
 
   // ---- State ----
@@ -654,7 +660,7 @@
   function drawVehicle(v) {
     var vx = Math.round(v.x);
     var vy = GROUND_Y - 7;
-    var bodyColor = v.type === 'ambulance' ? '#e7e7e0' : v.type === 'police' ? '#111111' : '#b12822';
+    var bodyColor = v.type === 'ambulance' ? PAL.ambulanceBody : v.type === 'police' ? PAL.policeBody : PAL.fireBody;
     ctx.fillStyle = bodyColor;
     ctx.fillRect(vx - 8, vy, 16, 6);
     if (v.type === 'ambulance') {
@@ -662,15 +668,17 @@
       ctx.fillRect(vx - 1, vy + 1, 2, 4);
       ctx.fillRect(vx - 2, vy + 2, 4, 2);
     } else if (v.type === 'police') {
-      ctx.fillStyle = '#f0f0eb';
+      ctx.fillStyle = PAL.policeStripe;
       ctx.fillRect(vx - 2, vy + 2, 4, 1);
     }
-    ctx.fillStyle = '#9aa3ac';
+    ctx.fillStyle = PAL.vehicleRoof;
     ctx.fillRect(v.side > 0 ? vx + 4 : vx - 8, vy - 3, 4, 3);
     ctx.fillStyle = PAL.planeDark;
     ctx.fillRect(vx - 6, vy + 5, 3, 3);
     ctx.fillRect(vx + 3, vy + 5, 3, 3);
-    var blinkColor = v.type === 'police' ? (Math.floor(tick / 6) % 2 === 0 ? '#f4f4ef' : '#3f6fa6') : PAL.window;
+    var blinkColor = v.type === 'police'
+      ? (Math.floor(tick / 6) % 2 === 0 ? PAL.policeStripe : PAL.policeBeaconBlue)
+      : PAL.window;
     if (Math.floor(tick / 8) % 2 === 0 || v.type === 'police') {
       ctx.fillStyle = blinkColor;
       ctx.fillRect(vx - 1, vy - 5, 2, 2);

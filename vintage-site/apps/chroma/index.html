@@ -2235,9 +2235,12 @@
   }
   function getSamExpectedHues(zoneData){
     if(importedMode){
-      const sinSum = zoneData.reduce(function(s, item){ return s + Math.sin(item.hsl.h * Math.PI / 180); }, 0);
-      const cosSum = zoneData.reduce(function(s, item){ return s + Math.cos(item.hsl.h * Math.PI / 180); }, 0);
-      return [(Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360];
+      const sums = zoneData.reduce(function(acc, item){
+        acc.sin += Math.sin(item.hsl.h * Math.PI / 180);
+        acc.cos += Math.cos(item.hsl.h * Math.PI / 180);
+        return acc;
+      }, { sin: 0, cos: 0 });
+      return [(Math.atan2(sums.sin, sums.cos) * 180 / Math.PI + 360) % 360];
     }
     return PHILOSOPHIES[philoIdx].hueOffsets.map(function(off){ return (baseHue + off + 3600) % 360; });
   }
@@ -2285,6 +2288,7 @@
     });
     // Fill remaining slots by maximizing diversity from already-picked samples.
     const unpicked = candidates.filter(function(item){ return !pickedHexes.has(item.hex); });
+    // Complexity is bounded in practice because the grid is fixed-size (7x7 max zones).
     while(picked.length < SAM_SWATCH_COUNT && unpicked.length){
       // Initialize tracking for the next most diverse candidate.
       let bestIdx = -1;
@@ -2310,6 +2314,7 @@
       addPick(next, false);
     }
     if(picked.length < SAM_SWATCH_COUNT){
+      // Fallback allows duplicate hexes so Sam always returns 9 swatches even in low-variance states.
       for(let i = 0; i < pool.length && picked.length < SAM_SWATCH_COUNT; i++){
         const item = pool[i];
         addPick(item, true);

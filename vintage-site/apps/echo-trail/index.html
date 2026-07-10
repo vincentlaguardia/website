@@ -1096,7 +1096,8 @@
       .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
       .replace(/\s+/g, ' ')
       .trim()
-      .replace(/^\.+$/, '');
+      .replace(/\.+/g, '.')
+      .replace(/^\.+|\.+$/g, '');
     return cleaned || fallback;
   }
 
@@ -1543,7 +1544,7 @@
         const dialog = overlay.querySelector('.window.modal');
         if(dialog && !dialog.contains(e.target)) overlay.classList.remove('show');
       });
-    }, true);
+    });
 
     window.addEventListener('message', async e=>{
       if(!e.data || e.data.type !== 'echo-trail-desktop-drop') return;
@@ -1559,12 +1560,13 @@
       }
       try{
         if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
-        if(parsedUrl.pathname.split('/').includes('..')) throw new Error('Invalid desktop image path.');
+        const decodedPath = decodePathPart(parsedUrl.pathname);
+        if(decodedPath.split('/').includes('..')) throw new Error('Invalid desktop image path.');
         const res = await fetch(parsedUrl.href);
         if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
         const blob = await res.blob();
         if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
-        const rawName = parsedUrl.pathname.split('/').pop().split('?')[0] || 'image';
+        const rawName = parsedUrl.pathname.split('/').pop() || 'image';
         const name = sanitizeFileName(decodePathPart(rawName), 'image');
         loadImageFile(new File([blob], name, { type: blob.type }));
       } catch(err){

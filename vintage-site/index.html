@@ -6731,13 +6731,21 @@ function openMyComputerWindow() {
   try { mcSortModes = JSON.parse(localStorage.getItem(MC_SORT_KEY) || '{}'); } catch (e) { mcSortModes = {}; }
 
   function getCurrentSortMode() {
-    const sort = mcSortModes[currentPath] || 'name';
-    return VALID_SORTS.has(sort) ? sort : 'name';
+    const stored = mcSortModes[currentPath];
+    if (stored && typeof stored === 'object' && VALID_SORTS.has(stored.col)) {
+      return { col: stored.col, dir: stored.dir === 'desc' ? 'desc' : 'asc' };
+    }
+    if (typeof stored === 'string' && VALID_SORTS.has(stored)) {
+      return { col: stored, dir: 'asc' };
+    }
+    return { col: 'name', dir: 'asc' };
   }
 
-  function setCurrentSortMode(sort) {
-    const safeSort = VALID_SORTS.has(sort) ? sort : 'name';
-    mcSortModes[currentPath] = safeSort;
+  function setCurrentSortMode(col) {
+    const safeCol = VALID_SORTS.has(col) ? col : 'name';
+    const current = getCurrentSortMode();
+    const dir = current.col === safeCol ? (current.dir === 'asc' ? 'desc' : 'asc') : 'asc';
+    mcSortModes[currentPath] = { col: safeCol, dir };
     try { localStorage.setItem(MC_SORT_KEY, JSON.stringify(mcSortModes)); } catch (e) {}
   }
 
@@ -6867,21 +6875,22 @@ function openMyComputerWindow() {
   }
 
   function sortEntries(entries) {
-    const sortMode = getCurrentSortMode();
+    const { col: sortCol, dir: sortDir } = getCurrentSortMode();
+    const mul = sortDir === 'desc' ? -1 : 1;
     const sorted = entries.slice().sort((a, b) => {
       if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
-      if (sortMode === 'type') {
+      if (sortCol === 'type') {
         const ta = typeSortKey(a), tb = typeSortKey(b);
-        if (ta !== tb) return ta.localeCompare(tb);
-      } else if (sortMode === 'size') {
+        if (ta !== tb) return mul * ta.localeCompare(tb);
+      } else if (sortCol === 'size') {
         const sa = a.type === 'dir' ? -1 : (a.size || 0);
         const sb = b.type === 'dir' ? -1 : (b.size || 0);
-        if (sa !== sb) return sb - sa;
-      } else if (sortMode === 'date') {
+        if (sa !== sb) return mul * (sa - sb);
+      } else if (sortCol === 'date') {
         const da = a.modified || '', db = b.modified || '';
-        if (da !== db) return db.localeCompare(da);
+        if (da !== db) return mul * da.localeCompare(db);
       }
-      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      return mul * a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
     });
     return sorted;
   }
@@ -6922,7 +6931,7 @@ function openMyComputerWindow() {
     const viewSelect = toolbar.querySelector('.mc-view');
     if (viewSelect) viewSelect.value = mcViewMode;
     const sortSelect = toolbar.querySelector('.mc-sort');
-    if (sortSelect) sortSelect.value = getCurrentSortMode();
+    if (sortSelect) sortSelect.value = getCurrentSortMode().col;
   }
 
   function clearSelectedItems() {
@@ -6988,8 +6997,8 @@ function openMyComputerWindow() {
     filePane.style.cssText = 'display:block;padding:0;min-height:100%;';
     const table = document.createElement('table');
     table.className = 'details-table';
-    const sortMode = getCurrentSortMode();
-    const indicator = col => sortMode === col ? ' ▲' : '';
+    const { col: sortCol, dir: sortDir } = getCurrentSortMode();
+    const indicator = col => sortCol === col ? (sortDir === 'desc' ? ' ▼' : ' ▲') : '';
     table.innerHTML = '<thead><tr>' +
       '<th data-sort="name" style="cursor:pointer;">Name' + indicator('name') + '</th>' +
       '<th data-sort="type" style="cursor:pointer;">Type' + indicator('type') + '</th>' +
@@ -7081,7 +7090,7 @@ function openMyComputerWindow() {
       return;
     }
 
-    if (getCurrentSortMode() === 'date') {
+    if (getCurrentSortMode().col === 'date') {
       statusbar.textContent = 'Loading dates…';
       await ensureDateMetadata(currentEntries);
       if (token !== renderToken) return;

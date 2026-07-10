@@ -194,9 +194,9 @@
   var farBuildings = [];
   var distance = 0;
   var elapsed = 0;
-  var baseSpeed = 0.66; // 50% slower than original, then +20%
+  var baseSpeed = 0.858; // +30% faster baseline cruise speed
   var speed = baseSpeed;
-  var maxSpeed = 2.16; // 50% slower than original, then +20%
+  var maxSpeed = 2.808; // +30% faster top speed
   var score = 0;
   var best = 0;
   var holding = false;
@@ -276,36 +276,19 @@
   }
 
   // Out over the open water, before land is reached: boats bobbing at the
-  // surface, and - closer to shore - the odd harbor crane, like flying in
-  // over a boatyard.
+  // surface as you fly toward shore.
   function spawnHarborObstacle(distToShore) {
-    var isCrane = distToShore < 200 && Math.random() < 0.3;
-    if (isCrane) {
-      var craneH = rand(45, 85);
-      var craneW = rand(8, 12);
-      buildings.push({
-        x: nextSpawnX + BUILDING_X_SHIFT,
-        w: craneW,
-        h: craneH,
-        isCrane: true,
-        boomSide: Math.random() < 0.5 ? -1 : 1,
-        boomLen: rand(14, 24),
-        color: PAL.crane
-      });
-      nextSpawnX += craneW + rand(60, 110);
-    } else {
-      var boatH = rand(8, 14);
-      var boatW = rand(22, 34);
-      buildings.push({
-        x: nextSpawnX + BUILDING_X_SHIFT,
-        w: boatW,
-        h: boatH,
-        isBoat: true,
-        hasCabin: Math.random() < 0.5,
-        color: PAL.hull
-      });
-      nextSpawnX += boatW + rand(50, 95);
-    }
+    var boatH = rand(8, 14);
+    var boatW = rand(22, 34);
+    buildings.push({
+      x: nextSpawnX + BUILDING_X_SHIFT,
+      w: boatW,
+      h: boatH,
+      isBoat: true,
+      hasCabin: Math.random() < 0.5,
+      color: PAL.hull
+    });
+    nextSpawnX += boatW + rand(50, 95);
   }
 
   function buildWindows(w, h) {
@@ -560,25 +543,27 @@
       b.fireAge = (b.fireAge || 0) + dt;
       var growth = Math.min(1, b.fireAge / 360); // fire builds over ~6s
       var sprayers = b.activeSprayers || 0;
-      var suppress = sprayers > 0 ? 1 / (1 + sprayers * 1.4) : 1;
+      var crashProgress = Math.min(1, crashElapsed / 1800);
+      var outOfControl = 1 + crashProgress * 1.9;
+      var suppress = sprayers > 0 ? 1 / (1 + sprayers * (1.4 - crashProgress * 0.9)) : 1;
       var topOfBuilding = GROUND_Y - b.h;
       var px = b.x + b.damageLocalX;
       var py = topOfBuilding + b.damageLocalY;
-      var smokeChance = (0.15 + growth * 0.55) * suppress;
+      var smokeChance = Math.min(1, (0.15 + growth * 0.55) * outOfControl * suppress);
       if (Math.random() < smokeChance) {
         plumeParticles.push({
           x: px + rand(-3, 3), y: py + rand(-2, 2),
-          vx: rand(-0.15, 0.15), vy: -rand(0.3, 0.65),
+          vx: rand(-0.2, 0.2), vy: -rand(0.35, 0.95 + crashProgress * 0.55),
           life: rand(90, 150), maxLife: 150,
-          size: rand(4, 7)
+          size: rand(4, 8 + crashProgress * 5)
         });
       }
       // visible flame licking at the wound, growing right alongside the smoke
-      if (Math.random() < 0.3 * growth * suppress) {
+      if (Math.random() < Math.min(1, 0.3 * growth * outOfControl * suppress)) {
         explosionParticles.push({
           x: px + rand(-4, 4), y: py + rand(-2, 2),
-          vx: rand(-0.2, 0.2), vy: -rand(0.2, 0.5),
-          life: rand(14, 26), maxLife: 26, size: rand(2, 4) * (0.6 + 0.6 * growth),
+          vx: rand(-0.25, 0.25), vy: -rand(0.2, 0.65 + crashProgress * 0.55),
+          life: rand(16, 34), maxLife: 34, size: rand(2.2, 5.8) * (0.65 + 0.8 * growth + crashProgress * 0.6),
           type: 'fire'
         });
       }
@@ -669,20 +654,23 @@
   function drawVehicle(v) {
     var vx = Math.round(v.x);
     var vy = GROUND_Y - 7;
-    var bodyColor = v.type === 'ambulance' ? PAL.window : v.type === 'police' ? PAL.sky2 : PAL.planeRed;
+    var bodyColor = v.type === 'ambulance' ? '#e7e7e0' : v.type === 'police' ? '#111111' : '#b12822';
     ctx.fillStyle = bodyColor;
     ctx.fillRect(vx - 8, vy, 16, 6);
     if (v.type === 'ambulance') {
       ctx.fillStyle = PAL.planeRed;
       ctx.fillRect(vx - 1, vy + 1, 2, 4);
       ctx.fillRect(vx - 2, vy + 2, 4, 2);
+    } else if (v.type === 'police') {
+      ctx.fillStyle = '#f0f0eb';
+      ctx.fillRect(vx - 2, vy + 2, 4, 1);
     }
-    ctx.fillStyle = PAL.plane;
+    ctx.fillStyle = '#9aa3ac';
     ctx.fillRect(v.side > 0 ? vx + 4 : vx - 8, vy - 3, 4, 3);
     ctx.fillStyle = PAL.planeDark;
     ctx.fillRect(vx - 6, vy + 5, 3, 3);
     ctx.fillRect(vx + 3, vy + 5, 3, 3);
-    var blinkColor = v.type === 'police' ? (Math.floor(tick / 6) % 2 === 0 ? PAL.window : PAL.sky3) : PAL.window;
+    var blinkColor = v.type === 'police' ? (Math.floor(tick / 6) % 2 === 0 ? '#f4f4ef' : '#3f6fa6') : PAL.window;
     if (Math.floor(tick / 8) % 2 === 0 || v.type === 'police') {
       ctx.fillStyle = blinkColor;
       ctx.fillRect(vx - 1, vy - 5, 2, 2);
@@ -779,6 +767,7 @@
   var explosionWaveScales = [1.8, 0.9, 2.1, 0.8, 1.6, 0.7, 1.7, 0.8, 1.2];
 
   function updateExplosion(dt) {
+    var crashProgress = Math.min(1, crashElapsed / 1800);
     for (var w = 0; w < explosionWaveTimes.length; w++) {
       if (!explosionWaveDone[w] && crashElapsed >= explosionWaveTimes[w]) {
         explosionWaveDone[w] = true;
@@ -791,18 +780,18 @@
     }
     // continuous ember + smoke trickle so the wreckage keeps visibly
     // smoldering for the whole crash sequence, not just the initial burst
-    if (Math.random() < 0.7) {
+    if (Math.random() < Math.min(1, 0.62 + crashProgress * 0.38)) {
       explosionParticles.push({
         x: crashX + rand(-9, 9), y: crashY + rand(-6, 6),
-        vx: rand(-0.35, 0.35), vy: -rand(0.35, 0.8),
-        life: rand(20, 38), maxLife: 38, size: rand(2.6, 5.2), type: 'fire'
+        vx: rand(-0.45, 0.45), vy: -rand(0.35, 0.9 + crashProgress * 0.6),
+        life: rand(20, 48), maxLife: 48, size: rand(2.8, 6.2 + crashProgress * 2.4), type: 'fire'
       });
     }
-    if (Math.random() < 0.8) {
+    if (Math.random() < Math.min(1, 0.68 + crashProgress * 0.42)) {
       explosionParticles.push({
         x: crashX + rand(-11, 11), y: crashY + rand(-9, 9),
-        vx: rand(-0.18, 0.18), vy: -rand(0.3, 0.6),
-        life: rand(65, 120), maxLife: 120, size: rand(3.9, 7.8), type: 'smoke'
+        vx: rand(-0.24, 0.24), vy: -rand(0.35, 0.75 + crashProgress * 0.5),
+        life: rand(80, 165), maxLife: 165, size: rand(4.2, 9.5 + crashProgress * 3.5), type: 'smoke'
       });
     }
     for (var i = explosionParticles.length - 1; i >= 0; i--) {
@@ -1270,22 +1259,29 @@
     holding = false;
   }
 
+  function isSpaceKey(e) {
+    return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar' || e.keyCode === 32;
+  }
+
+  canvas.tabIndex = 0;
+  canvas.focus();
+
   window.addEventListener('keydown', function (e) {
-    if (e.code === 'Space') {
+    if (isSpaceKey(e)) {
       e.preventDefault();
       if (!holding) pressStart();
       holding = true;
     }
   });
   window.addEventListener('keyup', function (e) {
-    if (e.code === 'Space') {
+    if (isSpaceKey(e)) {
       e.preventDefault();
       release();
     }
   });
-  canvas.addEventListener('mousedown', function (e) { e.preventDefault(); pressStart(); });
+  canvas.addEventListener('mousedown', function (e) { e.preventDefault(); canvas.focus(); pressStart(); });
   window.addEventListener('mouseup', release);
-  canvas.addEventListener('touchstart', function (e) { e.preventDefault(); pressStart(); }, { passive: false });
+  canvas.addEventListener('touchstart', function (e) { e.preventDefault(); canvas.focus(); pressStart(); }, { passive: false });
   canvas.addEventListener('touchend', function (e) { e.preventDefault(); release(); }, { passive: false });
 
   draw();

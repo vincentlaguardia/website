@@ -610,7 +610,7 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
-          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Focus Mode: lock one diagonal band to the selected focus color" aria-pressed="false">Focus</button>
+          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
             <div class="color-swatch-wrap">
               <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
@@ -1376,9 +1376,9 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
-  const SKEW_ACTIVE_LUMA_R = 0.299;
-  const SKEW_ACTIVE_LUMA_G = 0.587;
-  const SKEW_ACTIVE_LUMA_B = 0.114;
+  const LUMA_R = 0.299;
+  const LUMA_G = 0.587;
+  const LUMA_B = 0.114;
   const ACTIVE_LUMA_DARK_TEXT_THRESHOLD = 0.6;
   const GRADIENT_KEY_PRECISION = 1000;
   const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
@@ -1389,9 +1389,9 @@
   function roundToGradientPrecision(value){
     return Math.round(value * GRADIENT_KEY_PRECISION) / GRADIENT_KEY_PRECISION;
   }
-  // Calculates ITU-R BT.601 luma to choose readable dark/light foreground text.
+  /** Calculates ITU-R BT.601 luma to choose readable dark/light foreground text. */
   function calculateLuma(rgb){
-    return (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
+    return (LUMA_R*rgb.r + LUMA_G*rgb.g + LUMA_B*rgb.b) / 255;
   }
   function getPastramiButtonGradientKey(){
     if(shouldSkipPastramiGradient()) return '';
@@ -1666,11 +1666,11 @@
   const focusSwatchBtn = document.getElementById('cc-focus-swatch');
   const focusInput = document.getElementById('cc-focus-color');
   const focusIcon = document.getElementById('focus-icon');
-  // Returns true when a value is a #RRGGBB color string.
+  /** Returns true when a value is a #RRGGBB color string. */
   function isValidHexColor(hex){
     return /^#[0-9a-f]{6}$/i.test(hex);
   }
-  // Applies a validated color to a mode input/icon and then runs its state updater.
+  /** Applies a validated hex color to a mode input/icon and state updater callback. */
   function applyModeHex(hex, inputEl, iconEl, applyModeState){
     inputEl.value = String(hex).toLowerCase();
     const normalizedHex = inputEl.value;

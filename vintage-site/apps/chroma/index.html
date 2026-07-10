@@ -564,6 +564,30 @@
     cursor:default;
     pointer-events:none;
   }
+  /* sam mode dialog */
+  #sam-dialog{
+    width:min(420px, calc(100vw - 32px));
+    top:52px;
+    left:36px;
+    transform:none;
+    z-index:76;
+  }
+  #sam-grid{
+    --diary-grid-columns:3;
+  }
+  #sam-theory-text{
+    padding:8px 4px 4px;
+    font-size:12px;
+    line-height:1.6;
+    border-top:1px solid var(--shadow);
+    margin-top:4px;
+  }
+  #sam-theory-text p{
+    margin:0 0 10px;
+  }
+  #sam-theory-text p:last-child{
+    margin-bottom:0;
+  }
 </style>
 </head>
 <body>
@@ -587,6 +611,7 @@
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
       <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Techno</div>
+      <div class="menu-item" id="menu-sam" tabindex="0" aria-haspopup="dialog">Sam Mode</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
@@ -752,6 +777,22 @@
     </div>
   </div>
 </div>
+<div id="sam-dialog" class="dialog">
+  <div class="titlebar">
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Sam Mode — chroma.exe</span></div>
+    <div class="titlebar-btns"><div class="tbtn" id="sam-close" title="Close">X</div></div>
+  </div>
+  <div class="winbody">
+    <div class="content-panel sunken">
+      <div id="sam-grid" class="diary-grid"></div>
+      <div id="sam-theory-text"></div>
+      <div class="diary-footer">
+        <button class="win-btn" id="sam-export">Export JPG</button>
+        <button class="win-btn" id="sam-save-desktop" style="margin-left:auto;">Save to Desktop</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="diary-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary — chroma.exe</span></div>
@@ -786,6 +827,7 @@
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Theory</div>
   <div class="sm-item" id="sm-theory">Techno</div>
+  <div class="sm-item" id="sm-sam">Sam Mode</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
   <div class="sm-item" id="sm-shutdown">Shut Down...</div>
@@ -972,7 +1014,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -988,6 +1030,7 @@
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
+  const samDialog = document.getElementById('sam-dialog');
   function openHelp(){
     closeAbout();
     closeTheory();
@@ -1012,6 +1055,7 @@
     theoryDialog.classList.add('show');
   }
   function closeTheory(){ theoryDialog.classList.remove('show'); }
+  function closeSamMode(){ samDialog.classList.remove('show'); }
   const helpContent = document.getElementById('help-content');
   const helpEditBtn = document.getElementById('help-edit');
   const helpSaveBtn = document.getElementById('help-save');
@@ -1045,7 +1089,8 @@
     [
       { dialog: aboutDialog, close: closeAbout },
       { dialog: helpDialog, close: closeHelp },
-      { dialog: theoryDialog, close: closeTheory }
+      { dialog: theoryDialog, close: closeTheory },
+      { dialog: samDialog, close: closeSamMode }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
       const contentPanel = dialog.querySelector('.content-panel');
@@ -2158,6 +2203,156 @@
       if(diaryDialog.classList.contains('show')) renderDiary();
     }
   });
+  // --- Sam Mode ---
+  const SAM_CELLS = TARGET_CELLS; // 9 evenly-distributed cells already defined
+  enableDialogDragging(samDialog);
+  // Build a quick O(1) lookup map for zones by "col,row" used by Sam Mode renders.
+  const samZoneByPos = new Map(zones.map(function(z){ return [z.col + ',' + z.row, z]; }));
+
+  function buildSamTheoryHtml(){
+    const paras = [];
+    if(importedMode){
+      paras.push('This palette was distilled from an imported photograph. The image was sampled, reduced to its most significant color bins, and fed through the band/group composition logic as a custom source palette. The 9 key colors shown above are the cells at the evenly-distributed reference positions within that derived palette.');
+    } else if(pastramiMode){
+      const philoName = PHILOSOPHIES[philoIdx].name;
+      paras.push('Techno mode is active over a ' + philoName + ' base centered at hue ' + Math.round(baseHue) + '\u00b0. Rather than following standard saturation and lightness curves, Techno mode divides zones stochastically between deeply unsaturated pastels (50\u201380% saturation, 72\u201388% lightness) and extreme neon/fluorescent tones (92\u2013100% saturation, 47\u201367% lightness). The two states coexist inside the same spatial band logic, which is what creates the controlled instability.');
+    } else {
+      const philoName = PHILOSOPHIES[philoIdx].name;
+      let philoDesc = '';
+      switch(philoIdx){
+        case 0: philoDesc = 'All zones share one hue family, varying only in lightness and saturation. Simultaneous contrast is low because no opposing hue is present, but subtle value differences across zones create a quiet optical push.'; break;
+        case 1: philoDesc = 'Three hues cluster within \u00b130\u00b0 of the base, making the palette feel close and naturalistic. Simultaneous contrast operates mainly through lightness and saturation rather than hue opposition.'; break;
+        case 2: philoDesc = 'Two hues sit directly opposite each other on the 360\u00b0 wheel. Their relationship is maximally polar \u2014 each one activates the other through simultaneous contrast, producing the highest possible hue tension.'; break;
+        case 3: philoDesc = 'The two accent hues flank the pure complement at \u00b130\u00b0, preserving strong contrast while softening the binary sharpness of direct complementarity. The palette reads as tense but not quite resolved.'; break;
+        case 4: philoDesc = 'Three hues are exactly 120\u00b0 apart, dividing the wheel into an equilateral triangle. The balance is mathematical \u2014 no single hue dominates and each supports the others equally.'; break;
+        case 5: philoDesc = 'Four hues at 90\u00b0 intervals form a rectangle on the wheel. The structure has more variety than triadic while retaining geometric order; one pair of opposites tends to read as dominant, giving the eye a subtle hierarchy.'; break;
+      }
+      paras.push(philoName + ' palette centered at hue ' + Math.round(baseHue) + '\u00b0. ' + philoDesc);
+    }
+    const w = strange;
+    if(w <= 20){
+      paras.push('Strange is low (' + w + '). Zone hue assignments stay close to the palette rule \u2014 coherence is high and deviations are minimal. The grid reads as an orderly application of the chosen philosophy.');
+    } else if(w <= 55){
+      paras.push('Strange is moderate (' + w + '). Occasional wildcard hue jumps introduce tension while the underlying philosophy stays readable. Some zones wander further than the palette would normally permit.');
+    } else {
+      paras.push('Strange is high (' + w + '). Wildcard zones can drift far from their assigned palette hue. Structure persists in the spatial band geometry, but individual color relationships feel unstable or ambiguous.');
+    }
+    const satPct = Math.round(globalSatMul * 100);
+    if(satPct < 100){
+      paras.push('Saturation is scaled to ' + satPct + '% of its natural value, pulling all colors toward gray. Simultaneous contrast weakens as chroma drops.');
+    } else if(satPct > 100){
+      paras.push('Saturation is scaled to ' + satPct + '%, amplifying chroma beyond the base palette range. Colors become more intense and hue relationships more assertive.');
+    }
+    if(skewActive && skewColor !== null){
+      paras.push('Skew is active at hue ' + Math.round(skewColor.h) + '\u00b0, pulling every zone\u2019s hue ' + Math.round(SKEW_STRENGTH * 100) + '% toward that anchor. The internal palette relationships are preserved, but the overall temperature shifts uniformly.');
+    }
+    if(focusActive){
+      paras.push('Focus mode locks one repeating diagonal band (the (row\u202fcol)\u202fmod\u202f4\u202f=\u202f0 cycle) to ' + focusHex + ', inserting a fixed-color stripe at regular intervals and giving the eye a constant anchor point.');
+    }
+    if(matchSatActive){
+      paras.push('Match Sat is active, locking the saturation slider continuously to the chroma level of the selected source color, creating a shared saturation reference across all zones.');
+    }
+    return paras.map(function(p){ return '<p>' + p + '</p>'; }).join('');
+  }
+
+  function renderSamMode(){
+    const grid = document.getElementById('sam-grid');
+    grid.innerHTML = '';
+    SAM_CELLS.forEach(function(cell){
+      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
+      const hex = zoneHex(zone);
+      const rgb = hexToRgbObj(hex);
+      const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
+      const div = document.createElement('div');
+      div.className = 'diary-swatch';
+      div.style.background = hex;
+      div.title = hex;
+      const hexSpan = document.createElement('span');
+      hexSpan.className = 'dsw-hex';
+      hexSpan.style.color = tc;
+      hexSpan.textContent = hex;
+      const rgbSpan = document.createElement('span');
+      rgbSpan.className = 'dsw-rgb';
+      rgbSpan.style.color = tc;
+      rgbSpan.textContent = rgb.r + ',' + rgb.g + ',' + rgb.b;
+      div.appendChild(hexSpan);
+      div.appendChild(rgbSpan);
+      grid.appendChild(div);
+    });
+    document.getElementById('sam-theory-text').innerHTML = buildSamTheoryHtml();
+  }
+
+  function openSamMode(){
+    renderSamMode();
+    samDialog.classList.add('show');
+  }
+
+  function buildSamCanvas(){
+    const COLS = 3, ROWS = 3;
+    const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;
+    const cw = COLS * SW + (COLS - 1) * GAP + PAD * 2;
+    const ch = ROWS * SH + (ROWS - 1) * GAP + PAD * 2 + HEADER;
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#c0c0c0';
+    cx.fillRect(0, 0, cw, ch);
+    cx.fillStyle = '#000000';
+    cx.font = 'bold 13px Tahoma,Arial,sans-serif';
+    cx.textAlign = 'left';
+    cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
+    SAM_CELLS.forEach(function(cell, i){
+      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
+      const hex = zoneHex(zone);
+      const rgb = hexToRgbObj(hex);
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = PAD + col * (SW + GAP);
+      const y = PAD + HEADER + row * (SH + GAP);
+      cx.fillStyle = hex;
+      cx.fillRect(x, y, SW, SH);
+      cx.strokeStyle = 'rgba(0,0,0,0.22)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
+      const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
+      cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(hex, x + SW / 2, y + SH / 2 - 6);
+      cx.font = '9px Tahoma,Arial,sans-serif';
+      cx.fillText(rgb.r + ',' + rgb.g + ',' + rgb.b, x + SW / 2, y + SH / 2 + 8);
+    });
+    return c;
+  }
+
+  function exportSamJPG(){
+    const c = buildSamCanvas();
+    const link = document.createElement('a');
+    link.download = 'chroma-sam-mode-' + timestampTag() + '.jpg';
+    link.href = c.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
+    link.click();
+  }
+
+  function saveSamToDesktop(){
+    if(window.self === window.top){
+      alert('Save to Desktop is only available when chroma.exe is open inside the virtual desktop.');
+      return;
+    }
+    const c = buildSamCanvas();
+    const defaultName = 'chroma-sam-mode-' + timestampTag() + '.jpg';
+    const raw = window.prompt('Save Sam Mode to virtual desktop as:', defaultName);
+    if(raw === null) return;
+    let fname = raw.trim() || defaultName;
+    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.jpg';
+    window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl: c.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY) }, window.location.origin);
+  }
+
+  document.getElementById('menu-sam').addEventListener('click', function(e){ e.stopPropagation(); closeAllMenus(); openSamMode(); });
+  document.getElementById('sam-close').addEventListener('click', closeSamMode);
+  document.getElementById('sam-export').addEventListener('click', exportSamJPG);
+  document.getElementById('sam-save-desktop').addEventListener('click', saveSamToDesktop);
+  document.getElementById('sm-sam').addEventListener('click', function(e){ e.stopPropagation(); closeStartMenu(); openSamMode(); });
+
   // --- Canvas context menu ---
   const ccCtxMenu = document.getElementById('cc-ctx-menu');
   let ctxMenuColor = null;

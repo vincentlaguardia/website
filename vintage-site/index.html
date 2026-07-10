@@ -247,7 +247,7 @@
     border: none; background: #fff; display: block;
     position: absolute; top: 0; left: 0; transform-origin: top left;
   }
-  .ie-window, .chroma-window { resize: both; overflow: hidden; }
+  .ie-window, .chroma-window, .echo-trail-window { resize: both; overflow: hidden; }
   .chroma-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .echo-trail-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
@@ -6356,16 +6356,24 @@ function openEchoTrailWindow() {
     return;
   }
   const win = document.createElement('div');
-  win.className = 'win98-window bevel-out';
+  win.className = 'win98-window bevel-out echo-trail-window';
   cascade = (cascade + 1) % 8;
-  const openW = 780;
-  const openH = 700;
-  win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
-  win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
+  const viewportPadX = 48;
+  const viewportPadY = 72;
+  const minOpenW = Math.min(720, Math.max(240, window.innerWidth - 16));
+  const minOpenH = Math.min(560, Math.max(320, window.innerHeight - 16));
+  const openW = Math.min(960, Math.max(minOpenW, window.innerWidth - viewportPadX));
+  const openH = Math.min(920, Math.max(minOpenH, window.innerHeight - viewportPadY));
+  const maxLeft = Math.max(0, window.innerWidth - openW);
+  const maxTop = Math.max(0, window.innerHeight - openH);
+  const centeredLeft = Math.round((window.innerWidth - openW) / 2);
+  const centeredTop = Math.round((window.innerHeight - openH) / 2);
+  win.style.left = Math.min(maxLeft, Math.max(0, centeredLeft + cascade * 20)) + 'px';
+  win.style.top = Math.min(maxTop, Math.max(0, centeredTop + cascade * 18)) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
-  win.style.minWidth = openW + 'px';
-  win.style.minHeight = openH + 'px';
+  win.style.minWidth = minOpenW + 'px';
+  win.style.minHeight = minOpenH + 'px';
 
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
@@ -6373,6 +6381,7 @@ function openEchoTrailWindow() {
     <span class="title-text">Echo Trail</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
       <div class="win-btn" data-action="close">&times;</div>
     </div>
   `;
@@ -6389,6 +6398,7 @@ function openEchoTrailWindow() {
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
   titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  attachMaximizeHandlers(titlebar, id);
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };

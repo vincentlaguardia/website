@@ -186,7 +186,12 @@
     policeBeaconBlue: '#3f6fa6',
     fireBody: '#b12822',
     ambulanceBody: '#e7e7e0',
-    vehicleRoof: '#9aa3ac'
+    vehicleRoof: '#9aa3ac',
+    fireCore: '#ffd27a',
+    fireHot: '#ff5a1f',
+    fireDeep: '#b32018',
+    smokeMid: '#2e333a',
+    smokeDark: '#181c21'
   };
 
   // ---- State ----
@@ -239,6 +244,7 @@
     damagedBuilding = null;
     crashTimer = 0;
     shakeTime = 0;
+    secondaryBlastTriggered = false;
     milestoneSpawned = false;
     landReached = false;
     state = 'playing';
@@ -493,6 +499,8 @@
   var FIRE_SIZE_BASE = 0.65;
   var FIRE_SIZE_GROWTH_MULT = 0.8;
   var FIRE_SIZE_CRASH_MULT = 0.6;
+  var SECONDARY_BLAST_TRIGGER_PROGRESS = 0.9;
+  var SECONDARY_BLAST_SCALE = 5.2;
   // several staggered follow-up bursts spread across the full 10s so the
   // explosion keeps re-flaring instead of just fading out early
   var explosionWaveTimes = [18, 38, 62, 95, 140, 200, 280, 380, 480];
@@ -501,6 +509,7 @@
   var plumeParticles = [];
   var shakeTime = 0;
   var vehicles = [];
+  var secondaryBlastTriggered = false;
 
   function crash(hitBuilding) {
     state = 'crashing';
@@ -511,6 +520,7 @@
     crashX = plane.x + plane.w / 2;
     crashY = plane.y + plane.h / 2;
     explosionWaveDone = explosionWaveTimes.map(function () { return false; });
+    secondaryBlastTriggered = false;
     spawnRing(crashX, crashY);
     spawnRing(crashX, crashY, 6);
     spawnExplosion(crashX, crashY, true, 3.1); // +30% blast intensity
@@ -567,31 +577,39 @@
       var topOfBuilding = GROUND_Y - b.h;
       var px = b.x + b.damageLocalX;
       var py = topOfBuilding + b.damageLocalY;
+      var windDrift = 0.03 + crashProgress * 0.16 + (secondaryBlastTriggered ? 0.22 : 0);
       var smokeChance = Math.min(1, (CRASH_SMOKE_BASE_CHANCE + growth * CRASH_SMOKE_GROWTH_CHANCE) * outOfControl * suppress);
       if (Math.random() < smokeChance) {
         plumeParticles.push({
           x: px + rand(-3, 3), y: py + rand(-2, 2),
-          vx: rand(-0.2, 0.2), vy: -rand(0.35, 0.95 + crashProgress * 0.55),
-          life: rand(90, 150), maxLife: 150,
-          size: rand(4, 8 + crashProgress * 5)
+          vx: rand(-0.08, 0.08), vy: -rand(0.28, 0.85 + crashProgress * 0.48),
+          drift: rand(windDrift * 0.5, windDrift),
+          life: rand(130, 240), maxLife: 240,
+          size: rand(5, 10 + crashProgress * 6),
+          darkness: Math.min(1, rand(0.65, 0.9) + crashProgress * 0.22 + (secondaryBlastTriggered ? 0.15 : 0))
         });
       }
       // visible flame licking at the wound, growing right alongside the smoke
-      if (Math.random() < Math.min(1, CRASH_FIRE_BASE_CHANCE * growth * outOfControl * suppress)) {
+      var fireFury = 0.35 + growth * 0.8 + crashProgress * 1.45 + (secondaryBlastTriggered ? 0.5 : 0);
+      var flameChance = Math.min(1, CRASH_FIRE_BASE_CHANCE * growth * fireFury * (0.5 + suppress * 0.5));
+      if (Math.random() < flameChance) {
         explosionParticles.push({
           x: px + rand(-4, 4), y: py + rand(-2, 2),
           vx: rand(-0.25, 0.25), vy: -rand(0.2, 0.65 + crashProgress * 0.55),
-          life: rand(16, 34), maxLife: 34, size: rand(2.2, 5.8) * (FIRE_SIZE_BASE + FIRE_SIZE_GROWTH_MULT * growth + crashProgress * FIRE_SIZE_CRASH_MULT),
+          life: rand(16, 40), maxLife: 40, size: rand(2.6, 6.6) * (FIRE_SIZE_BASE + FIRE_SIZE_GROWTH_MULT * growth + crashProgress * FIRE_SIZE_CRASH_MULT + (secondaryBlastTriggered ? 0.55 : 0)),
+          heat: Math.min(1, 0.45 + growth * 0.35 + crashProgress * 0.65 + (secondaryBlastTriggered ? 0.2 : 0)),
           type: 'fire'
         });
       }
     }
     for (var i = plumeParticles.length - 1; i >= 0; i--) {
       var p = plumeParticles[i];
-      p.x += p.vx * dt;
+      var pDrift = p.drift || 0;
+      p.x += (p.vx + pDrift) * dt;
       p.y += p.vy * dt;
-      p.vy -= 0.006 * dt;
-      p.size += 0.035 * dt;
+      p.vx += pDrift * 0.002 * dt;
+      p.vy -= 0.004 * dt;
+      p.size += 0.05 * dt;
       p.life -= dt;
       if (p.life <= 0) plumeParticles.splice(i, 1);
     }
@@ -663,7 +681,12 @@
       var bb = buildings[bj];
       if (!bb.damaged || bb.extinguished) continue;
       if (bb.activeSprayers > 0 && (bb.fireAge || 0) > 300) {
-        bb.extinguishProgress = (bb.extinguishProgress || 0) + bb.activeSprayers * 0.0007 * dt;
+        var extinguishRate = secondaryBlastTriggered ? 0.00058 : 0.0012;
+        bb.extinguishProgress = (bb.extinguishProgress || 0) + bb.activeSprayers * extinguishRate * dt;
+        if (!secondaryBlastTriggered && bb.extinguishProgress > 0.96) bb.extinguishProgress = 0.96;
+        if (!secondaryBlastTriggered && bb.extinguishProgress >= SECONDARY_BLAST_TRIGGER_PROGRESS && crashElapsed > 520) {
+          triggerSecondaryBlast(bb);
+        }
         if (bb.extinguishProgress >= 1) bb.extinguished = true;
       }
     }
@@ -718,9 +741,9 @@
     for (var i = 0; i < plumeParticles.length; i++) {
       var p = plumeParticles[i];
       var t = Math.max(0, p.life / p.maxLife);
-      ctx.fillStyle = PAL.groundLine;
-      ctx.globalAlpha = t * 0.5;
-      var s = Math.max(1, Math.round(p.size));
+      ctx.fillStyle = (p.darkness || 0.7) > 0.82 ? PAL.smokeDark : PAL.smokeMid;
+      ctx.globalAlpha = Math.min(0.85, (0.22 + (1 - t) * 0.6) * (p.darkness || 0.7));
+      var s = Math.max(2, Math.round(p.size * (0.9 + (1 - t) * 1.7)));
       ctx.fillRect(Math.floor(p.x - s / 2), Math.floor(p.y - s / 2), s, s);
     }
     ctx.globalAlpha = 1;
@@ -747,6 +770,7 @@
         life: rand(20, 40) * (0.7 + 0.3 * scale),
         maxLife: 40 * (0.7 + 0.3 * scale),
         size: rand(3, 6) * scale,
+        heat: rand(0.55, 1),
         type: 'fire'
       });
     }
@@ -759,6 +783,8 @@
         life: rand(70, 130) * (0.7 + 0.3 * scale),
         maxLife: 130 * (0.7 + 0.3 * scale),
         size: rand(2, 5) * scale,
+        drift: rand(0.02, 0.15),
+        darkness: rand(0.55, 0.9),
         type: 'smoke'
       });
     }
@@ -786,12 +812,35 @@
 
   var explosionWaveScales = [1.8, 0.9, 2.1, 0.8, 1.6, 0.7, 1.7, 0.8, 1.2];
 
+  function triggerSecondaryBlast(b) {
+    if (secondaryBlastTriggered) return;
+    secondaryBlastTriggered = true;
+    var bx = b ? b.x + b.damageLocalX : crashX;
+    var by = b ? (GROUND_Y - b.h) + b.damageLocalY : crashY;
+    spawnRing(bx, by);
+    spawnRing(bx, by, 4);
+    spawnRing(bx, by, 8);
+    spawnExplosion(bx, by, false, SECONDARY_BLAST_SCALE);
+    spawnExplosion(bx + rand(-8, 8), by + rand(-6, 6), false, SECONDARY_BLAST_SCALE * 0.78);
+    spawnDebris(bx, by, b && b.color ? b.color : PAL.bldgNear2);
+    flashTimer = Math.max(flashTimer, 34);
+    shakeTime = Math.max(shakeTime, 44);
+    for (var bi = 0; bi < buildings.length; bi++) {
+      var bb = buildings[bi];
+      if (!bb.damaged) continue;
+      bb.extinguished = false;
+      bb.extinguishProgress = Math.min(0.22, bb.extinguishProgress || 0);
+      bb.fireAge = Math.max(bb.fireAge || 0, 520);
+    }
+  }
+
   function getCrashProgress() {
     return Math.min(1, crashElapsed / CRASH_DURATION_FRAMES);
   }
 
   function updateExplosion(dt) {
     var crashProgress = getCrashProgress();
+    var blastBoost = secondaryBlastTriggered ? 0.32 : 0;
     for (var w = 0; w < explosionWaveTimes.length; w++) {
       if (!explosionWaveDone[w] && crashElapsed >= explosionWaveTimes[w]) {
         explosionWaveDone[w] = true;
@@ -804,18 +853,23 @@
     }
     // continuous ember + smoke trickle so the wreckage keeps visibly
     // smoldering for the whole crash sequence, not just the initial burst
-    if (Math.random() < Math.min(1, 0.62 + crashProgress * 0.38)) {
+    if (Math.random() < Math.min(1, 0.62 + crashProgress * 0.38 + blastBoost)) {
       explosionParticles.push({
         x: crashX + rand(-9, 9), y: crashY + rand(-6, 6),
         vx: rand(-0.45, 0.45), vy: -rand(0.35, 0.9 + crashProgress * 0.6),
-        life: rand(20, 48), maxLife: 48, size: rand(2.8, 6.2 + crashProgress * 2.4), type: 'fire'
+        life: rand(20, 56), maxLife: 56, size: rand(3.2, 7.6 + crashProgress * 3.2 + (secondaryBlastTriggered ? 2.4 : 0)),
+        heat: Math.min(1, 0.6 + crashProgress * 0.45 + (secondaryBlastTriggered ? 0.25 : 0)),
+        type: 'fire'
       });
     }
-    if (Math.random() < Math.min(1, 0.68 + crashProgress * 0.42)) {
+    if (Math.random() < Math.min(1, 0.68 + crashProgress * 0.42 + blastBoost)) {
       explosionParticles.push({
         x: crashX + rand(-11, 11), y: crashY + rand(-9, 9),
-        vx: rand(-0.24, 0.24), vy: -rand(0.35, 0.75 + crashProgress * 0.5),
-        life: rand(80, 165), maxLife: 165, size: rand(4.2, 9.5 + crashProgress * 3.5), type: 'smoke'
+        vx: rand(-0.08, 0.18), vy: -rand(0.3, 0.72 + crashProgress * 0.48),
+        life: rand(90, 190), maxLife: 190, size: rand(5, 11.5 + crashProgress * 4.2 + (secondaryBlastTriggered ? 4.6 : 0)),
+        drift: rand(0.06, 0.22 + (secondaryBlastTriggered ? 0.12 : 0)),
+        darkness: Math.min(1, rand(0.6, 0.95) + crashProgress * 0.2 + (secondaryBlastTriggered ? 0.18 : 0)),
+        type: 'smoke'
       });
     }
     for (var i = explosionParticles.length - 1; i >= 0; i--) {
@@ -834,7 +888,11 @@
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       if (p.type === 'smoke') {
-        p.vy -= 0.01 * dt;
+        var smokeDrift = p.drift || 0;
+        p.x += smokeDrift * dt;
+        p.vx += smokeDrift * 0.0015 * dt;
+        p.vy -= 0.012 * dt;
+        p.size += 0.02 * dt;
       } else if (p.type === 'debris') {
         p.vy += 0.14 * dt; // heavier gravity than embers
         if (p.y >= GROUND_Y - 1) {
@@ -868,16 +926,18 @@
         ctx.globalAlpha = p.settled ? Math.min(1, t * 2) : 1;
         ctx.fillRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), Math.ceil(p.size), Math.ceil(p.size));
       } else if (p.type === 'fire') {
-        // three-stage cooling: hot cream core -> rust -> dark ember
-        ctx.fillStyle = t > 0.66 ? PAL.window : (t > 0.3 ? PAL.bldgNear2 : PAL.planeDark);
-        ctx.globalAlpha = Math.min(1, t * 1.5);
-        var s = Math.max(1, Math.round(p.size * t) + 1);
+        // three-stage cooling: hot core -> orange flame -> deep red ember
+        var heat = p.heat === undefined ? 0.7 : p.heat;
+        var heatStage = t * (0.75 + heat * 0.55);
+        ctx.fillStyle = heatStage > 0.72 ? PAL.fireCore : (heatStage > 0.34 ? PAL.fireHot : PAL.fireDeep);
+        ctx.globalAlpha = Math.min(1, 0.45 + t * (0.8 + heat * 0.3));
+        var s = Math.max(1, Math.round(p.size * (0.6 + t * (0.75 + heat * 0.35))) + 1);
         ctx.fillRect(Math.floor(p.x - s / 2), Math.floor(p.y - s / 2), s, s);
       } else {
-        // smoke billows larger as it ages, and thins out
-        ctx.fillStyle = PAL.groundLine;
-        ctx.globalAlpha = t * 0.5;
-        var s2 = Math.max(1, Math.round(p.size * (0.7 + 1.6 * (1 - t))));
+        // smoke billows larger as it ages, and stays dark enough to cloud the sky
+        ctx.fillStyle = (p.darkness || 0.7) > 0.82 ? PAL.smokeDark : PAL.smokeMid;
+        ctx.globalAlpha = Math.min(0.75, (0.18 + (1 - t) * 0.62) * (p.darkness || 0.7));
+        var s2 = Math.max(1, Math.round(p.size * (0.85 + 1.8 * (1 - t))));
         ctx.fillRect(Math.floor(p.x - s2 / 2), Math.floor(p.y - s2 / 2), s2, s2);
       }
     }

@@ -2325,7 +2325,7 @@
     }
     const colorName = hueColorName(top.hsl.h);
     const distRounded = Math.round(top.minDist);
-    let text = 'the most unusual swatch is ' + SAM_SWATCH_POS[top.i] + ', ' + top.hex + ', which reads as ' + colorName + ' and sits ' + distRounded + '\u00b0 away from the nearest hue the palette formula would predict. ';
+    let text = 'the most unusual swatch is ' + SAM_SWATCH_POS[top.i] + ' (' + top.hex + '), which reads as ' + colorName + ' and sits ' + distRounded + '\u00b0 away from the nearest hue the palette formula would predict. ';
     if(second && second.score > top.score * 0.55 && second.score > 8){
       const colorName2 = hueColorName(second.hsl.h);
       const distRounded2 = Math.round(second.minDist);

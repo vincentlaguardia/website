@@ -2463,7 +2463,7 @@
     const seenCore = new Set();
     coreAnchors.forEach(function(anchor){
       if(!anchor) return;
-      const key = JSON.stringify([anchor.item.zone.col, anchor.item.zone.row, anchor.expectedHue]);
+      const key = `${anchor.item.zone.col}-${anchor.item.zone.row}-${anchor.expectedHue}`;
       if(seenCore.has(key)) return;
       seenCore.add(key);
       uniqueCoreAnchors.push(anchor);

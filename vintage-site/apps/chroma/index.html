@@ -452,13 +452,17 @@
     background:var(--skew-active-color, var(--face));
     color:var(--skew-active-text, #000);
   }
-  .skew-swatch-wrap{
+  #cc-focus-btn.is-active{
+    background:var(--focus-active-color, var(--face));
+    color:var(--focus-active-text, #000);
+  }
+  .color-swatch-wrap{
     position:relative;
     width:var(--swatch-size);
     height:var(--swatch-size);
     flex:0 0 auto;
   }
-  .skew-swatch-btn{
+  .color-swatch-btn{
     -webkit-appearance:none;
     appearance:none;
     width:var(--swatch-size);
@@ -479,7 +483,15 @@
     opacity:0;
     pointer-events:none;
   }
-  .skew-icon{
+  #cc-focus-color{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    pointer-events:none;
+  }
+  .color-icon{
     display:block;
     width:100%; height:100%;
     border:none;
@@ -584,9 +596,9 @@
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
-          <div class="skew-swatch-wrap">
-            <button class="skew-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="skew-icon" id="skew-icon"></span></button>
-            <input type="color" id="cc-skew-color" value="#bfbfbf">
+          <div class="color-swatch-wrap">
+            <button class="color-swatch-btn" id="cc-skew-swatch" type="button" title="Choose skew color. Right-click to clear." aria-label="Choose skew color"><span class="color-icon" id="skew-icon"></span></button>
+            <input type="color" id="cc-skew-color" value="#bfbfbf" aria-labelledby="cc-skew-btn cc-skew-swatch">
           </div>
         </div>
       </div>
@@ -598,6 +610,13 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
+          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
+          <div class="picker-with-hex">
+            <div class="color-swatch-wrap">
+              <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
+              <input type="color" id="cc-focus-color" value="#bfbfbf" aria-labelledby="cc-focus-btn cc-focus-swatch">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1219,6 +1238,9 @@
     };
   }
   function zoneHex(zone){
+    if(focusActive && isInFocusBand(zone)){
+      return focusHex;
+    }
     const sourceColor = importedMode
       ? resolveImportedZoneColor(zone, importedPalette, seed, strange, pastramiMode)
       : pastramiMode
@@ -1276,8 +1298,16 @@
   let importedPalette = [];
   let importedMode = false;
   const SKEW_STRENGTH = 0.28;
+  const FOCUS_BAND_COUNT = 4;
+  const FOCUS_BAND_INDEX = 0; // First diagonal band in the (row + col) mod 4 cycle.
   let skewColor = null;
   let skewActive = false;
+  let focusActive = false;
+  let focusHex = '#bfbfbf';
+  // (row + col) mod 4 maps cells into repeating diagonal bands.
+  function isInFocusBand(zone){
+    return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
+  }
   function getTargetRadius(cw, ch){
     const cellMin = Math.min(cw, ch);
     const ratio = (DOT_SIZE_CONFIG[dotSizeMode] || DOT_SIZE_CONFIG[DEFAULT_DOT_SIZE_MODE]).radiusRatio;
@@ -1346,10 +1376,10 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
-  const SKEW_ACTIVE_LUMA_R = 0.299;
-  const SKEW_ACTIVE_LUMA_G = 0.587;
-  const SKEW_ACTIVE_LUMA_B = 0.114;
-  const SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD = 0.6;
+  const LUMA_R = 0.299;
+  const LUMA_G = 0.587;
+  const LUMA_B = 0.114;
+  const ACTIVE_LUMA_DARK_TEXT_THRESHOLD = 0.6;
   const GRADIENT_KEY_PRECISION = 1000;
   const GRADIENT_KEY_ANGLE_PHASE_DECIMALS = 6;
   let pastramiButtonGradientKey = '';
@@ -1358,6 +1388,10 @@
   }
   function roundToGradientPrecision(value){
     return Math.round(value * GRADIENT_KEY_PRECISION) / GRADIENT_KEY_PRECISION;
+  }
+  /** Calculates ITU-R BT.601 luma to choose readable dark/light foreground text. */
+  function calculateLuma(rgb){
+    return (LUMA_R*rgb.r + LUMA_G*rgb.g + LUMA_B*rgb.b) / 255;
   }
   function getPastramiButtonGradientKey(){
     if(shouldSkipPastramiGradient()) return '';
@@ -1628,15 +1662,32 @@
   const skewInput = document.getElementById('cc-skew-color');
   const skewIcon = document.getElementById('skew-icon');
   const defaultSkewHex = skewInput.value;
-  function applySkewHex(hex){
-    skewInput.value = hex;
-    const rgb = hexToRgbObj(hex);
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
-    skewActive = true;
-    skewIcon.style.background = hex;
-    syncSkewButtonState();
+  const focusBtn = document.getElementById('cc-focus-btn');
+  const focusSwatchBtn = document.getElementById('cc-focus-swatch');
+  const focusInput = document.getElementById('cc-focus-color');
+  const focusIcon = document.getElementById('focus-icon');
+  /** Returns true when a value is a #RRGGBB color string. */
+  function isValidHexColor(hex){
+    return /^#[0-9a-f]{6}$/i.test(hex);
+  }
+  /** Applies a validated hex color to a mode input/icon and state updater callback. */
+  function applyModeHex(hex, inputEl, iconEl, applyModeState){
+    inputEl.value = String(hex).toLowerCase();
+    const normalizedHex = inputEl.value;
+    if(!isValidHexColor(normalizedHex)) return false;
+    iconEl.style.background = normalizedHex;
+    applyModeState(normalizedHex);
     drawScene();
+    return true;
+  }
+  function applySkewHex(hex){
+    applyModeHex(hex, skewInput, skewIcon, appliedHex=>{
+      const rgb = hexToRgbObj(appliedHex);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      skewColor = { h: hsl.h, s: hsl.s, l: hsl.l };
+      skewActive = true;
+      syncSkewButtonState();
+    });
   }
   function syncSkewButtonState(){
     skewBtn.classList.toggle('is-active', skewActive);
@@ -1645,9 +1696,9 @@
       const activeHex = skewInput.value;
       const rgb = hexToRgbObj(activeHex);
       // ITU-R BT.601 luma keeps label text readable over the active skew color.
-      const luma = (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
+      const luma = calculateLuma(rgb);
       skewBtn.style.setProperty('--skew-active-color', activeHex);
-      skewBtn.style.setProperty('--skew-active-text', luma > SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+      skewBtn.style.setProperty('--skew-active-text', luma > ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
     } else {
       skewBtn.style.removeProperty('--skew-active-color');
       skewBtn.style.removeProperty('--skew-active-text');
@@ -1686,6 +1737,45 @@
   skewInput.addEventListener('input', ()=>{
     applySkewHex(skewInput.value);
   });
+  function setFocusHex(hex){
+    applyModeHex(hex, focusInput, focusIcon, appliedHex=>{
+      focusHex = appliedHex;
+      syncFocusButtonState();
+    });
+  }
+  function syncFocusButtonState(){
+    focusBtn.classList.toggle('is-active', focusActive);
+    focusBtn.setAttribute('aria-pressed', String(focusActive));
+    if(focusActive){
+      const rgb = hexToRgbObj(focusHex);
+      const luma = calculateLuma(rgb);
+      focusBtn.style.setProperty('--focus-active-color', focusHex);
+      focusBtn.style.setProperty('--focus-active-text', luma > ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+    } else {
+      focusBtn.style.removeProperty('--focus-active-color');
+      focusBtn.style.removeProperty('--focus-active-text');
+    }
+  }
+  focusBtn.addEventListener('click', ()=>{
+    focusActive = !focusActive;
+    syncFocusButtonState();
+    drawScene();
+  });
+  focusSwatchBtn.addEventListener('click', ()=>{
+    if(typeof focusInput.showPicker === 'function'){
+      try{
+        focusInput.showPicker();
+        return;
+      }catch(err){
+        console.warn('chroma: focus picker showPicker failed', err);
+      }
+    }
+    focusInput.click();
+  });
+  focusInput.addEventListener('input', ()=>{
+    setFocusHex(focusInput.value);
+  });
+  setFocusHex(focusInput.value);
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;

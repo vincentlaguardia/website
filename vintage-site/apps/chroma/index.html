@@ -2214,47 +2214,68 @@
       return zoneHex(samZoneByPos.get(cell.col + ',' + cell.row));
     });
     const paras = [];
-    paras.push('hey sam, i know this is all really confusing stuff for you so i made you this little color buddy. a \u201csam mode\u201d if you will');
     if(importedMode){
-      paras.push('this palette was pulled from an imported photo. the image was sampled down to its most important color groups and used as the source for the grid you are looking at. the 9 swatches represent evenly spaced positions across that derived palette. swatch 1 in the top left (' + hexes[0] + ') and swatch 9 in the bottom right (' + hexes[8] + ') show you two ends of that color range.');
+      paras.push('this palette came from a photo you imported. the app scanned the image, pulled out the most common color groups, and spread them across the 9 swatches you see here. each swatch represents a color that was meaningfully present in that photo.');
+      paras.push('swatch 1 in the top left (' + hexes[0] + ') and swatch 9 in the bottom right (' + hexes[8] + ') sit at opposite ends of that range. if those two swatches look very different, the photo had a wide variety of colors. if they look similar, the image had a tight, consistent palette. the swatches in between fill in the steps along that journey.');
     } else if(pastramiMode){
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
-      paras.push('techno mode is running on a ' + philoName + ' base at hue ' + Math.round(baseHue) + '\u00b0. instead of normal saturation and lightness rules, techno mode randomly splits zones between soft washed out pastels and intense neon tones. compare swatch 1 in the top left (' + hexes[0] + ') against swatch 5 in the center (' + hexes[4] + ') to see that split in action. both states share the same band structure which is what makes the grid feel electric and a little unstable.');
+      paras.push('techno mode is active, running on a ' + philoName + ' base with its starting hue at ' + Math.round(baseHue) + '\u00b0. in normal mode, colors follow predictable rules for how bright or vivid they get. techno mode throws those rules out and randomly pushes each zone toward either a washed-out pastel or a full-blast neon — no middle ground.');
+      paras.push('compare swatch 1 in the top left (' + hexes[0] + ') against swatch 5 in the center (' + hexes[4] + ') to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout — that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
     } else {
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       let philoDesc = '';
+      let philoExtra = '';
       switch(philoIdx){
-        case 0: philoDesc = 'all 9 swatches share one hue family and only vary in lightness and saturation. simultaneous contrast is low because no competing hue is present. look at the difference between swatch 1 in the top left (' + hexes[0] + ') and swatch 9 in the bottom right (' + hexes[8] + ') to see how much a single hue can shift just by changing value.'; break;
-        case 1: philoDesc = 'three hues cluster within 30\u00b0 of the base hue which is why the palette feels close and naturalistic. simultaneous contrast works here mainly through lightness and saturation rather than hue opposition. look across the top row from swatch 1 (' + hexes[0] + ') to swatch 3 (' + hexes[2] + ') to see this gradual shift.'; break;
-        case 2: philoDesc = 'two hues sit directly opposite each other on the color wheel at 180\u00b0 apart. their relationship is maximally polar and each one activates the other through simultaneous contrast. swatch 1 in the top left (' + hexes[0] + ') and swatch 5 in the center (' + hexes[4] + ') are a good place to spot this tension.'; break;
-        case 3: philoDesc = 'the two accent hues flank the pure complement at 30\u00b0 on each side, keeping strong contrast while softening the sharpness of direct complementarity. compare swatch 3 in the top right (' + hexes[2] + ') against swatch 7 in the bottom left (' + hexes[6] + ') to feel that tension.'; break;
-        case 4: philoDesc = 'three hues are exactly 120\u00b0 apart, dividing the color wheel into an equilateral triangle. the balance is mathematical and no single hue dominates. swatches 1 (' + hexes[0] + '), 5 (' + hexes[4] + '), and 9 (' + hexes[8] + ') each likely land in a different hue family to show you that even spread.'; break;
-        case 5: philoDesc = 'four hues at 90\u00b0 intervals form a rectangle on the color wheel. the structure has more variety than triadic while keeping geometric order. swatch 1 in the top left (' + hexes[0] + ') and swatch 2 next to it (' + hexes[1] + ') are a good example of how two adjacent zones can feel related but still carry distinct hue character.'; break;
+        case 0:
+          philoDesc = 'this is a monochromatic palette — all 9 swatches come from the same color family, centered at hue ' + Math.round(baseHue) + '\u00b0. the only things changing are how light or dark each swatch is, and how vivid or muted it appears. think of it like looking at one color through different kinds of light.';
+          philoExtra = 'look at swatch 1 in the top left (' + hexes[0] + ') versus swatch 9 in the bottom right (' + hexes[8] + ') — that gap shows just how far a single hue can travel when you adjust its brightness and intensity. this kind of palette tends to feel calm and cohesive since no competing color is fighting for attention.';
+          break;
+        case 1:
+          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses colors that sit close together on the color wheel — within about 30\u00b0 of each other. because they are neighbors, they feel naturally harmonious, almost like the colors you would see together in a sunset or a forest.';
+          philoExtra = 'look across the top row from swatch 1 (' + hexes[0] + ') to swatch 3 (' + hexes[2] + ') to trace that gentle shift. the variation you notice here comes mostly from differences in brightness and intensity rather than big hue changes, which is what keeps the whole palette feeling like it belongs together.';
+          break;
+        case 2:
+          philoDesc = 'this is a complementary palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses two colors that sit directly across from each other on the color wheel — as far apart as any two colors can be. when placed next to each other, they make each other look more vivid and intense. it is a high-energy combination.';
+          philoExtra = 'swatch 1 in the top left (' + hexes[0] + ') and swatch 5 in the center (' + hexes[4] + ') are a good place to feel that push and pull. the contrast between them is the whole point — complementary palettes are designed to create visual tension, which can feel bold or even a little aggressive.';
+          break;
+        case 3:
+          philoDesc = 'this is a split-complementary palette centered at hue ' + Math.round(baseHue) + '\u00b0. instead of using a color\'s direct opposite, it picks the two colors sitting just beside that opposite — about 30\u00b0 on either side. you still get strong contrast, but it\'s a little less intense than a straight complementary pair.';
+          philoExtra = 'compare swatch 3 in the top right (' + hexes[2] + ') against swatch 7 in the bottom left (' + hexes[6] + ') to feel that balance. the slight angle away from a direct complement is what gives this palette its visual interest — enough tension to be exciting, but not so much that it feels aggressive.';
+          break;
+        case 4:
+          philoDesc = 'this is a triadic palette centered at hue ' + Math.round(baseHue) + '\u00b0. three colors are placed exactly 120\u00b0 apart around the color wheel — like the points of a triangle. the result is colorful and lively while staying balanced, because no single hue dominates the others.';
+          philoExtra = 'swatches 1 (' + hexes[0] + '), 5 (' + hexes[4] + '), and 9 (' + hexes[8] + ') each likely land in a different hue family — that even three-way spread is the defining feature of this scheme. triadic palettes tend to feel vibrant and versatile, which is why they show up a lot in design and illustration.';
+          break;
+        case 5:
+          philoDesc = 'this is a tetradic palette centered at hue ' + Math.round(baseHue) + '\u00b0. four colors are placed at 90\u00b0 intervals around the color wheel, forming a square. it gives you the most color variety of any palette type while still following a clear, geometric structure.';
+          philoExtra = 'swatch 1 in the top left (' + hexes[0] + ') and swatch 2 next to it (' + hexes[1] + ') show how two adjacent zones can feel related but still carry their own distinct character. with four different hues in play there is a lot of movement across the grid — the underlying geometry is what holds it all together.';
+          break;
       }
-      paras.push(philoName + ' palette centered at hue ' + Math.round(baseHue) + '\u00b0. ' + philoDesc);
+      paras.push(philoDesc);
+      paras.push(philoExtra);
     }
     const w = strange;
     if(w <= 20){
-      paras.push('strange is low (' + w + '). zone hue assignments stay close to the palette rule so coherence is high and deviations are minimal. the grid reads as an orderly application of the chosen philosophy. notice how swatch 1 (' + hexes[0] + ') and swatch 2 (' + hexes[1] + ') feel like they belong together.');
+      paras.push('strange is set low (' + w + '). each zone sticks close to its assigned color, so the palette feels tight and consistent. think of it as the algorithm following its rules strictly — the grid looks clean and orderly. notice how swatch 1 (' + hexes[0] + ') and swatch 2 (' + hexes[1] + ') feel like they were picked from the same set.');
     } else if(w <= 55){
-      paras.push('strange is moderate (' + w + '). occasional wildcard hue jumps introduce tension while the underlying philosophy stays readable. some zones wander further than the palette would normally allow. swatch 5 in the center (' + hexes[4] + ') might be one of those wanderers.');
+      paras.push('strange is at a moderate level (' + w + '). most zones follow the palette, but every now and then one drifts somewhere unexpected. the result is a grid with a few surprises in it — interesting but not chaotic. swatch 5 in the center (' + hexes[4] + ') might be one of those wanderers.');
     } else {
-      paras.push('strange is high (' + w + '). wildcard zones can drift far from their assigned palette hue. structure persists in the spatial band geometry but individual color relationships feel unstable or ambiguous. look at swatch 9 in the bottom right (' + hexes[8] + ') to see how far a zone can stray from the base hue.');
+      paras.push('strange is cranked up high (' + w + '). individual zones can wander far from where the palette says they should be. the grid\'s underlying structure still holds it together, but the colors themselves start to feel unpredictable and surprising. look at swatch 9 in the bottom right (' + hexes[8] + ') to see how far a zone can stray.');
     }
     const satPct = Math.round(globalSatMul * 100);
     if(satPct < 100){
-      paras.push('saturation is scaled to ' + satPct + '% of its natural value, pulling all colors toward gray. simultaneous contrast weakens as chroma drops. compare swatch 1 (' + hexes[0] + ') against swatch 9 (' + hexes[8] + ') to see how muted the range becomes.');
+      paras.push('the saturation slider is pulled below 100% (currently at ' + satPct + '%), which means all colors have been toned down toward gray. think of it like turning down the vividness on a TV — the shapes stay, but the colors go softer. compare swatch 1 (' + hexes[0] + ') against swatch 9 (' + hexes[8] + ') to see how muted the range becomes.');
     } else if(satPct > 100){
-      paras.push('saturation is scaled to ' + satPct + '%, amplifying chroma beyond the base palette range. colors become more intense and hue relationships more assertive. swatch 5 in the center (' + hexes[4] + ') is a good example of what that amplification looks like.');
+      paras.push('the saturation slider is pushed above 100% (currently at ' + satPct + '%), making every color more vivid and intense than it would normally be. think of it like turning the vividness dial past its default — colors feel louder. swatch 5 in the center (' + hexes[4] + ') is a good example of what that boost looks like.');
     }
     if(skewActive && skewColor !== null){
-      paras.push('skew is active at hue ' + Math.round(skewColor.h) + '\u00b0, pulling every zone\u2019s hue ' + Math.round(SKEW_STRENGTH * 100) + '% toward that anchor. the internal palette relationships are preserved but the overall temperature shifts uniformly. look at swatch 1 (' + hexes[0] + ') and swatch 9 (' + hexes[8] + ') to see that shared temperature pull.');
+      paras.push('skew is on, biased toward hue ' + Math.round(skewColor.h) + '\u00b0. every color in the grid is being nudged ' + Math.round(SKEW_STRENGTH * 100) + '% of the way toward that hue. the relationships between colors stay the same, but the whole palette shifts in temperature together — like putting a warm or cool filter over the entire grid. look at swatch 1 (' + hexes[0] + ') and swatch 9 (' + hexes[8] + ') and notice how they share a similar color temperature.');
     }
     if(focusActive){
-      paras.push('focus mode locks one repeating diagonal band to ' + focusHex + ', inserting a fixed color stripe at regular intervals and giving the eye a constant anchor point. swatch 3 in the top right (' + hexes[2] + ') or swatch 7 in the bottom left (' + hexes[6] + ') may be one of those locked focus swatches.');
+      paras.push('focus mode is on. one diagonal stripe across the grid is locked to a fixed color (' + focusHex + '), repeating at regular intervals. everything else can still change, but that anchor color stays put — it gives the eye a consistent resting point as the rest of the grid shifts around it. swatch 3 in the top right (' + hexes[2] + ') or swatch 7 in the bottom left (' + hexes[6] + ') may be one of those locked focus swatches.');
     }
     if(matchSatActive){
-      paras.push('match sat is active, locking the saturation slider continuously to the chroma level of the selected source color, creating a shared saturation reference across all zones. swatches 1 (' + hexes[0] + ') and 9 (' + hexes[8] + ') should share a similar chroma level as a result.');
+      paras.push('match sat is turned on. the saturation of the entire grid is being synced to match the vividness of a specific source color you selected. instead of letting each zone set its own intensity, they are all held to that shared level. swatches 1 (' + hexes[0] + ') and 9 (' + hexes[8] + ') should feel similarly vivid — or similarly muted — as a result.');
     }
     return paras.map(function(p){ return '<p>' + p + '</p>'; }).join('');
   }

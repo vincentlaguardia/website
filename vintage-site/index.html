@@ -101,6 +101,44 @@
       inset  2px  2px 0 #808080,
       inset -2px -2px 0 #dfdfdf;
   }
+  .mc-toolbar-btn,
+  .mc-toolbar-select {
+    height: 20px;
+    font-size: 11px;
+    font-family: inherit;
+    color: #000;
+    border: none;
+    background: #bcbcbc;
+    box-shadow:
+      inset -1px -1px 0 #0a0a0a,
+      inset  1px  1px 0 #ffffff,
+      inset -2px -2px 0 #808080,
+      inset  2px  2px 0 #dfdfdf;
+  }
+  .mc-toolbar-btn { padding: 1px 8px; cursor: pointer; }
+  .mc-toolbar-btn:active {
+    box-shadow:
+      inset  1px  1px 0 #0a0a0a,
+      inset -1px -1px 0 #ffffff,
+      inset  2px  2px 0 #808080,
+      inset -2px -2px 0 #dfdfdf;
+  }
+  .mc-toolbar-btn:disabled { color: #666; cursor: default; }
+  .mc-toolbar-select {
+    padding: 0 18px 0 6px;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image:
+      linear-gradient(45deg, transparent 50%, #222 50%),
+      linear-gradient(135deg, #222 50%, transparent 50%);
+    background-position:
+      calc(100% - 10px) 8px,
+      calc(100% - 6px) 8px;
+    background-size: 4px 4px, 4px 4px;
+    background-repeat: no-repeat;
+  }
 
   /* ================= DESKTOP ================= */
   #desktop {
@@ -6680,17 +6718,17 @@ function openMyComputerWindow() {
   const toolbar = document.createElement('div');
   toolbar.style.cssText = 'flex:none;display:flex;align-items:center;gap:4px;padding:3px 6px;border-bottom:1px solid #808080;background:#c0c0c0;';
   toolbar.innerHTML = `
-    <button class="win98-button mc-back" style="padding:2px 8px;font-size:11px;" disabled title="Back">← Back</button>
-    <button class="win98-button mc-up" style="padding:2px 8px;font-size:11px;" disabled title="Up one level">↑ Up</button>
+    <button class="mc-toolbar-btn mc-back" disabled title="Back">← Back</button>
+    <button class="mc-toolbar-btn mc-up" disabled title="Up one level">↑ Up</button>
     <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">Address:</span>
     <input class="mc-addr" style="flex:1;font-family:inherit;font-size:11px;padding:2px 4px;border:none;box-shadow:inset 1px 1px 0 #0a0a0a,inset -1px -1px 0 #fff,inset 2px 2px 0 #808080,inset -2px -2px 0 #dfdfdf;" readonly value="${mcEsc(START_PATH)}">
     <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">View:</span>
-    <select class="mc-view" style="font-size:11px;height:20px;">
+    <select class="mc-toolbar-select mc-view">
       <option value="thumbnails">Thumbnails</option>
       <option value="list">List</option>
     </select>
     <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">Sort by:</span>
-    <select class="mc-sort" style="font-size:11px;height:20px;">
+    <select class="mc-toolbar-select mc-sort">
       <option value="name">Name</option>
       <option value="type">Type</option>
       <option value="size">Size</option>

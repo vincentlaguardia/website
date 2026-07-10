@@ -7766,10 +7766,79 @@ window.addEventListener('message', function(e) {
     Action: '<svg viewBox="0 0 16 16" width="16" height="16"><polygon points="8,2 14,14 2,14" fill="#000080" stroke="#000" stroke-width="0.5"/></svg>',
     Web:    '<svg viewBox="0 0 16 16" width="16" height="16"><circle cx="8" cy="8" r="6" fill="#1e88e5" stroke="#000" stroke-width="0.8"/><line x1="8" y1="2" x2="8" y2="14" stroke="#fff" stroke-width="1"/><line x1="2" y1="8" x2="14" y2="8" stroke="#fff" stroke-width="1"/></svg>',
     System: '<svg viewBox="0 0 16 16" width="16" height="16"><rect x="2" y="4" width="12" height="9" rx="1" fill="#c0c0c0" stroke="#000" stroke-width="1"/><rect x="5" y="12" width="6" height="2" fill="#808080"/></svg>',
+    File:   '<svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 1 h7 l3 3 v11 H3 Z" fill="#fff" stroke="#000" stroke-width="0.8"/><path d="M10 1 v3 h3" fill="none" stroke="#000" stroke-width="0.8"/><line x1="5" y1="7" x2="11" y2="7" stroke="#888" stroke-width="0.8"/><line x1="5" y1="9.5" x2="11" y2="9.5" stroke="#888" stroke-width="0.8"/><line x1="5" y1="12" x2="9" y2="12" stroke="#888" stroke-width="0.8"/></svg>',
   };
 
   let selectedIndex = -1;
   let filteredCommands = [];
+
+  // ---- dynamic file index (populated by fetching synced-folder manifests) ----
+  let _fileIndexCache = null;
+
+  async function buildSpotlightFileIndex() {
+    if (_fileIndexCache !== null) return _fileIndexCache;
+    const results = [];
+
+    async function scanFolder(folderId, folderLabel, depth) {
+      if (depth > 2) return;
+      const folder = items[folderId];
+      if (!folder || !folder.syncFolder) return;
+      try {
+        const res = await fetch(toAssetUrl(folder.syncFolder + '/manifest.json'), { cache: 'no-store' });
+        if (!res.ok) return;
+        const entries = await res.json();
+        for (const e of entries) {
+          if (e.type === 'file') {
+            const filePath = folder.syncFolder + '/' + e.name;
+            results.push({
+              label: e.name,
+              category: folderLabel,
+              iconKey: 'File',
+              keywords: [stripExtension(e.name).toLowerCase(), folderLabel.toLowerCase()],
+              action: () => openSpotlightFile(folderId, filePath, e.name)
+            });
+          } else if (e.type === 'folder') {
+            const subId = 'sync__' + slugifyPath(folder.syncFolder + '/' + e.name);
+            if (!items[subId]) {
+              items[subId] = {
+                type: 'folder', name: e.name, iconType: 'folder',
+                syncFolder: folder.syncFolder + '/' + e.name,
+                children: [], modified: e.modified || folder.modified
+              };
+            }
+            await scanFolder(subId, folderLabel + '/' + e.name, depth + 1);
+          }
+        }
+      } catch (_) {}
+    }
+
+    const desktopChildren = (items.desktop && items.desktop.children) || [];
+    await Promise.all(
+      desktopChildren
+        .filter(id => items[id] && items[id].syncFolder)
+        .map(id => scanFolder(id, items[id].name, 0))
+    );
+
+    _fileIndexCache = results;
+    return results;
+  }
+
+  async function openSpotlightFile(folderId, filePath, fileName) {
+    await loadSyncChildren(folderId);
+    const itemId = 'sync__' + slugifyPath(filePath);
+    const item = items[itemId];
+    if (!item) { openSyncFolder(folderId); return; }
+    const type = item.type;
+    if (type === 'picture') openPictureWindow(itemId, folderId);
+    else if (type === 'video' || type === 'audio') openMediaPlayerWindow(itemId);
+    else if (type === 'text') {
+      const doOpen = text => openNotepadWindow(text, item.name);
+      if (item.file && !item._textLoaded) fetch(item.file, { cache: 'no-store' }).then(r => r.text()).then(doOpen).catch(() => doOpen(''));
+      else doOpen(item.text || '');
+    }
+    else if (type === 'file') downloadItem(itemId);
+    else openSyncFolder(folderId);
+  }
 
   function openSpotlight() {
     const overlay = document.getElementById('spotlight-overlay');
@@ -7779,6 +7848,15 @@ window.addEventListener('message', function(e) {
     selectedIndex = -1;
     renderResults('');
     input.focus();
+    // Build file index in background; re-render when ready
+    if (_fileIndexCache === null) {
+      buildSpotlightFileIndex().then(() => {
+        if (isSpotlightOpen()) {
+          const cur = document.getElementById('spotlight-input');
+          renderResults(cur ? cur.value : '');
+        }
+      });
+    }
   }
 
   function closeSpotlight() {
@@ -7804,10 +7882,14 @@ window.addEventListener('message', function(e) {
 
   function renderResults(query) {
     const container = document.getElementById('spotlight-results');
+    // Include file index only when a query is active (avoids flooding the default list)
+    const allCommands = query.trim()
+      ? SPOTLIGHT_COMMANDS.concat(_fileIndexCache || [])
+      : SPOTLIGHT_COMMANDS;
     if (!query.trim()) {
-      filteredCommands = SPOTLIGHT_COMMANDS.slice();
+      filteredCommands = allCommands.slice();
     } else {
-      filteredCommands = SPOTLIGHT_COMMANDS
+      filteredCommands = allCommands
         .map(cmd => ({ cmd, score: matchScore(cmd, query) }))
         .filter(x => x.score >= 0)
         .sort((a, b) => b.score - a.score)
@@ -7821,7 +7903,7 @@ window.addEventListener('message', function(e) {
       const row = document.createElement('div');
       row.className = 'spotlight-result' + (i === selectedIndex ? ' selected' : '');
       row.innerHTML =
-        '<span class="spotlight-result-icon">' + (ICONS[cmd.category] || '') + '</span>' +
+        '<span class="spotlight-result-icon">' + (ICONS[cmd.iconKey || cmd.category] || '') + '</span>' +
         '<span class="spotlight-result-label">' + escapeHtml(cmd.label) + '</span>' +
         '<span class="spotlight-result-category">' + escapeHtml(cmd.category) + '</span>';
       row.addEventListener('mousedown', e => {

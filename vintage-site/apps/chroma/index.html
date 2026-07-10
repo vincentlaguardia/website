@@ -2268,8 +2268,8 @@
       const key = zoneKey(item);
       if(pickedZoneKeys.has(key)) return;
       picked.push(item);
-      pickedZoneKeys.add(key);
       pickedHexes.add(item.hex);
+      pickedZoneKeys.add(key);
     }
     // Outlier from expected hue behavior.
     addPick(pickMost(candidates, function(item){
@@ -2286,8 +2286,9 @@
       addPick(pickMost(candidates, function(item){ return 360 - hueDist(item.hsl.h, eh); }));
     });
     // Fill remaining slots by maximizing diversity from already-picked samples.
-    while(picked.length < SAM_SWATCH_COUNT && picked.length < candidates.length){
-      const next = pickMost(candidates.filter(function(item){ return !pickedHexes.has(item.hex); }), function(item){
+    const unpicked = candidates.filter(function(item){ return !pickedHexes.has(item.hex); });
+    while(picked.length < SAM_SWATCH_COUNT && unpicked.length){
+      const next = pickMost(unpicked, function(item){
         if(!picked.length) return 0;
         return picked.reduce(function(minDist, chosen){
           const dHue = hueDist(item.hsl.h, chosen.hsl.h);
@@ -2298,6 +2299,8 @@
         }, Infinity);
       });
       addPick(next);
+      const nextIdx = unpicked.findIndex(function(item){ return item.hex === next.hex; });
+      if(nextIdx >= 0) unpicked.splice(nextIdx, 1);
     }
     if(picked.length < SAM_SWATCH_COUNT){
       pool.forEach(function(item){

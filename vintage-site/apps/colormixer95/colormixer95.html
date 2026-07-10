@@ -849,11 +849,11 @@ document.getElementById('imagePickApplyBg').addEventListener('click', ()=>{
   setMiniSwatch('applyBgIndicator', hex);
 });
 document.getElementById('imagePickX').addEventListener('click', closeImagePicker);
-document.getElementById('imagePickOverlay').addEventListener('click', (e)=>{
+const imagePickOverlay = document.getElementById('imagePickOverlay');
+imagePickOverlay.addEventListener('click', (e)=>{
   if(e.target.id === 'imagePickOverlay') closeImagePicker();
 });
 // Allow dropping a new image onto the picker overlay to replace the current one
-const imagePickOverlay = document.getElementById('imagePickOverlay');
 ['dragenter','dragover'].forEach(evt=>{
   imagePickOverlay.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); });
 });

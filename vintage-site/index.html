@@ -7187,6 +7187,195 @@ async function openMediaPlayerWindow(trackId) {
 }
 
 /* ---------- desktop icon ---------- */
+const DESKTOP_LEFT_GRID_JITTER = 0.15;
+const DESKTOP_DEFAULT_LAYOUT_SEED = 'desktop-default-v2';
+const DESKTOP_LEFT_REQUIRED_IDS = ['notepadshortcut', 'chromashortcut', 'solitaireshortcut', 'ieshortcut', 'paintshortcut'];
+const DESKTOP_LEFT_REQUIRED_LABELS = new Set(['applications', 'notes', 'chroma.exe', 'solitaire', 'internet', 'internet explorer', 'paint']);
+
+function hashString32(seed) {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function seededRandom(seed) {
+  let x = hashString32(seed) || 1;
+  return function next() {
+    x = (Math.imul(x, 1664525) + 1013904223) >>> 0;
+    return x / 4294967296;
+  };
+}
+
+function clampValue(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function desktopMediaPlayerExclusionRect() {
+  const mpWidth = 380, mpHeight = 630;
+  const mpBaseLeft = window.innerWidth * 0.95 - mpWidth + mpWidth * 0.10;
+  let mpBaseTop = window.innerHeight * 0.80 - mpHeight + mpHeight * 0.25;
+  if (IS_NESTED_PAGE) mpBaseTop *= 0.7;
+  const left = Math.max(0, Math.min(window.innerWidth - mpWidth, mpBaseLeft));
+  const top = Math.max(0, Math.min(window.innerHeight - mpHeight, mpBaseTop));
+  return {
+    left: Math.max(0, left - 18),
+    top: Math.max(0, top - 18),
+    right: Math.min(window.innerWidth, left + mpWidth + 18),
+    bottom: Math.min(window.innerHeight - DESKTOP_TASKBAR_HEIGHT - DESKTOP_TASKBAR_GAP, top + mpHeight + 18)
+  };
+}
+
+function desktopIconPlacementBounds(item) {
+  const iconWidth = DESKTOP_ICON_WIDTH;
+  const iconHeight = ((item && item.trash) ? 90 : getDesktopIconSize(item)) + DESKTOP_ICON_LABEL_HEIGHT;
+  return {
+    minLeft: DESKTOP_ICON_MIN_MARGIN,
+    minTop: DESKTOP_ICON_MIN_MARGIN,
+    maxLeft: Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerWidth - iconWidth - DESKTOP_ICON_MIN_MARGIN),
+    maxTop: Math.max(DESKTOP_ICON_MIN_MARGIN, window.innerHeight - iconHeight - DESKTOP_TASKBAR_HEIGHT - DESKTOP_TASKBAR_GAP),
+    width: iconWidth,
+    height: iconHeight
+  };
+}
+
+function rectsOverlap(a, b, gap) {
+  const pad = gap || 0;
+  return !(a.right + pad <= b.left || a.left >= b.right + pad || a.bottom + pad <= b.top || a.top >= b.bottom + pad);
+}
+
+function desktopRectForPos(pos, item) {
+  const bounds = desktopIconPlacementBounds(item);
+  return {
+    left: pos.left,
+    top: pos.top,
+    right: pos.left + bounds.width,
+    bottom: pos.top + bounds.height
+  };
+}
+
+function canPlaceDesktopPos(pos, item, occupied, exclusionRect) {
+  const rect = desktopRectForPos(pos, item);
+  if (exclusionRect && rectsOverlap(rect, exclusionRect, 0)) return false;
+  for (let i = 0; i < occupied.length; i++) {
+    if (rectsOverlap(rect, occupied[i], 8)) return false;
+  }
+  return true;
+}
+
+function reserveDesktopPos(pos, item, occupied) {
+  occupied.push(desktopRectForPos(pos, item));
+}
+
+function placeLeftGridDesktopPos(seedKey, orderIndex, item, occupied, exclusionRect) {
+  const bounds = desktopIconPlacementBounds(item);
+  const rand = seededRandom(DESKTOP_DEFAULT_LAYOUT_SEED + ':left:' + seedKey);
+  const slotW = 190;
+  const slotH = 154;
+  const maxRows = Math.max(1, Math.floor((bounds.maxTop - bounds.minTop + slotH) / slotH));
+  const col = Math.floor(orderIndex / maxRows);
+  const row = orderIndex % maxRows;
+  const anchorLeft = bounds.minLeft + 14 + col * slotW;
+  const anchorTop = bounds.minTop + 10 + row * slotH;
+  const jitterXMax = slotW * DESKTOP_LEFT_GRID_JITTER;
+  const jitterYMax = slotH * DESKTOP_LEFT_GRID_JITTER;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const scale = attempt === 0 ? 1 : (1 + attempt * 0.1);
+    const left = clampValue(anchorLeft + (rand() * 2 - 1) * jitterXMax * scale, bounds.minLeft, bounds.maxLeft);
+    const top = clampValue(anchorTop + (rand() * 2 - 1) * jitterYMax * scale, bounds.minTop, bounds.maxTop);
+    const pos = { left: Math.round(left), top: Math.round(top) };
+    if (canPlaceDesktopPos(pos, item, occupied, exclusionRect)) return pos;
+  }
+  return {
+    left: Math.round(clampValue(anchorLeft, bounds.minLeft, bounds.maxLeft)),
+    top: Math.round(clampValue(anchorTop, bounds.minTop, bounds.maxTop))
+  };
+}
+
+function placeScatteredDesktopPos(seedKey, item, occupied, exclusionRect) {
+  const bounds = desktopIconPlacementBounds(item);
+  const rand = seededRandom(DESKTOP_DEFAULT_LAYOUT_SEED + ':scatter:' + seedKey);
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const leftBias = Math.pow(rand(), 1.85);
+    const left = bounds.minLeft + leftBias * (bounds.maxLeft - bounds.minLeft);
+    const top = bounds.minTop + rand() * (bounds.maxTop - bounds.minTop);
+    const pos = { left: Math.round(left), top: Math.round(top) };
+    if (canPlaceDesktopPos(pos, item, occupied, exclusionRect)) return pos;
+  }
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      const left = bounds.minLeft + (col / 9) * (bounds.maxLeft - bounds.minLeft);
+      const top = bounds.minTop + (row / 9) * (bounds.maxTop - bounds.minTop);
+      const pos = { left: Math.round(left), top: Math.round(top) };
+      if (canPlaceDesktopPos(pos, item, occupied, exclusionRect)) return pos;
+    }
+  }
+  return { left: bounds.minLeft, top: bounds.minTop };
+}
+
+function normalizedDesktopLabel(label) {
+  return String(label || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function resolveDesktopLeftGridItemIds(children) {
+  const used = new Set();
+  const result = [];
+  function push(id) {
+    if (!id || used.has(id) || children.indexOf(id) === -1) return;
+    used.add(id);
+    result.push(id);
+  }
+
+  const appsId = children.find(id => {
+    const item = items[id];
+    if (!item) return false;
+    return normalizedDesktopLabel(getItemDisplayName(id, item)) === 'applications';
+  });
+  push(appsId);
+  DESKTOP_LEFT_REQUIRED_IDS.forEach(push);
+  children.forEach(id => {
+    if (used.has(id)) return;
+    const item = items[id];
+    if (!item) return;
+    const label = normalizedDesktopLabel(getItemDisplayName(id, item));
+    if (DESKTOP_LEFT_REQUIRED_LABELS.has(label)) push(id);
+  });
+  return result;
+}
+
+function buildChaoticDesktopDefaultLayout() {
+  const occupied = [];
+  const exclusionRect = desktopMediaPlayerExclusionRect();
+  const byId = {};
+  const leftGridIds = resolveDesktopLeftGridItemIds(items.desktop.children.slice());
+
+  const trashMeta = { trash: true };
+  const trashPos = placeLeftGridDesktopPos('trash', 0, trashMeta, occupied, exclusionRect);
+  reserveDesktopPos(trashPos, trashMeta, occupied);
+
+  leftGridIds.forEach((itemId, idx) => {
+    const item = items[itemId];
+    if (!item) return;
+    const pos = placeLeftGridDesktopPos(itemId, idx + 1, item, occupied, exclusionRect);
+    byId[itemId] = pos;
+    reserveDesktopPos(pos, item, occupied);
+  });
+
+  const scattered = items.desktop.children.slice().filter(id => !byId[id]);
+  scattered.sort((a, b) => hashString32('scatter-order:' + a) - hashString32('scatter-order:' + b));
+  scattered.forEach(itemId => {
+    const item = items[itemId];
+    if (!item) return;
+    const pos = placeScatteredDesktopPos(itemId, item, occupied, exclusionRect);
+    byId[itemId] = pos;
+    reserveDesktopPos(pos, item, occupied);
+  });
+
+  return { trash: trashPos, byId };
+}
+
 function desktopSlotPosition(slotIndex, seedKey) {
   const slotW = 200, slotH = 180;
   const maxRows = Math.max(1, Math.floor((window.innerHeight - 40 - 40) / slotH));
@@ -7454,6 +7643,7 @@ function cleanUpDesktopBySort(sortBy) {
 function buildDesktopIcons() {
   const wrap = document.getElementById('desktop-icons');
   wrap.innerHTML = '';
+  const defaultLayout = buildChaoticDesktopDefaultLayout();
 
   // trash can, fixed to the top-left corner by default
   const trashEl = document.createElement('div');
@@ -7462,7 +7652,7 @@ function buildDesktopIcons() {
   trashEl.innerHTML = '<span id="trash-icon-svg-holder">' + trashIconMarkup(90, trashItems.length > 0) + '</span>' +
     '<div class="label">Recycle Bin</div>';
   const trashSavedPos = JSON.parse(localStorage.getItem('desktop-icon-pos-trash') || 'null');
-  const trashDefaultPos = desktopSlotPosition(0);
+  const trashDefaultPos = defaultLayout.trash || desktopSlotPosition(0);
   trashEl.style.left = (trashSavedPos ? trashSavedPos.left : trashDefaultPos.left) + 'px';
   trashEl.style.top = (trashSavedPos ? trashSavedPos.top : trashDefaultPos.top) + 'px';
   makeDesktopIconDraggable(trashEl, 'desktop-icon-pos-trash', () => openTrashWindow());
@@ -7488,7 +7678,7 @@ function buildDesktopIcons() {
     const desktopLabel = el.querySelector('.label');
     if (desktopLabel) desktopLabel.textContent = getItemDisplayName(itemId, item);
     const savedPos = JSON.parse(localStorage.getItem('desktop-icon-pos-' + itemId) || 'null');
-    const defaultPos = desktopDefaultPosition(itemId, item, index + 1);
+    const defaultPos = defaultLayout.byId[itemId] || desktopDefaultPosition(itemId, item, index + 1);
     el.style.left = (savedPos ? savedPos.left : defaultPos.left) + 'px';
     el.style.top = (savedPos ? savedPos.top : defaultPos.top) + 'px';
     makeDesktopIconDraggable(el, 'desktop-icon-pos-' + itemId, () => openChildItem(itemId, item, 'desktop'), () => deleteItem(itemId, 'desktop'), itemId, 'desktop');

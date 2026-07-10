@@ -46,23 +46,35 @@
   }
 
   /* ================= LOGIN SCREEN ================= */
-  #login-screen {
+  #login-screen,
+  #mobile-blocker {
     position: fixed; inset: 0;
     background: #008080;
     display: flex; align-items: center; justify-content: center;
     z-index: 9999;
   }
-  #login-box {
+  #mobile-blocker {
+    display: none;
+    z-index: 10000;
+    padding: 16px;
+  }
+  #login-box,
+  #mobile-blocker-box {
     width: 300px;
     padding-bottom: 10px;
   }
-  #login-box .titlebar {
+  #mobile-blocker-box {
+    width: min(360px, 100%);
+  }
+  #login-box .titlebar,
+  #mobile-blocker-box .titlebar {
     height: 20px;
     background: linear-gradient(90deg, var(--acc-dark), var(--acc-light) 90%);
     color: #fff; font-weight: bold; font-size: 12px;
     display: flex; align-items: center; padding: 0 4px;
   }
-  #login-box .titlebar .x {
+  #login-box .titlebar .x,
+  #mobile-blocker-box .titlebar .x {
     margin-left: auto; width: 16px; height: 14px; text-align: center;
     line-height: 14px; font-family: monospace; font-weight: bold; cursor: default;
   }
@@ -70,7 +82,13 @@
     padding: 16px 14px 6px 14px;
     display: flex; gap: 12px; align-items: flex-start;
   }
-  #login-body p { margin: 0 0 8px 0; line-height: 1.4; }
+  #mobile-blocker-body {
+    padding: 16px 14px 8px 14px;
+    line-height: 1.45;
+  }
+  #login-body p,
+  #mobile-blocker-body p { margin: 0 0 8px 0; line-height: 1.4; }
+  #mobile-blocker-body p:last-child { margin-bottom: 0; }
   #login-fields { flex: 1; }
   #password-input {
     width: 100%; padding: 3px 4px; font-family: inherit; font-size: 12px;
@@ -1006,6 +1024,19 @@
     <div id="login-buttons">
       <button class="win98-button" id="login-ok">OK</button>
       <button class="win98-button" id="login-hint">Hint</button>
+    </div>
+  </div>
+</div>
+
+<div id="mobile-blocker" role="dialog" aria-modal="true" aria-labelledby="mobile-blocker-title">
+  <div id="mobile-blocker-box" class="bevel-out">
+    <div class="titlebar">
+      <span id="mobile-blocker-title">Desktop Only</span>
+      <span class="x">&times;</span>
+    </div>
+    <div id="mobile-blocker-body">
+      <p>This site is only available on desktop.</p>
+      <p>Please visit from a computer with a keyboard and mouse.</p>
     </div>
   </div>
 </div>
@@ -8660,14 +8691,38 @@ document.getElementById('menu-mycomputer').addEventListener('click', () => {
 });
 /* ---------- login ---------- */
 let loginInProgress = false;
+function isDesktopOnlyBlocked() {
+  const smallViewport = window.innerWidth <= 900 || window.innerHeight <= 600;
+  const touchFirstViewport = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  return smallViewport || touchFirstViewport;
+}
+function syncAvailabilityUI() {
+  const loginScreen = document.getElementById('login-screen');
+  const mobileBlocker = document.getElementById('mobile-blocker');
+  const desktop = document.getElementById('desktop');
+  if (isDesktopOnlyBlocked()) {
+    loginScreen.style.display = 'none';
+    desktop.style.display = 'none';
+    mobileBlocker.style.display = 'flex';
+    return false;
+  }
+  mobileBlocker.style.display = 'none';
+  if (loginInProgress) {
+    loginScreen.style.display = 'none';
+    desktop.style.display = 'block';
+  } else {
+    loginScreen.style.display = 'flex';
+    desktop.style.display = 'none';
+  }
+  return true;
+}
 async function tryLogin() {
-  if (loginInProgress) return;
+  if (loginInProgress || !syncAvailabilityUI()) return;
   const input = document.getElementById('password-input');
   const err = document.getElementById('login-error');
   if (input.value === SITE_PASSWORD) {
     loginInProgress = true;
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('desktop').style.display = 'block';
+    syncAvailabilityUI();
     await loadDesktopRootsFromManifest();
     buildDesktopIcons();
     initWallpaper();
@@ -8691,6 +8746,9 @@ document.getElementById('login-hint').addEventListener('click', () => {
 document.getElementById('password-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') tryLogin();
 });
+window.addEventListener('resize', syncAvailabilityUI);
+window.addEventListener('orientationchange', syncAvailabilityUI);
+syncAvailabilityUI();
 
 /* ---------- system volume ---------- */
 (function() {

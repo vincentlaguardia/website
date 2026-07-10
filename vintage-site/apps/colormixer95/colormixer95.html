@@ -1007,7 +1007,7 @@ document.getElementById('menuSaveDesktop').addEventListener('click', ()=>{
   closeFileMenu();
   const dataUrl = buildCompositeDataURL();
   const name = 'color-mix-' + new Date().toISOString().slice(0,10) + '.png';
-  window.parent.postMessage({ type: 'colormixer95-save-to-desktop', name, dataUrl }, '*');
+  window.parent.postMessage({ type: 'colormixer95-save-to-desktop', name, dataUrl }, window.location.origin);
   openInfoDialog('Saved to Desktop.');
 });
 

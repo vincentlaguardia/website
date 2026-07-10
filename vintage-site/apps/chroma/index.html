@@ -394,6 +394,14 @@
     line-height:1.3;
     word-break:break-all;
   }
+  .dsw-coord{
+    position:absolute;
+    left:4px;
+    bottom:3px;
+    font-size:9px;
+    font-weight:bold;
+    line-height:1;
+  }
   .diary-footer{
     display:flex;
     align-items:center;
@@ -2329,7 +2337,7 @@
     const swatches = getSamSwatches();
     const hexes = swatches.map(function(s){ return s.hex; });
     const swatchRef = function(index){
-      return SAM_SWATCH_POS[index] + ' (' + hexes[index] + ')';
+      return samSwatchCoordLabel(index) + ' (' + hexes[index] + ')';
     };
     const paras = [];
     if(importedMode){
@@ -2342,7 +2350,7 @@
       const neonIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s > pastramiHsls[best].s ? i : best; }, 0);
       const pastelIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s < pastramiHsls[best].s ? i : best; }, 0);
       if(neonIdx !== pastelIdx){
-        paras.push('compare ' + SAM_SWATCH_POS[neonIdx] + ' (' + hexes[neonIdx] + '), which landed on the neon end, against ' + SAM_SWATCH_POS[pastelIdx] + ' (' + hexes[pastelIdx] + '), which landed on the pastel end, to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+        paras.push('compare ' + samSwatchCoordLabel(neonIdx) + ' (' + hexes[neonIdx] + '), which landed on the neon end, against ' + samSwatchCoordLabel(pastelIdx) + ' (' + hexes[pastelIdx] + '), which landed on the pastel end, to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
       } else {
         paras.push('despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
       }
@@ -2418,6 +2426,7 @@
     if(matchSatActive){
       paras.push('match sat is turned on. the saturation of the entire grid is being synced to match the vividness of a specific source color you selected. instead of letting each zone set its own intensity, they are all held to that shared level. ' + swatchRef(0) + ' and ' + swatchRef(15) + ' should feel similarly vivid or similarly muted as a result.');
     }
+    paras.push('why it works, in plain words: every swatch is generated from the same core rule set, but each one gets a different mix of hue, vividness, and brightness. your eye picks up that shared structure while also noticing the differences between positions, so the palette feels unified and varied at the same time. that mix of consistency and contrast is what makes the result feel intentional instead of random.');
     return paras.map(function(p){ return '<p>' + p + '</p>'; }).join('');
   }
 
@@ -2435,23 +2444,19 @@
     if(h < 315) return 'magenta';
     return 'pink';
   }
-  const SAM_SWATCH_POS = [
-    'swatch 1 (top left)', 'swatch 2 (top row, inner left)', 'swatch 3 (top row, inner right)', 'swatch 4 (top right)',
-    'swatch 5 (upper left)', 'swatch 6 (upper row, inner left)', 'swatch 7 (upper row, inner right)', 'swatch 8 (upper right)',
-    'swatch 9 (lower left)', 'swatch 10 (lower row, inner left)', 'swatch 11 (lower row, inner right)', 'swatch 12 (lower right)',
-    'swatch 13 (bottom left)', 'swatch 14 (bottom row, inner left)', 'swatch 15 (bottom row, inner right)', 'swatch 16 (bottom right)'
-  ];
-  function samGridCellLabel(zone){
-    return 'grid cell (row ' + (zone.row + 1) + ', col ' + (zone.col + 1) + ')';
+  function samSwatchCoordLabel(index){
+    const row = Math.floor(index / SAM_SWATCH_COLUMNS);
+    const col = index % SAM_SWATCH_COLUMNS;
+    return String.fromCharCode(65 + row) + (col + 1);
   }
   function buildSamPaletteMathParagraph(){
-    const zoneData = getSamZoneData();
-    if(!zoneData.length) return '';
-    const expectedHues = getSamExpectedHues(zoneData);
-    const analyzed = zoneData.map(function(item){
+    const swatches = getSamSwatches();
+    if(!swatches.length) return '';
+    const expectedHues = getSamExpectedHues(swatches);
+    const analyzed = swatches.map(function(item, index){
       const minDist = expectedHues.reduce(function(best, eh){ return Math.min(best, hueDist(item.hsl.h, eh)); }, 360);
       return {
-        zone: item.zone,
+        coord: samSwatchCoordLabel(index),
         hex: item.hex,
         hsl: item.hsl,
         minDist: minDist,
@@ -2469,7 +2474,7 @@
     const seenCore = new Set();
     coreAnchors.forEach(function(anchor){
       if(!anchor) return;
-      const key = `${anchor.item.zone.col}-${anchor.item.zone.row}-${anchor.expectedHue}`;
+      const key = `${anchor.item.coord}-${anchor.expectedHue}`;
       if(seenCore.has(key)) return;
       seenCore.add(key);
       uniqueCoreAnchors.push(anchor);
@@ -2485,18 +2490,18 @@
       const expected = Math.round(anchor.expectedHue);
       const actual = Math.round(anchor.item.hsl.h);
       const dist = Math.round(anchor.dist);
-      return samGridCellLabel(anchor.item.zone) + ' ' + anchor.item.hex + ' sits almost right on the ' + expected + '\u00b0 lane at ' + actual + '\u00b0 (' + dist + '\u00b0 off)';
+      return anchor.item.coord + ' ' + anchor.item.hex + ' sits almost right on the ' + expected + '\u00b0 lane at ' + actual + '\u00b0 (' + dist + '\u00b0 off)';
     }).join('; ');
-    let text = 'looking at all ' + zoneData.length + ' cells, this grid mostly settles into a few clear color lanes. the closest matches are ' + coreText + '. ';
-    text += 'the biggest wild card is ' + samGridCellLabel(top.zone) + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), which sits ' + Math.round(top.minDist) + '\u00b0 away from the nearest target hue. ';
+    let text = 'looking across these ' + analyzed.length + ' swatches, the grid mostly settles into a few clear color lanes. the closest matches are ' + coreText + '. ';
+    text += 'the biggest wild card is ' + top.coord + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), which sits ' + Math.round(top.minDist) + '\u00b0 away from the nearest target hue. ';
     if(second){
-      text += 'the next biggest wild card is ' + samGridCellLabel(second.zone) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 away. ';
+      text += 'the next biggest wild card is ' + second.coord + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 away. ';
     }
     const extremes = [
-      satMax.hex + ' is the most vivid at ' + Math.round(satMax.hsl.s) + '% saturation',
-      satMin.hex + ' is the most muted at ' + Math.round(satMin.hsl.s) + '% saturation',
-      lightMax.hex + ' is the lightest at ' + Math.round(lightMax.hsl.l) + '% lightness',
-      lightMin.hex + ' is the darkest at ' + Math.round(lightMin.hsl.l) + '% lightness'
+      satMax.coord + ' ' + satMax.hex + ' is the most vivid at ' + Math.round(satMax.hsl.s) + '% saturation',
+      satMin.coord + ' ' + satMin.hex + ' is the most muted at ' + Math.round(satMin.hsl.s) + '% saturation',
+      lightMax.coord + ' ' + lightMax.hex + ' is the lightest at ' + Math.round(lightMax.hsl.l) + '% lightness',
+      lightMin.coord + ' ' + lightMin.hex + ' is the darkest at ' + Math.round(lightMin.hsl.l) + '% lightness'
     ];
     text += 'at the extremes, ' + extremes.join(', ') + '.';
     return text;
@@ -2546,6 +2551,7 @@
       const rgb = swatch.rgb;
       const col = i % COLS;
       const row = Math.floor(i / COLS);
+      const coord = samSwatchCoordLabel(i);
       const x = PAD + col * (SW + GAP);
       const y = PAD + HEADER + row * (SH + GAP);
       cx.fillStyle = hex;
@@ -2555,6 +2561,9 @@
       cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
       const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
       cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'left';
+      cx.fillText(coord, x + 6, y + SH - 6);
       cx.font = 'bold 10px Tahoma,Arial,sans-serif';
       cx.textAlign = 'center';
       cx.fillText(hex, x + SW / 2, y + SH / 2 - 6);
@@ -2583,9 +2592,10 @@
   function renderSamMode(){
     const grid = document.getElementById('sam-grid');
     grid.innerHTML = '';
-    getSamSwatches().forEach(function(swatch){
+    getSamSwatches().forEach(function(swatch, i){
       const hex = swatch.hex;
       const rgb = swatch.rgb;
+      const coord = samSwatchCoordLabel(i);
       const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
       const div = document.createElement('div');
       div.className = 'diary-swatch';
@@ -2599,6 +2609,11 @@
       rgbSpan.className = 'dsw-rgb';
       rgbSpan.style.color = tc;
       rgbSpan.textContent = rgb.r + ',' + rgb.g + ',' + rgb.b;
+      const coordSpan = document.createElement('span');
+      coordSpan.className = 'dsw-coord';
+      coordSpan.style.color = tc;
+      coordSpan.textContent = coord;
+      div.appendChild(coordSpan);
       div.appendChild(hexSpan);
       div.appendChild(rgbSpan);
       div.addEventListener('contextmenu', function(e){
@@ -2650,6 +2665,7 @@
       const rgb = swatch.rgb;
       const col = i % COLS;
       const row = Math.floor(i / COLS);
+      const coord = samSwatchCoordLabel(i);
       const x = PAD + col * (SW + GAP);
       const y = PAD + HEADER + row * (SH + GAP);
       cx.fillStyle = hex;
@@ -2659,6 +2675,9 @@
       cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
       const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
       cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'left';
+      cx.fillText(coord, x + 6, y + SH - 6);
       cx.font = 'bold 10px Tahoma,Arial,sans-serif';
       cx.textAlign = 'center';
       cx.fillText(hex, x + SW / 2, y + SH / 2 - 6);

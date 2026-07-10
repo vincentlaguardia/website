@@ -122,6 +122,14 @@
     line-height:1.3;
     word-break:break-all;
   }
+  .dsw-coord{
+    position:absolute;
+    left:4px;
+    bottom:3px;
+    font-size:9px;
+    font-weight:bold;
+    line-height:1;
+  }
   #sam-theory{
     padding:8px 4px 4px;
     font-size:12px;
@@ -191,6 +199,11 @@
   const SAM_KEY = 'chroma.sam-snapshot';
   const EXPORT_QUALITY = 0.92;
   const SAM_SWATCH_COLUMNS = 4;
+  function samSwatchCoordLabel(index){
+    const row = Math.floor(index / SAM_SWATCH_COLUMNS);
+    const col = index % SAM_SWATCH_COLUMNS;
+    return String.fromCharCode(65 + row) + (col + 1);
+  }
 
   function loadSnapshot(){
     try{ return JSON.parse(localStorage.getItem(SAM_KEY)) || null; }
@@ -208,8 +221,9 @@
     grid.innerHTML = '';
     theoryEl.innerHTML = '';
     if(!snap || !snap.cells){ theoryEl.innerHTML = '<p>No Sam Mode data found. Open Sam Mode from chroma.exe first.</p>'; return; }
-    snap.cells.forEach(function(c){
+    snap.cells.forEach(function(c, i){
       const tc = swatchTextColor(c.r, c.g, c.b);
+      const coord = samSwatchCoordLabel(i);
       const div = document.createElement('div');
       div.className = 'sam-swatch';
       div.style.background = c.hex;
@@ -218,7 +232,9 @@
       hexSpan.className = 'dsw-hex'; hexSpan.style.color = tc; hexSpan.textContent = c.hex;
       const rgbSpan = document.createElement('span');
       rgbSpan.className = 'dsw-rgb'; rgbSpan.style.color = tc; rgbSpan.textContent = c.r+','+c.g+','+c.b;
-      div.appendChild(hexSpan); div.appendChild(rgbSpan);
+      const coordSpan = document.createElement('span');
+      coordSpan.className = 'dsw-coord'; coordSpan.style.color = tc; coordSpan.textContent = coord;
+      div.appendChild(coordSpan); div.appendChild(hexSpan); div.appendChild(rgbSpan);
       grid.appendChild(div);
     });
     if(snap.theoryHtml) theoryEl.innerHTML = snap.theoryHtml;
@@ -254,6 +270,7 @@
     snap.cells.forEach(function(cell, i){
       const col = i % COLS;
       const row = Math.floor(i / COLS);
+      const coord = samSwatchCoordLabel(i);
       const x = PAD + col * (SW + GAP);
       const y = PAD + HEADER + row * (SH + GAP);
       cx.fillStyle = cell.hex;
@@ -263,6 +280,9 @@
       cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
       const tc = swatchTextColor(cell.r, cell.g, cell.b);
       cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'left';
+      cx.fillText(coord, x + 6, y + SH - 6);
       cx.font = 'bold 10px Tahoma,Arial,sans-serif';
       cx.textAlign = 'center';
       cx.fillText(cell.hex, x + SW / 2, y + SH / 2 - 6);
@@ -316,6 +336,7 @@
     snap.cells.forEach(function(cell, i){
       const col = i % COLS;
       const row = Math.floor(i / COLS);
+      const coord = samSwatchCoordLabel(i);
       const x = PAD + col * (SW + GAP);
       const y = PAD + HEADER + row * (SH + GAP);
       cx.fillStyle = cell.hex;
@@ -325,6 +346,9 @@
       cx.strokeRect(x + 0.5, y + 0.5, SW - 1, SH - 1);
       const tc = swatchTextColor(cell.r, cell.g, cell.b);
       cx.fillStyle = tc;
+      cx.font = 'bold 10px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'left';
+      cx.fillText(coord, x + 6, y + SH - 6);
       cx.font = 'bold 10px Tahoma,Arial,sans-serif';
       cx.textAlign = 'center';
       cx.fillText(cell.hex, x + SW / 2, y + SH / 2 - 6);

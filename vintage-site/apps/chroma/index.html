@@ -452,6 +452,10 @@
     background:var(--skew-active-color, var(--face));
     color:var(--skew-active-text, #000);
   }
+  #cc-focus-btn.is-active{
+    background:var(--focus-active-color, var(--face));
+    color:var(--focus-active-text, #000);
+  }
   .skew-swatch-wrap{
     position:relative;
     width:var(--swatch-size);
@@ -598,6 +602,13 @@
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
+          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Lock one diagonal band to the selected focus color." aria-label="Focus Mode" aria-pressed="false">Focus</button>
+          <div class="picker-with-hex">
+            <div class="skew-swatch-wrap">
+              <button class="skew-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color." aria-label="Choose focus color"><span class="skew-icon" id="focus-icon"></span></button>
+              <input type="color" id="cc-focus-color" value="#bfbfbf">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1219,6 +1230,9 @@
     };
   }
   function zoneHex(zone){
+    if(focusActive && ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX){
+      return focusHex;
+    }
     const sourceColor = importedMode
       ? resolveImportedZoneColor(zone, importedPalette, seed, strange, pastramiMode)
       : pastramiMode
@@ -1278,6 +1292,8 @@
   const SKEW_STRENGTH = 0.28;
   let skewColor = null;
   let skewActive = false;
+  let focusActive = false;
+  let focusHex = '#BFBFBF';
   function getTargetRadius(cw, ch){
     const cellMin = Math.min(cw, ch);
     const ratio = (DOT_SIZE_CONFIG[dotSizeMode] || DOT_SIZE_CONFIG[DEFAULT_DOT_SIZE_MODE]).radiusRatio;
@@ -1346,6 +1362,8 @@
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
+  const FOCUS_BAND_COUNT = 4;
+  const FOCUS_BAND_INDEX = 0;
   const SKEW_ACTIVE_LUMA_R = 0.299;
   const SKEW_ACTIVE_LUMA_G = 0.587;
   const SKEW_ACTIVE_LUMA_B = 0.114;
@@ -1628,6 +1646,10 @@
   const skewInput = document.getElementById('cc-skew-color');
   const skewIcon = document.getElementById('skew-icon');
   const defaultSkewHex = skewInput.value;
+  const focusBtn = document.getElementById('cc-focus-btn');
+  const focusSwatchBtn = document.getElementById('cc-focus-swatch');
+  const focusInput = document.getElementById('cc-focus-color');
+  const focusIcon = document.getElementById('focus-icon');
   function applySkewHex(hex){
     skewInput.value = hex;
     const rgb = hexToRgbObj(hex);
@@ -1686,6 +1708,48 @@
   skewInput.addEventListener('input', ()=>{
     applySkewHex(skewInput.value);
   });
+  function setFocusHex(hex){
+    focusInput.value = hex;
+    focusHex = hex.toUpperCase();
+    focusIcon.style.background = focusHex;
+    syncFocusButtonState();
+    drawScene();
+  }
+  function syncFocusButtonState(){
+    focusBtn.classList.toggle('is-active', focusActive);
+    focusBtn.setAttribute('aria-pressed', String(focusActive));
+    if(focusActive){
+      const rgb = hexToRgbObj(focusHex);
+      const luma = (SKEW_ACTIVE_LUMA_R*rgb.r + SKEW_ACTIVE_LUMA_G*rgb.g + SKEW_ACTIVE_LUMA_B*rgb.b) / 255;
+      focusBtn.style.setProperty('--focus-active-color', focusHex);
+      focusBtn.style.setProperty('--focus-active-text', luma > SKEW_ACTIVE_LUMA_DARK_TEXT_THRESHOLD ? '#000' : '#fff');
+    } else {
+      focusBtn.style.removeProperty('--focus-active-color');
+      focusBtn.style.removeProperty('--focus-active-text');
+    }
+  }
+  focusBtn.addEventListener('click', ()=>{
+    focusActive = !focusActive;
+    syncFocusButtonState();
+    drawScene();
+  });
+  focusSwatchBtn.addEventListener('click', ()=>{
+    if(typeof focusInput.showPicker === 'function'){
+      try{
+        focusInput.showPicker();
+        return;
+      }catch(err){
+        console.warn('chroma: focus picker showPicker failed', err);
+      }
+    }
+    focusInput.click();
+  });
+  focusInput.addEventListener('input', ()=>{
+    setFocusHex(focusInput.value);
+  });
+  setFocusHex(focusInput.value);
+  focusActive = false;
+  syncFocusButtonState();
   // --- Diary ---
   const DIARY_KEY = 'chroma.diary';
   const MAX_DIARY = 36;

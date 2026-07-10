@@ -6618,10 +6618,40 @@ function openMyComputerWindow() {
   const START_PATH = 'vintage-site';
   const API_BASE = 'https://api.github.com/repos/' + REPO + '/contents/';
   const TEXT_EXTS = new Set(['html','css','js','ts','jsx','tsx','md','txt','json','xml','yaml','yml','toml','sh','py','rb','java','c','cpp','h','go','rs','php','sql','gitignore','env','csv','ini','cfg','conf','scss','less','svg']);
+  const MC_VIEW_KEY = 'site-mycomputer-view-mode';
+  const MC_SORT_KEY = 'site-mycomputer-sort-modes';
+  const VALID_SORTS = new Set(['name', 'type', 'size', 'date']);
 
   const dirCache = {};
+  const commitDateCache = {};
   let navHistory = [];
   let currentPath = START_PATH;
+  let currentEntries = [];
+  let renderToken = 0;
+  let mcViewMode = 'thumbnails';
+  let mcSortModes = {};
+
+  try {
+    const storedView = localStorage.getItem(MC_VIEW_KEY);
+    if (storedView === 'list' || storedView === 'thumbnails') mcViewMode = storedView;
+  } catch (e) {}
+  try { mcSortModes = JSON.parse(localStorage.getItem(MC_SORT_KEY) || '{}'); } catch (e) { mcSortModes = {}; }
+
+  function getCurrentSortMode() {
+    const sort = mcSortModes[currentPath] || 'name';
+    return VALID_SORTS.has(sort) ? sort : 'name';
+  }
+
+  function setCurrentSortMode(sort) {
+    const safeSort = VALID_SORTS.has(sort) ? sort : 'name';
+    mcSortModes[currentPath] = safeSort;
+    try { localStorage.setItem(MC_SORT_KEY, JSON.stringify(mcSortModes)); } catch (e) {}
+  }
+
+  function setViewMode(mode) {
+    mcViewMode = mode === 'list' ? 'list' : 'thumbnails';
+    try { localStorage.setItem(MC_VIEW_KEY, mcViewMode); } catch (e) {}
+  }
 
   cascade = (cascade + 1) % 8;
   const openW = Math.min(780, Math.max(520, Math.round(window.innerWidth * 0.55)));
@@ -6654,6 +6684,18 @@ function openMyComputerWindow() {
     <button class="win98-button mc-up" style="padding:2px 8px;font-size:11px;" disabled title="Up one level">↑ Up</button>
     <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">Address:</span>
     <input class="mc-addr" style="flex:1;font-family:inherit;font-size:11px;padding:2px 4px;border:none;box-shadow:inset 1px 1px 0 #0a0a0a,inset -1px -1px 0 #fff,inset 2px 2px 0 #808080,inset -2px -2px 0 #dfdfdf;" readonly value="${mcEsc(START_PATH)}">
+    <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">View:</span>
+    <select class="mc-view" style="font-size:11px;height:20px;">
+      <option value="thumbnails">Thumbnails</option>
+      <option value="list">List</option>
+    </select>
+    <span style="font-size:11px;margin-left:6px;color:#000;white-space:nowrap;">Sort by:</span>
+    <select class="mc-sort" style="font-size:11px;height:20px;">
+      <option value="name">Name</option>
+      <option value="type">Type</option>
+      <option value="size">Size</option>
+      <option value="date">Date</option>
+    </select>
   `;
 
   const content = document.createElement('div');
@@ -6691,6 +6733,13 @@ function openMyComputerWindow() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString();
+  }
+
   function folderIconSvg(sz) {
     return '<img src="' + FOLDER_ICON + '" style="width:' + sz + 'px;height:' + sz + 'px;" alt="" draggable="false">';
   }
@@ -6712,67 +6761,189 @@ function openMyComputerWindow() {
     if (e === 'pdf') {
       return '<img src="' + PDF_ICON + '" style="width:' + sz + 'px;height:' + sz + 'px;" alt="" draggable="false">';
     }
-    // generic file icon
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '"><path d="M4 2h10l6 6v14a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z" fill="#fff" stroke="#808080"/><path d="M14 2v6h6" fill="none" stroke="#808080"/></svg>';
+  }
+
+  function typeLabel(entry) {
+    if (entry.type === 'dir') return 'File Folder';
+    const e = ext(entry.name);
+    return e ? e.toUpperCase() + ' File' : 'File';
+  }
+
+  function typeSortKey(entry) {
+    if (entry.type === 'dir') return 'folder';
+    return ext(entry.name) || 'file';
+  }
+
+  function sortEntries(entries) {
+    const sortMode = getCurrentSortMode();
+    const sorted = entries.slice().sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+      if (sortMode === 'type') {
+        const ta = typeSortKey(a), tb = typeSortKey(b);
+        if (ta !== tb) return ta.localeCompare(tb);
+      } else if (sortMode === 'size') {
+        const sa = a.type === 'dir' ? -1 : (a.size || 0);
+        const sb = b.type === 'dir' ? -1 : (b.size || 0);
+        if (sa !== sb) return sb - sa;
+      } else if (sortMode === 'date') {
+        const da = a.modified || '', db = b.modified || '';
+        if (da !== db) return db.localeCompare(da);
+      }
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+    return sorted;
   }
 
   function setNavState() {
     toolbar.querySelector('.mc-back').disabled = navHistory.length === 0;
     toolbar.querySelector('.mc-up').disabled = !currentPath.includes('/');
     toolbar.querySelector('.mc-addr').value = currentPath;
+    const viewSelect = toolbar.querySelector('.mc-view');
+    if (viewSelect) viewSelect.value = mcViewMode;
+    const sortSelect = toolbar.querySelector('.mc-sort');
+    if (sortSelect) sortSelect.value = getCurrentSortMode();
   }
 
-  function renderItems(entries) {
-    filePane.innerHTML = '';
-    if (!Array.isArray(entries) || entries.length === 0) {
-      filePane.innerHTML = '<div style="padding:20px;color:#808080;font-size:11px;font-family:inherit;">This folder is empty.</div>';
-      statusbar.textContent = '0 objects';
-      return;
-    }
-    const sorted = entries.slice().sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
-      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  function clearSelectedItems() {
+    filePane.querySelectorAll('.mc-sel').forEach(el => {
+      el.classList.remove('mc-sel');
+      el.style.background = '';
+      el.style.color = '';
+      const label = el.querySelector('[data-mc-label="1"]');
+      if (label) {
+        label.style.background = '';
+        label.style.color = '#000';
+      }
     });
-    statusbar.textContent = sorted.length + ' object' + (sorted.length !== 1 ? 's' : '');
+  }
+
+  function renderThumbnails(sorted) {
     const iconSz = 32;
+    filePane.style.cssText = 'display:flex;flex-wrap:wrap;align-content:flex-start;padding:6px 4px;gap:0;min-height:100%;';
     sorted.forEach(entry => {
       const el = document.createElement('div');
       el.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:82px;padding:4px 2px;cursor:default;box-sizing:border-box;';
-      el.title = entry.name + (entry.type === 'file' && entry.size ? '\n' + fmtSize(entry.size) : '');
+      el.title = entry.name + (entry.type === 'file' && entry.size ? '\\n' + fmtSize(entry.size) : '');
 
       const iconWrap = document.createElement('div');
       iconWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:' + iconSz + 'px;height:' + iconSz + 'px;';
       iconWrap.innerHTML = entry.type === 'dir' ? folderIconSvg(iconSz) : fileIconSvg(entry.name, iconSz);
 
       const label = document.createElement('div');
+      label.dataset.mcLabel = '1';
       label.style.cssText = 'font-family:inherit;font-size:11px;text-align:center;word-break:break-word;max-width:78px;margin-top:3px;line-height:1.2;color:#000;';
       label.textContent = entry.name;
 
       el.appendChild(iconWrap);
       el.appendChild(label);
 
-      // Highlight on click
       el.addEventListener('mousedown', () => {
-        filePane.querySelectorAll('.mc-sel').forEach(e => {
-          e.classList.remove('mc-sel');
-          e.style.background = '';
-          e.querySelector('div:last-child').style.background = '';
-          e.querySelector('div:last-child').style.color = '#000';
-        });
+        clearSelectedItems();
         el.classList.add('mc-sel');
         el.style.background = '#000080';
         label.style.background = '#000080';
         label.style.color = '#fff';
       });
 
-      if (entry.type === 'dir') {
-        el.addEventListener('dblclick', () => navigateTo(entry.path));
-      } else {
-        el.addEventListener('dblclick', () => openFile(entry));
-      }
+      if (entry.type === 'dir') el.addEventListener('dblclick', () => navigateTo(entry.path));
+      else el.addEventListener('dblclick', () => openFile(entry));
 
       filePane.appendChild(el);
     });
+  }
+
+  function renderList(sorted) {
+    filePane.style.cssText = 'display:block;padding:0;min-height:100%;';
+    const table = document.createElement('table');
+    table.className = 'details-table';
+    const sortMode = getCurrentSortMode();
+    const indicator = col => sortMode === col ? ' ▲' : '';
+    table.innerHTML = '<thead><tr>' +
+      '<th>Name' + indicator('name') + '</th>' +
+      '<th>Type' + indicator('type') + '</th>' +
+      '<th>Size' + indicator('size') + '</th>' +
+      '<th>Date Modified' + indicator('date') + '</th>' +
+      '</tr></thead>';
+    const tbody = document.createElement('tbody');
+
+    sorted.forEach(entry => {
+      const row = document.createElement('tr');
+      row.className = 'details-row';
+      row.title = entry.name;
+      row.innerHTML =
+        '<td class="details-name">' + (entry.type === 'dir' ? folderIconSvg(20) : fileIconSvg(entry.name, 20)) + '<span data-mc-label="1"></span></td>' +
+        '<td class="details-type">' + typeLabel(entry) + '</td>' +
+        '<td class="details-size">' + (entry.type === 'dir' ? '' : fmtSize(entry.size)) + '</td>' +
+        '<td class="details-date">' + fmtDate(entry.modified) + '</td>';
+      const label = row.querySelector('[data-mc-label="1"]');
+      if (label) label.textContent = entry.name;
+
+      row.addEventListener('mousedown', () => {
+        clearSelectedItems();
+        row.classList.add('mc-sel', 'selected');
+      });
+
+      if (entry.type === 'dir') row.addEventListener('dblclick', () => navigateTo(entry.path));
+      else row.addEventListener('dblclick', () => openFile(entry));
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    filePane.appendChild(table);
+  }
+
+  async function fetchLatestCommitDate(path) {
+    if (Object.prototype.hasOwnProperty.call(commitDateCache, path)) return commitDateCache[path];
+    try {
+      const url = 'https://api.github.com/repos/' + REPO + '/commits?path=' + encodeURIComponent(path) + '&sha=' + BRANCH + '&per_page=1';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('No commit date');
+      const data = await res.json();
+      const date = Array.isArray(data) && data[0] && data[0].commit && data[0].commit.committer && data[0].commit.committer.date
+        ? data[0].commit.committer.date
+        : '';
+      commitDateCache[path] = date;
+      return date;
+    } catch (e) {
+      commitDateCache[path] = '';
+      return '';
+    }
+  }
+
+  async function ensureDateMetadata(entries) {
+    const unresolved = entries.filter(entry => !Object.prototype.hasOwnProperty.call(commitDateCache, entry.path));
+    if (unresolved.length) {
+      await Promise.all(unresolved.map(async entry => {
+        const date = await fetchLatestCommitDate(entry.path);
+        if (date) entry.modified = date;
+      }));
+    }
+    entries.forEach(entry => {
+      if (!entry.modified && commitDateCache[entry.path]) entry.modified = commitDateCache[entry.path];
+    });
+  }
+
+  async function renderItems(entries) {
+    const token = ++renderToken;
+    filePane.innerHTML = '';
+    currentEntries = Array.isArray(entries) ? entries : [];
+    if (!currentEntries.length) {
+      filePane.innerHTML = '<div style="padding:20px;color:#808080;font-size:11px;font-family:inherit;">This folder is empty.</div>';
+      statusbar.textContent = '0 objects';
+      return;
+    }
+
+    if (getCurrentSortMode() === 'date') {
+      statusbar.textContent = 'Loading dates…';
+      await ensureDateMetadata(currentEntries);
+      if (token !== renderToken) return;
+    }
+
+    const sorted = sortEntries(currentEntries);
+    statusbar.textContent = sorted.length + ' object' + (sorted.length !== 1 ? 's' : '');
+    if (mcViewMode === 'list') renderList(sorted);
+    else renderThumbnails(sorted);
   }
 
   function openFile(entry) {
@@ -6812,7 +6983,8 @@ function openMyComputerWindow() {
       currentPath = path;
       setNavState();
       const entries = await fetchDir(path);
-      renderItems(entries);
+      if (currentPath !== path) return;
+      await renderItems(entries);
     } catch (err) {
       filePane.innerHTML = '<div style="padding:20px;color:#800000;font-size:11px;font-family:inherit;">' + mcEsc(err.message || 'Error loading directory.') + '</div>';
       statusbar.textContent = 'Error';
@@ -6839,6 +7011,16 @@ function openMyComputerWindow() {
 
   toolbar.querySelector('.mc-back').addEventListener('click', () => { if (!toolbar.querySelector('.mc-back').disabled) goBack(); });
   toolbar.querySelector('.mc-up').addEventListener('click',   () => { if (!toolbar.querySelector('.mc-up').disabled)   goUp();  });
+  toolbar.querySelector('.mc-view').addEventListener('change', e => {
+    setViewMode(e.target.value);
+    setNavState();
+    renderItems(dirCache[currentPath] || currentEntries);
+  });
+  toolbar.querySelector('.mc-sort').addEventListener('change', e => {
+    setCurrentSortMode(e.target.value);
+    setNavState();
+    renderItems(dirCache[currentPath] || currentEntries);
+  });
 
   win.addEventListener('mousedown', () => bringToFront(id));
   titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
@@ -6850,8 +7032,10 @@ function openMyComputerWindow() {
   addTaskbarEntry(id, 'My Computer', imgIcon(MY_COMPUTER_ICON, 14));
   bringToFront(id);
 
+  setNavState();
   navigateTo(START_PATH);
 }
+
 
 function openChromaDiaryWindow() {
   const id = 'chroma_diary';

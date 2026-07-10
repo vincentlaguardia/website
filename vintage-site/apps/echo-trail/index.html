@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Echo Trail</title>
+<style>
+  :root{
+    --face:#c0c0c0;
+    --shadow:#808080;
+    --dark:#000000;
+    --light:#dfdfdf;
+    --hi:#ffffff;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:#008080;
+    font-family:"MS Sans Serif","Tahoma","Segoe UI",sans-serif;
+    font-size:12px;
+    color:#000;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:24px 12px;
+  }
+  .window{
+    background:var(--face);
+    width:750px;
+    max-width:100%;
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+    transition: transform .3s ease, opacity .3s ease;
+  }
+  .window.minimized{ transform:scale(0.04); opacity:0; transform-origin: bottom left; }
+  body.maximized .window{ width:98vw; }
+
+  .title-bar{
+    background:linear-gradient(90deg,#000080,#1084d0);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    padding:3px 4px;
+    font-weight:bold;
+    user-select:none;
+  }
+  .title-bar-icon{ width:16px; height:16px; margin-right:4px; flex-shrink:0; }
+  .title-bar-text{ flex:1; padding-left:2px; font-size:13px; letter-spacing:.2px; }
+  .title-bar-controls{ display:flex; gap:2px; }
+  .title-bar-controls button{
+    width:18px; height:16px; background:var(--face); border:none;
+    box-shadow: inset -1px -1px 0 #000,inset 1px 1px 0 #fff,inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+    font-size:11px; line-height:1; cursor:pointer; padding:0; font-weight:bold;
+  }
+  .title-bar-controls button:active{
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+  }
+
+  .menu-bar{ display:flex; background:var(--face); border-bottom:1px solid var(--shadow); padding:2px 2px; position:relative; user-select:none; }
+  .menu-item{ padding:3px 8px; cursor:pointer; position:relative; }
+  .menu-item:hover, .menu-item.open{ background:#000080; color:#fff; }
+  .dropdown{
+    display:none; position:absolute; top:100%; left:0; background:var(--face);
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+    min-width:180px; z-index:30;
+  }
+  .menu-item.open .dropdown{ display:block; }
+  .dropdown-item{ padding:5px 12px; white-space:nowrap; color:#000; }
+  .dropdown-item:hover{ background:#000080; color:#fff; }
+  .dropdown-sep{ height:1px; background:var(--shadow); margin:2px 1px; box-shadow:0 1px 0 #fff; }
+  .dropdown-header{ padding:3px 12px; font-size:10px; color:#555; }
+
+  .toolbar{ display:flex; gap:6px; padding:6px; border-bottom:1px solid var(--shadow); flex-wrap:wrap; }
+  .btn95{
+    background:var(--face); border:none;
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+    padding:5px 12px; font-family:inherit; font-size:12px; cursor:pointer;
+  }
+  .btn95:active{
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+  }
+
+  .main-area{ display:flex; flex-direction:column; gap:8px; padding:8px; }
+  .canvas-panel{
+    height:520px; background:#000;
+    display:flex; align-items:center; justify-content:center; position:relative; overflow:auto;
+  }
+  .sunken{ box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf; }
+  #preview-canvas{ max-width:100%; max-height:520px; image-rendering:auto; transform-origin:center center; flex-shrink:0; }
+  .drop-hint{ position:absolute; color:#999; text-align:center; font-size:12px; pointer-events:none; line-height:1.6; }
+  .canvas-panel.drag-over{ outline:2px dashed #1084d0; outline-offset:-6px; }
+
+  .controls-panel{ display:flex; gap:10px; }
+  .controls-col{ flex:1 1 0; display:flex; flex-direction:column; min-width:0; }
+  .control-row{ display:flex; align-items:center; gap:6px; margin:5px 0; font-size:11px; }
+  .control-row label{ width:80px; flex-shrink:0; }
+  .control-row input[type=checkbox]{ margin:0; cursor:pointer; }
+  .control-row input[type=range]{ flex:1; }
+  .control-row span{ display:none; }
+  select{ font-family:inherit; font-size:11px; background:#fff; box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #808080; border:none; padding:3px; flex:1; }
+
+  /* Per-item toggle: the control's own name doubles as its on/off switch */
+  .item-toggle{
+    width:80px; flex-shrink:0; text-align:left; font-family:inherit; font-size:11px;
+    background:var(--face); color:#000; border:none; cursor:pointer; padding:3px 5px;
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+  }
+  .item-toggle.active{
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+  }
+  .control-row.row-active input[type=range]::-webkit-slider-runnable-track{ background:var(--row-color,#a9c6f5); }
+  .control-row.row-active input[type=range]::-moz-range-track{ background:var(--row-color,#a9c6f5); }
+  .control-row.row-active input[type=range]::-webkit-slider-thumb{ background:var(--row-color,#e6f0ff); }
+  .control-row.row-active input[type=range]::-moz-range-thumb{ background:var(--row-color,#e6f0ff); }
+  .control-row.row-active select{ background:color-mix(in srgb, var(--row-color,#eef4ff) 35%, white); }
+
+  input[type=range]{ -webkit-appearance:none; height:16px; background:transparent; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track{ height:4px; background:var(--shadow); box-shadow: inset 1px 1px 0 #000; }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:12px; height:16px; margin-top:-6px;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+  }
+  input[type=range]::-moz-range-track{ height:4px; background:var(--shadow); }
+  input[type=range]::-moz-range-thumb{
+    width:12px; height:16px; border:none; background:var(--face);
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+  }
+
+  .status-bar{ display:flex; border-top:1px solid var(--hi); }
+  .status-field{ flex:1; padding:3px 8px; box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff; margin:3px; font-size:11px; }
+  .status-field:last-child{ flex:0 0 auto; min-width:120px; }
+  .zoom-control{ display:flex; align-items:center; gap:6px; }
+  .zoom-control input[type=range]{ width:80px; cursor:pointer; }
+  .zoom-control span:last-child{ width:36px; text-align:right; flex-shrink:0; }
+
+  .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:100; }
+  .modal-overlay.show{ display:flex; }
+  .window.modal{ width:360px; }
+  .modal-body{ padding:16px; display:flex; gap:14px; align-items:flex-start; }
+  .modal-icon{ width:32px; height:32px; flex-shrink:0; }
+  .modal-text{ flex:1; }
+  .modal-text h3{ margin:0 0 6px 0; font-size:14px; }
+  .modal-text p{ margin:4px 0; font-size:11px; line-height:1.5; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; padding:0 16px 14px; }
+</style>
+</head>
+<body>
+
+  <div class="window" id="app-window">
+    <div class="title-bar">
+      <svg class="title-bar-icon" viewBox="0 0 16 16"><rect width="16" height="16" fill="#c0c0c0"/><rect x="1" y="1" width="14" height="14" fill="#000080"/><circle cx="4" cy="4" r="1" fill="#fff"/><circle cx="9" cy="3" r="1" fill="#ffd76e"/><circle cx="12" cy="7" r="1.2" fill="#ff6ec7"/><circle cx="5" cy="9" r="1" fill="#6ec7ff"/><circle cx="11" cy="11" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#ffd76e"/></svg>
+      <div class="title-bar-text">Echo Trail</div>
+      <div class="title-bar-controls">
+        <button id="btn-min" title="Minimize">_</button>
+        <button id="btn-max" title="Maximize">&#9633;</button>
+        <button id="btn-close" title="Close">&times;</button>
+      </div>
+    </div>
+
+    <div class="menu-bar">
+      <div class="menu-item" data-menu="file">File
+        <div class="dropdown">
+          <div class="dropdown-header" id="recent-header" style="display:none;">Open Recent</div>
+          <div id="recent-list"></div>
+          <div class="dropdown-sep" id="recent-sep" style="display:none;"></div>
+          <div class="dropdown-item" id="mi-save">Save</div>
+          <div class="dropdown-item" id="mi-export">Export to Desktop</div>
+          <div class="dropdown-sep"></div>
+          <div class="dropdown-item" id="mi-reset">Reset</div>
+          <div class="dropdown-sep"></div>
+          <div class="dropdown-item" id="mi-quit">Quit</div>
+        </div>
+      </div>
+      <div class="menu-item" id="menu-about">About</div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn95" id="btn-load">Load Image</button>
+      <button class="btn95" id="btn-randomize">Randomize</button>
+      <button class="btn95" id="btn-fried">Fucked</button>
+      <button class="btn95" id="btn-reset">Reset</button>
+      <button class="btn95" id="btn-off">Off</button>
+      <input type="file" id="file-input" accept="image/*" hidden>
+    </div>
+
+    <div class="main-area">
+      <div class="canvas-panel sunken" id="canvas-panel">
+        <canvas id="preview-canvas"></canvas>
+        <div class="drop-hint" id="drop-hint">Drop an image here<br>or use File &#9656; Open</div>
+      </div>
+
+      <div class="controls-panel">
+        <div class="controls-col">
+          <div class="control-row" style="--row-color:#E8834E;">
+            <button type="button" class="item-toggle active" data-target="topo-palette" data-off="survey">Palette</button>
+            <select id="topo-palette">
+              <option value="survey" selected>Survey</option>
+              <option value="classic">Classic Topo</option>
+              <option value="thermal">Thermal</option>
+              <option value="mono">Mono Lines</option>
+            </select>
+          </div>
+          <div class="control-row" style="--row-color:#F3D250;">
+            <button type="button" class="item-toggle active" data-target="topo-levels" data-off="4">Color Bands</button>
+            <input type="range" id="topo-levels" min="2" max="8" value="4">
+            <span id="topo-levels-val">4</span>
+          </div>
+          <div class="control-row" style="--row-color:#C0392B;">
+            <button type="button" class="item-toggle active" data-target="topo-spacing" data-off="14">Contour Gap</button>
+            <input type="range" id="topo-spacing" min="4" max="40" value="14">
+            <span id="topo-spacing-val">14</span>
+          </div>
+          <div class="control-row" style="--row-color:#D9534F;">
+            <button type="button" class="item-toggle active" data-target="topo-thickness" data-off="1">Line Weight</button>
+            <input type="range" id="topo-thickness" min="1" max="4" value="1">
+            <span id="topo-thickness-val">1</span>
+          </div>
+          <div class="control-row" style="--row-color:#8B7EC8;">
+            <button type="button" class="item-toggle" data-target="topo-strength" data-off="0">Strength</button>
+            <input type="range" id="topo-strength" min="0" max="100" value="100">
+            <span id="topo-strength-val">100</span>
+          </div>
+          <div class="control-row" style="--row-color:#7DDBD3;">
+            <button type="button" class="item-toggle active" data-target="scan-spacing" data-off="2">Spacing</button>
+            <input type="range" id="scan-spacing" min="1" max="6" value="2">
+            <span id="scan-spacing-val">2</span>
+          </div>
+          <div class="control-row" style="--row-color:#C7D66E;">
+            <button type="button" class="item-toggle" data-target="dither-levels" data-off="4">Levels</button>
+            <input type="range" id="dither-levels" min="2" max="8" value="4">
+            <span id="dither-levels-val">4</span>
+          </div>
+          <div class="control-row">
+            <label><input type="checkbox" id="dither-grayscale"> Grayscale</label>
+          </div>
+          <div class="control-row" style="--row-color:#8FC3E8;">
+            <button type="button" class="item-toggle active" data-target="grain-intensity" data-off="0">Intensity</button>
+            <input type="range" id="grain-intensity" min="0" max="100" value="35">
+            <span id="grain-intensity-val">35</span>
+          </div>
+          <div class="control-row" style="--row-color:#7B7FD4;">
+            <button type="button" class="item-toggle active" data-target="grain-size" data-off="1">Grain Size</button>
+            <input type="range" id="grain-size" min="1" max="10" value="1">
+            <span id="grain-size-val">1</span>
+          </div>
+          <div class="control-row" style="--row-color:#ADA8E4;">
+            <button type="button" class="item-toggle" data-target="scan-intensity" data-off="0">Scanlines</button>
+            <input type="range" id="scan-intensity" min="0" max="100" value="40">
+            <span id="scan-intensity-val">40</span>
+          </div>
+          <div class="control-row" style="--row-color:#3D8080;">
+            <button type="button" class="item-toggle active" data-target="echo-amount" data-off="0">Motion Echo</button>
+            <input type="range" id="echo-amount" min="0" max="100" value="50">
+            <span id="echo-amount-val">50</span>
+          </div>
+          <div class="control-row" style="--row-color:#5FADAD;">
+            <button type="button" class="item-toggle" data-target="moire-amount" data-off="0">Moire</button>
+            <input type="range" id="moire-amount" min="0" max="100" value="45">
+            <span id="moire-amount-val">45</span>
+          </div>
+        </div>
+
+        <div class="controls-col">
+          <div class="control-row" style="--row-color:#A0CC6B;">
+            <button type="button" class="item-toggle" data-target="scan-chroma" data-off="0">Chroma Shift</button>
+            <input type="range" id="scan-chroma" min="0" max="10" value="2">
+            <span id="scan-chroma-val">2</span>
+          </div>
+          <div class="control-row" style="--row-color:#4DAE8B;">
+            <button type="button" class="item-toggle" data-target="scan-tracking" data-off="0">Tracking</button>
+            <input type="range" id="scan-tracking" min="0" max="100" value="15">
+            <span id="scan-tracking-val">15</span>
+          </div>
+          <div class="control-row" style="--row-color:#5AAEDE;">
+            <button type="button" class="item-toggle" data-target="scan-vignette" data-off="0">Vignette</button>
+            <input type="range" id="scan-vignette" min="0" max="100" value="20">
+            <span id="scan-vignette-val">20</span>
+          </div>
+          <div class="control-row" style="--row-color:#6673D0;">
+            <button type="button" class="item-toggle" data-target="scan-tear" data-off="0">Screen Tear</button>
+            <input type="range" id="scan-tear" min="0" max="100" value="0">
+            <span id="scan-tear-val">0</span>
+          </div>
+          <div class="control-row" style="--row-color:#E8A96E;">
+            <button type="button" class="item-toggle active" data-target="scan-tear-shift" data-off="30">Tear Shift %</button>
+            <input type="range" id="scan-tear-shift" min="5" max="60" value="30">
+            <span id="scan-tear-shift-val">30</span>
+          </div>
+          <div class="control-row" style="--row-color:#F3E68C;">
+            <button type="button" class="item-toggle active" data-target="scan-tear-asym" data-off="0">Asymmetry</button>
+            <input type="range" id="scan-tear-asym" min="-100" max="100" value="0">
+            <span id="scan-tear-asym-val">0</span>
+          </div>
+          <div class="control-row" style="--row-color:#E85D75;">
+            <button type="button" class="item-toggle" data-target="scan-vmisalign" data-off="0">V-Misalign</button>
+            <input type="range" id="scan-vmisalign" min="0" max="100" value="55">
+            <span id="scan-vmisalign-val">55</span>
+          </div>
+          <div class="control-row" style="--row-color:#8FD97E;">
+            <button type="button" class="item-toggle" data-target="fried-duplicate" data-off="0">Duplicate</button>
+            <input type="range" id="fried-duplicate" min="0" max="100" value="50">
+            <span id="fried-duplicate-val">50</span>
+          </div>
+          <div class="control-row" style="--row-color:#E8A8D0;">
+            <button type="button" class="item-toggle active" data-target="fried-offset" data-off="40">Ghost Offset</button>
+            <input type="range" id="fried-offset" min="0" max="100" value="40">
+            <span id="fried-offset-val">40</span>
+          </div>
+          <div class="control-row" style="--row-color:#8F6ECC;">
+            <button type="button" class="item-toggle" data-target="fried-fluorescent" data-off="0">Fluorescent</button>
+            <input type="range" id="fried-fluorescent" min="0" max="100" value="50">
+            <span id="fried-fluorescent-val">50</span>
+          </div>
+          <div class="control-row" style="--row-color:#C4A8E0;">
+            <button type="button" class="item-toggle" data-target="fried-corruption" data-off="0">Corruption</button>
+            <input type="range" id="fried-corruption" min="0" max="100" value="30">
+            <span id="fried-corruption-val">30</span>
+          </div>
+          <div class="control-row" style="--row-color:#A9781F;">
+            <button type="button" class="item-toggle active" data-target="echo-trail" data-off="40">Echo Trail</button>
+            <input type="range" id="echo-trail" min="0" max="100" value="40">
+            <span id="echo-trail-val">40</span>
+          </div>
+          <div class="control-row" style="--row-color:#CC3F9E;">
+            <button type="button" class="item-toggle active" data-target="moire-scale" data-off="50">Moire Scale</button>
+            <input type="range" id="moire-scale" min="0" max="100" value="50">
+            <span id="moire-scale-val">50</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-field" id="status-main">Ready</div>
+      <div class="status-field" id="status-dims">&mdash; &times; &mdash; px</div>
+      <div class="status-field zoom-control">
+        <span>Zoom</span>
+        <input type="range" id="zoom-slider" min="25" max="300" step="5" value="100">
+        <span id="zoom-val">100%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="about-overlay">
+    <div class="window modal">
+      <div class="title-bar">
+        <div class="title-bar-text">About Echo Trail</div>
+        <div class="title-bar-controls"><button id="about-close">&times;</button></div>
+      </div>
+      <div class="modal-body">
+        <svg class="modal-icon" viewBox="0 0 16 16"><rect width="16" height="16" fill="#000080"/><circle cx="4" cy="4" r="1" fill="#fff"/><circle cx="9" cy="3" r="1" fill="#ffd76e"/><circle cx="12" cy="7" r="1.2" fill="#ff6ec7"/><circle cx="5" cy="9" r="1" fill="#6ec7ff"/><circle cx="11" cy="11" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#ffd76e"/></svg>
+        <div class="modal-text">
+          <h3>Echo Trail v1.0</h3>
+          <p>created by dr vincent j laguardia</p>
+        </div>
+      </div>
+      <div class="modal-actions"><button class="btn95" id="about-ok">OK</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="exit-overlay">
+    <div class="window modal">
+      <div class="title-bar">
+        <div class="title-bar-text">Echo Trail</div>
+      </div>
+      <div class="modal-body">
+        <svg class="modal-icon" viewBox="0 0 16 16"><rect width="16" height="16" fill="#c0c0c0"/><path d="M8 2 L14 13 L2 13 Z" fill="#ffd700" stroke="#000" stroke-width="0.5"/><rect x="7.3" y="6" width="1.4" height="4" fill="#000"/><rect x="7.3" y="10.5" width="1.4" height="1.4" fill="#000"/></svg>
+        <div class="modal-text">
+          <h3>Close Echo Trail?</h3>
+          <p>This is a browser app &mdash; there's nothing to save except your PNG export. Reset all effects instead?</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn95" id="exit-cancel">Cancel</button>
+        <button class="btn95" id="exit-reset">Reset All</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+
+  function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
+
+  // ---------- Bayer matrix ----------
+  function generateBayer(n){
+    if(n===2) return [[0,2],[3,1]];
+    const smaller = generateBayer(n/2);
+    const half = n/2;
+    const matrix = Array.from({length:n},()=>new Array(n));
+    for(let y=0;y<half;y++){
+      for(let x=0;x<half;x++){
+        const v = smaller[y][x];
+        matrix[y][x] = 4*v;
+        matrix[y][x+half] = 4*v+2;
+        matrix[y+half][x] = 4*v+3;
+        matrix[y+half][x+half] = 4*v+1;
+      }
+    }
+    return matrix;
+  }
+  const bayerCache = {};
+  function getBayer(n){
+    if(!bayerCache[n]) bayerCache[n] = generateBayer(n);
+    return bayerCache[n];
+  }
+
+  // ---------- Effects ----------
+  const TOPO_PALETTES = {
+    survey: {
+      stops: [[188,190,232],[120,140,220],[214,44,24],[255,214,0],[18,16,14]],
+      line: [230,40,10]
+    },
+    classic: {
+      stops: [[20,60,40],[70,120,50],[170,180,70],[150,110,60],[250,250,245]],
+      line: [70,45,20]
+    },
+    thermal: {
+      stops: [[10,10,90],[110,10,160],[220,30,90],[255,140,20],[255,240,60]],
+      line: [255,255,255]
+    },
+    mono: {
+      stops: [[250,250,248],[205,205,200],[150,150,146],[90,90,88],[15,15,15]],
+      line: [0,0,0]
+    }
+  };
+
+  function applyTopographic(data,width,height,opts){
+    const { levels, spacing, thickness, strength, paletteName } = opts;
+    const s = clamp(strength/100,0,1);
+    if(s<=0) return;
+    const palette = TOPO_PALETTES[paletteName] || TOPO_PALETTES.survey;
+    const stops = palette.stops;
+    const [lr,lg,lb] = palette.line;
+    for(let i=0;i<data.length;i+=4){
+      const r=data[i], g=data[i+1], b=data[i+2];
+      const lum = 0.299*r+0.587*g+0.114*b;
+      const band = clamp(Math.floor(lum/256*levels),0,levels-1);
+      const stopIdx = Math.min(stops.length-1, Math.floor(band/levels*stops.length));
+      let nr=stops[stopIdx][0], ng=stops[stopIdx][1], nb=stops[stopIdx][2];
+      const modv = Math.floor(lum) % spacing;
+      if(modv < thickness){ nr=lr; ng=lg; nb=lb; }
+      data[i]   = r*(1-s)+nr*s;
+      data[i+1] = g*(1-s)+ng*s;
+      data[i+2] = b*(1-s)+nb*s;
+    }
+  }
+
+  function applyOrderedDither(data,width,height,matrixSize,levels,grayscale){
+    const matrix = getBayer(matrixSize);
+    const n = matrixSize;
+    const step = 255/(levels-1);
+    for(let y=0;y<height;y++){
+      const row = matrix[y%n];
+      for(let x=0;x<width;x++){
+        const idx = (y*width+x)*4;
+        const threshold = (row[x%n]+0.5)/(n*n) - 0.5;
+        if(grayscale){
+          const gray = 0.299*data[idx]+0.587*data[idx+1]+0.114*data[idx+2];
+          const q = clamp(Math.round(gray/step+threshold)*step,0,255);
+          data[idx]=data[idx+1]=data[idx+2]=q;
+        } else {
+          for(let c=0;c<3;c++){
+            const v = data[idx+c];
+            data[idx+c] = clamp(Math.round(v/step+threshold)*step,0,255);
+          }
+        }
+      }
+    }
+  }
+
+  function distributeError(buf,width,height,x,y,errs){
+    const addErr=(dx,dy,factor)=>{
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||nx>=width||ny<0||ny>=height) return;
+      const idx=(ny*width+nx)*4;
+      buf[idx]+=errs[0]*factor;
+      buf[idx+1]+=errs[1]*factor;
+      buf[idx+2]+=errs[2]*factor;
+    };
+    addErr(1,0,7/16);
+    addErr(-1,1,3/16);
+    addErr(0,1,5/16);
+    addErr(1,1,1/16);
+  }
+
+  function applyFloydSteinberg(data,width,height,levels,grayscale){
+    const step = 255/(levels-1);
+    const buf = new Float32Array(data.length);
+    buf.set(data);
+    for(let y=0;y<height;y++){
+      for(let x=0;x<width;x++){
+        const idx=(y*width+x)*4;
+        if(grayscale){
+          const gray = 0.299*buf[idx]+0.587*buf[idx+1]+0.114*buf[idx+2];
+          const q = clamp(Math.round(gray/step)*step,0,255);
+          const err = gray-q;
+          buf[idx]=buf[idx+1]=buf[idx+2]=q;
+          distributeError(buf,width,height,x,y,[err,err,err]);
+        } else {
+          const errs=[0,0,0];
+          for(let c=0;c<3;c++){
+            const v = buf[idx+c];
+            const q = clamp(Math.round(v/step)*step,0,255);
+            errs[c]=v-q;
+            buf[idx+c]=q;
+          }
+          distributeError(buf,width,height,x,y,errs);
+        }
+      }
+    }
+    for(let i=0;i<data.length;i++) data[i]=clamp(buf[i],0,255);
+  }
+
+  // Integer lattice hash -> pseudo-random value in [0,1). Math.imul keeps the
+  // multiplications exact 32-bit wraps regardless of how large ix/iy get, so
+  // this stays correct (and needs no preallocated grid) at any noise frequency.
+  function hash2D(ix,iy,seed){
+    let h = Math.imul(ix,0x27d4eb2d) ^ Math.imul(iy,0x165667b1) ^ Math.imul(seed,0x9e3779b9);
+    h = Math.imul(h ^ (h>>>15), 0x85ebca6b);
+    h = h ^ (h>>>13);
+    h = Math.imul(h,0xc2b2ae35);
+    h = h ^ (h>>>16);
+    return (h>>>0)/4294967295;
+  }
+
+  function bilerpHash(ix0,iy0,tx,ty,seed){
+    const v00 = hash2D(ix0,   iy0,   seed)*2-1;
+    const v10 = hash2D(ix0+1, iy0,   seed)*2-1;
+    const v01 = hash2D(ix0,   iy0+1, seed)*2-1;
+    const v11 = hash2D(ix0+1, iy0+1, seed)*2-1;
+    const top = v00*(1-tx)+v10*tx;
+    const bot = v01*(1-tx)+v11*tx;
+    return top*(1-ty)+bot*ty;
+  }
+
+  // Perlin's quintic fade curve: smooths the interpolation so noise reads as
+  // rounded organic grain instead of angular diamond facets between lattice points.
+  function fade(t){ return t*t*t*(t*(t*6-15)+10); }
+
+  function applyGrain(data,width,height,intensity,size,monochrome){
+    if(intensity<=0) return;
+    const amp = intensity/100*80;
+    const invSize = 1/Math.max(0.01,size);
+
+    for(let y=0;y<height;y++){
+      const fy = y*invSize;
+      const iy0 = Math.floor(fy);
+      const ty = fade(fy-iy0);
+      for(let x=0;x<width;x++){
+        const fx = x*invSize;
+        const ix0 = Math.floor(fx);
+        const tx = fade(fx-ix0);
+        const idx = (y*width+x)*4;
+        const nr = bilerpHash(ix0,iy0,tx,ty,1)*amp;
+        const ng = monochrome ? nr : bilerpHash(ix0,iy0,tx,ty,2)*amp;
+        const nb = monochrome ? nr : bilerpHash(ix0,iy0,tx,ty,3)*amp;
+        data[idx]   = clamp(data[idx]+nr,0,255);
+        data[idx+1] = clamp(data[idx+1]+ng,0,255);
+        data[idx+2] = clamp(data[idx+2]+nb,0,255);
+      }
+    }
+  }
+
+  function drawTearSeam(data,width,height,y,amount){
+    if(y<0 || y>=height) return;
+    const seamHeight = amount>60 ? 2 : 1;
+    for(let s=0;s<seamHeight;s++){
+      const yy = y+s;
+      if(yy<0 || yy>=height) break;
+      for(let x=0;x<width;x++){
+        if(Math.random()<0.7){
+          const idx=(yy*width+x)*4;
+          const bright = 195+Math.random()*60;
+          data[idx]=bright; data[idx+1]=bright; data[idx+2]=bright;
+        }
+      }
+    }
+  }
+
+  function applyScreenTear(data,width,height,amount,shiftPercent,asymmetry){
+    if(amount<=0 || shiftPercent<=0) return;
+    const copy = new Uint8ClampedArray(data);
+    const maxShiftPx = Math.max(4, Math.round(width*(shiftPercent/100)));
+    const asym = clamp((asymmetry||0)/100, -1, 1); // -1..1, 0 = symmetric/random
+    // Fewer, larger, more dramatic bands rather than lots of thin ones
+    const numTears = 1 + Math.round((amount/100)*3);
+    // Directional bias: how likely a tear shifts rightward vs leftward
+    const probRight = clamp(0.5 + asym*0.5, 0, 1);
+    // Vertical placement bias: skews band start toward top (asym>0) or bottom (asym<0)
+    const vExponent = Math.pow(3, asym);
+    // Wedge skew: how much the shift ramps across a band's height (diagonal tear)
+    const wedgeAmount = asym*maxShiftPx*0.6;
+
+    for(let t=0;t<numTears;t++){
+      const bandHeight = Math.max(2, Math.round(height*(0.04+Math.random()*0.16)));
+      const startY = Math.min(height-1, Math.floor(Math.pow(Math.random(), vExponent)*height));
+      const dir = Math.random()<probRight ? 1 : -1;
+      const baseShift = dir*Math.round(maxShiftPx*(0.5+Math.random()*0.5));
+
+      for(let dy=0; dy<bandHeight && startY+dy<height; dy++){
+        const y = startY+dy;
+        // slight per-row jaggedness so the shifted block's edge isn't a perfect rectangle
+        const jag = Math.round((Math.random()*2-1)*Math.max(2, maxShiftPx*0.06));
+        // wedge ramp: shift grows/shrinks linearly across the band height for a diagonal cut
+        const wedge = Math.round(((dy/bandHeight)-0.5)*2*wedgeAmount);
+        const rowShift = baseShift+jag+wedge;
+        for(let x=0;x<width;x++){
+          const srcX = clamp(x-rowShift,0,width-1);
+          const srcIdx=(y*width+srcX)*4;
+          const idx=(y*width+x)*4;
+          data[idx]   = copy[srcIdx];
+          data[idx+1] = copy[srcIdx+1];
+          data[idx+2] = copy[srcIdx+2];
+        }
+      }
+
+      // bright jagged noise seam right at the tear boundaries, like a torn edge
+      drawTearSeam(data,width,height,startY,amount);
+      drawTearSeam(data,width,height,startY+bandHeight,amount);
+    }
+  }
+
+  function drawVerticalSeam(data,width,height,x,amount){
+    if(x<0 || x>=width) return;
+    const seamWidth = amount>60 ? 2 : 1;
+    for(let s=0;s<seamWidth;s++){
+      const xx = x+s;
+      if(xx<0 || xx>=width) break;
+      for(let y=0;y<height;y++){
+        if(Math.random()<0.7){
+          const idx=(y*width+xx)*4;
+          const bright = 195+Math.random()*60;
+          data[idx]=bright; data[idx+1]=bright; data[idx+2]=bright;
+        }
+      }
+    }
+  }
+
+  function applyVerticalMisalign(data,width,height,amount){
+    if(amount<=0) return;
+    const copy = new Uint8ClampedArray(data);
+    const strength = amount/100;
+    const maxShiftPx = Math.max(6, Math.round(height*0.24*strength));
+    const numBands = 2 + Math.round(strength*7);
+
+    for(let b=0;b<numBands;b++){
+      const bandWidth = Math.max(2, Math.round(width*(0.015+Math.random()*0.09)));
+      const startX = Math.floor(Math.random()*width);
+      const dir = Math.random()<0.5 ? 1 : -1;
+      const baseShift = dir*Math.round(maxShiftPx*(0.35+Math.random()*0.65));
+      const glitchColor = Math.random() < 0.4*strength+0.1;
+      const rOff = glitchColor ? Math.round((Math.random()*2-1)*maxShiftPx*0.4) : 0;
+      const bOff = glitchColor ? Math.round((Math.random()*2-1)*maxShiftPx*0.4) : 0;
+
+      for(let dx=0; dx<bandWidth && startX+dx<width; dx++){
+        const x = startX+dx;
+        const jag = Math.round((Math.random()*2-1)*Math.max(1,maxShiftPx*0.12));
+        const colShift = baseShift+jag;
+        for(let y=0;y<height;y++){
+          const srcY  = clamp(y-colShift,0,height-1);
+          const srcYr = clamp(y-colShift+rOff,0,height-1);
+          const srcYb = clamp(y-colShift+bOff,0,height-1);
+          const idx=(y*width+x)*4;
+          data[idx]   = copy[(srcYr*width+x)*4];
+          data[idx+1] = copy[(srcY*width+x)*4+1];
+          data[idx+2] = copy[(srcYb*width+x)*4+2];
+        }
+      }
+
+      drawVerticalSeam(data,width,height,startX,amount);
+      drawVerticalSeam(data,width,height,startX+bandWidth,amount);
+    }
+  }
+
+  function applyScanlines(data,width,height,p){
+    const { lineIntensity, spacing, chroma, tracking, vignette, tearAmount, tearShift, tearAsymmetry, vMisalign } = p;
+
+    if(chroma>0){
+      const copy = new Uint8ClampedArray(data);
+      for(let y=0;y<height;y++){
+        for(let x=0;x<width;x++){
+          const idx=(y*width+x)*4;
+          const rx = clamp(x-chroma,0,width-1);
+          const bx = clamp(x+chroma,0,width-1);
+          data[idx]   = copy[(y*width+rx)*4];
+          data[idx+2] = copy[(y*width+bx)*4+2];
+        }
+      }
+    }
+
+    if(tearAmount>0) applyScreenTear(data,width,height,tearAmount,tearShift,tearAsymmetry);
+
+    if(vMisalign>0) applyVerticalMisalign(data,width,height,vMisalign);
+
+    if(lineIntensity>0){
+      const dark = lineIntensity/100;
+      for(let y=0;y<height;y++){
+        if(y % spacing === 0){
+          for(let x=0;x<width;x++){
+            const idx=(y*width+x)*4;
+            data[idx]   *= (1-dark);
+            data[idx+1] *= (1-dark);
+            data[idx+2] *= (1-dark);
+          }
+        }
+      }
+    }
+
+    if(tracking>0){
+      const numStreaks = Math.round((tracking/100)*height*0.06);
+      for(let s=0;s<numStreaks;s++){
+        const y = Math.floor(Math.random()*height);
+        const streakHeight = 1+Math.floor(Math.random()*2);
+        const bright = Math.random()>0.5 ? 255 : 0;
+        for(let dy=0; dy<streakHeight && y+dy<height; dy++){
+          for(let x=0;x<width;x++){
+            const idx=((y+dy)*width+x)*4;
+            const mix = 0.25+Math.random()*0.35;
+            data[idx]   = data[idx]*(1-mix)+bright*mix;
+            data[idx+1] = data[idx+1]*(1-mix)+bright*mix;
+            data[idx+2] = data[idx+2]*(1-mix)+bright*mix;
+          }
+        }
+      }
+    }
+
+    if(vignette>0){
+      const cx=width/2, cy=height/2;
+      const maxDist = Math.sqrt(cx*cx+cy*cy);
+      const strength = vignette/100;
+      for(let y=0;y<height;y++){
+        for(let x=0;x<width;x++){
+          const dist = Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy))/maxDist;
+          const factor = 1 - strength*dist*dist;
+          const idx=(y*width+x)*4;
+          data[idx]*=factor; data[idx+1]*=factor; data[idx+2]*=factor;
+        }
+      }
+    }
+  }
+
+  // Deterministic symmetric zoom-echo, like tape delay repeats getting
+  // quieter: each successive echo samples from progressively closer to
+  // center (a mild zoom-in per step) and blends in at decaying opacity, so
+  // the duplicates recede outward from center equally in every direction -
+  // reads as motion "traveling away from you" rather than a one-sided smear.
+  // Same inputs always produce the same output (no randomness).
+  function applyMotionEcho(data,width,height,amount,trail){
+    if(amount<=0) return;
+    const src = new Uint8ClampedArray(data);
+    const cx = width/2, cy = height/2;
+    const steps = 3+Math.round((trail/100)*6);
+    const maxScaleDelta = 0.04+(trail/100)*0.22;
+    const strength = amount/100;
+    for(let s=1;s<=steps;s++){
+      const t = s/steps;
+      const scale = 1+maxScaleDelta*t;
+      const alpha = strength*0.55*(1-t*0.75);
+      if(alpha<=0.01) continue;
+      for(let y=0;y<height;y++){
+        for(let x=0;x<width;x++){
+          const sx = Math.round(cx+(x-cx)/scale);
+          const sy = Math.round(cy+(y-cy)/scale);
+          if(sx<0||sx>=width||sy<0||sy>=height) continue;
+          const srcIdx=(sy*width+sx)*4;
+          const idx=(y*width+x)*4;
+          data[idx]   = clamp(data[idx]  *(1-alpha)+src[srcIdx]  *alpha,0,255);
+          data[idx+1] = clamp(data[idx+1]*(1-alpha)+src[srcIdx+1]*alpha,0,255);
+          data[idx+2] = clamp(data[idx+2]*(1-alpha)+src[srcIdx+2]*alpha,0,255);
+        }
+      }
+    }
+  }
+
+  function smoothNoise2D(x,y,freq,seed){
+    const fx = x*freq, fy = y*freq;
+    const ix0 = Math.floor(fx), iy0 = Math.floor(fy);
+    const tx = fade(fx-ix0), ty = fade(fy-iy0);
+    return bilerpHash(ix0,iy0,tx,ty,seed);
+  }
+
+  // Topographic-thumbprint moire: a single continuous "phase" ramp gets
+  // domain-warped by two octaves of noise (coarse warp for overall whorl
+  // shape, fine warp for local ridge waviness), then thin contour lines are
+  // drawn at a fixed, close interval along that phase - like the Topographic
+  // effect's contour lines, but following an organic flow field instead of
+  // image luminance. Because lines are drawn at a constant phase interval
+  // (not from two interfering line sets), spacing stays even everywhere -
+  // no moire beat gaps - and a small fixed Gaussian falloff keeps every line
+  // thin and smooth regardless of how tightly packed they are.
+  function applyMoire(data,width,height,amount,scale){
+    if(amount<=0) return;
+    const strength = amount/100;
+    const spacing = 6-(scale/100)*4;      // 6px (sparse) down to 2px (dense)
+    const lineSigma = 0.5;                // fixed thin/smooth line width
+    const warpFreq1 = 0.006;
+    const warpAmt1 = 25+(scale/100)*30;   // coarse whorl-shaping warp
+    const warpFreq2 = 0.035;
+    const warpAmt2 = 5+(scale/100)*4;     // fine local ridge waviness
+    const flowAngle = 0.35;
+    const cosA = Math.cos(flowAngle), sinA = Math.sin(flowAngle);
+    for(let y=0;y<height;y++){
+      for(let x=0;x<width;x++){
+        const wnx = smoothNoise2D(x,y,warpFreq1,21)*warpAmt1 + smoothNoise2D(x,y,warpFreq2,23)*warpAmt2;
+        const wny = smoothNoise2D(x,y,warpFreq1,22)*warpAmt1 + smoothNoise2D(x,y,warpFreq2,24)*warpAmt2;
+        const wx = x+wnx, wy = y+wny;
+        const phase = wx*cosA+wy*sinA;
+        const m = ((phase%spacing)+spacing)%spacing;
+        const dist = Math.min(m, spacing-m);
+        const darken = Math.exp(-(dist*dist)/(2*lineSigma*lineSigma))*strength*0.75;
+        const idx=(y*width+x)*4;
+        data[idx]   = clamp(data[idx]  *(1-darken),0,255);
+        data[idx+1] = clamp(data[idx+1]*(1-darken),0,255);
+        data[idx+2] = clamp(data[idx+2]*(1-darken),0,255);
+      }
+    }
+  }
+
+  // ---------- Fried mode ----------
+  // Saturation/contrast blowout + unstable per-block hue-cycling for a
+  // fluorescent, deep-fried-meme color skew.
+  function applyFluorescent(data,width,height,amount){
+    if(amount<=0) return;
+    const t = amount/100;
+    const satBoost = 1+t*2.2;
+    const contrast = 1+t*0.8;
+    const cycleAmt = t*0.9;
+    for(let y=0;y<height;y++){
+      for(let x=0;x<width;x++){
+        const idx=(y*width+x)*4;
+        let r=data[idx], g=data[idx+1], b=data[idx+2];
+        r = clamp((r-128)*contrast+128,0,255);
+        g = clamp((g-128)*contrast+128,0,255);
+        b = clamp((b-128)*contrast+128,0,255);
+        const lum = 0.299*r+0.587*g+0.114*b;
+        r = clamp(lum+(r-lum)*satBoost,0,255);
+        g = clamp(lum+(g-lum)*satBoost,0,255);
+        b = clamp(lum+(b-lum)*satBoost,0,255);
+        const jitter = cycleAmt*(0.55+0.45*hash2D(x>>3,y>>3,9));
+        const nr = r*(1-jitter)+g*jitter;
+        const ng = g*(1-jitter)+b*jitter;
+        const nb = b*(1-jitter)+r*jitter;
+        data[idx]=clamp(nr,0,255); data[idx+1]=clamp(ng,0,255); data[idx+2]=clamp(nb,0,255);
+      }
+    }
+  }
+
+  // Crops random patches and re-blends them at offset positions, like a
+  // double-exposure ghost/echo of parts of the image.
+  function applyDuplicate(data,width,height,amount,offsetPercent){
+    if(amount<=0) return;
+    const src = new Uint8ClampedArray(data);
+    const count = 1+Math.round((amount/100)*4);
+    const maxOff = Math.max(2, Math.round(Math.max(width,height)*((offsetPercent||0)/100)));
+    for(let i=0;i<count;i++){
+      const pw = Math.max(4, Math.min(width,  Math.round(width *(0.15+Math.random()*0.25))));
+      const ph = Math.max(4, Math.min(height, Math.round(height*(0.15+Math.random()*0.25))));
+      const sx = Math.floor(Math.random()*Math.max(1,width-pw));
+      const sy = Math.floor(Math.random()*Math.max(1,height-ph));
+      const dx = clamp(sx+Math.round((Math.random()*2-1)*maxOff), 0, Math.max(0,width-pw));
+      const dy = clamp(sy+Math.round((Math.random()*2-1)*maxOff), 0, Math.max(0,height-ph));
+      const alpha = 0.35+Math.random()*0.35;
+      for(let y=0;y<ph;y++){
+        for(let x=0;x<pw;x++){
+          const srcIdx = ((sy+y)*width+(sx+x))*4;
+          const dstIdx = ((dy+y)*width+(dx+x))*4;
+          data[dstIdx]   = clamp(data[dstIdx]  *(1-alpha)+src[srcIdx]  *alpha,0,255);
+          data[dstIdx+1] = clamp(data[dstIdx+1]*(1-alpha)+src[srcIdx+1]*alpha,0,255);
+          data[dstIdx+2] = clamp(data[dstIdx+2]*(1-alpha)+src[srcIdx+2]*alpha,0,255);
+        }
+      }
+    }
+  }
+
+  const FRIED_NEON = [[255,0,180],[0,255,200],[255,255,0],[180,0,255],[0,255,0],[255,80,0]];
+
+  // Thin neon streaks tinted (not pasted) over the image, like corrupted video
+  // scanlines. Wide/thin + low-alpha + jittered edges so they read as part of
+  // the noise texture instead of opaque stickers sitting on top of it.
+  function applyCorruption(data,width,height,amount){
+    if(amount<=0) return;
+    const count = Math.round((amount/100)*10);
+    for(let i=0;i<count;i++){
+      const bw = Math.max(8, Math.round(width*(0.3+Math.random()*0.6)));
+      const bh = Math.max(1, Math.round(height*(0.004+Math.random()*0.02)));
+      const bx = Math.floor(Math.random()*Math.max(1,width-bw));
+      const by = Math.floor(Math.random()*Math.max(1,height-bh));
+      const color = FRIED_NEON[Math.floor(Math.random()*FRIED_NEON.length)];
+      const alpha = 0.15+Math.random()*0.25;
+      for(let y=0;y<bh && by+y<height;y++){
+        const edgeJitter = Math.round((Math.random()*2-1)*bw*0.08);
+        const rowStart = clamp(bx+edgeJitter,0,width-1);
+        const rowEnd = clamp(bx+bw+edgeJitter,0,width);
+        for(let x=rowStart;x<rowEnd;x++){
+          const idx=((by+y)*width+x)*4;
+          data[idx]   = clamp(data[idx]  *(1-alpha)+color[0]*alpha,0,255);
+          data[idx+1] = clamp(data[idx+1]*(1-alpha)+color[1]*alpha,0,255);
+          data[idx+2] = clamp(data[idx+2]*(1-alpha)+color[2]*alpha,0,255);
+        }
+      }
+    }
+  }
+
+  // ---------- Canvas pipeline ----------
+  const originalCanvas = document.createElement('canvas');
+  const workingCanvas = document.createElement('canvas');
+  const previewCanvas = $('preview-canvas');
+
+  // Slider shows 1-10 for fine nuance; internally maps to actual grain size 0.05-2.0px
+  function grainSizeFromSlider(v){
+    return 0.05 + (v-1)/9*(2-0.05);
+  }
+
+  // Each control row's name doubles as its own on/off switch. When a row is
+  // inactive, its dialed-in slider/select value is preserved but the render
+  // uses the row's data-off fallback instead, so re-enabling restores it.
+  function rowVal(id){
+    const el = $(id);
+    const isSelect = el.tagName==='SELECT';
+    const btn = document.querySelector('.item-toggle[data-target="'+id+'"]');
+    const live = isSelect ? el.value : parseFloat(el.value);
+    if(!btn || btn.classList.contains('active')) return live;
+    const off = btn.dataset.off;
+    return isSelect ? off : parseFloat(off);
+  }
+  function rowActive(id){
+    const btn = document.querySelector('.item-toggle[data-target="'+id+'"]');
+    return btn ? btn.classList.contains('active') : true;
+  }
+
+  function getOpts(){
+    return {
+      topo:{
+        paletteName: rowVal('topo-palette'),
+        levels: rowVal('topo-levels'),
+        spacing: rowVal('topo-spacing'),
+        thickness: rowVal('topo-thickness'),
+        strength: rowVal('topo-strength')
+      },
+      dither:{
+        active: rowActive('dither-levels'),
+        type: 'ordered',
+        matrixSize: 4,
+        levels: rowVal('dither-levels'),
+        grayscale: $('dither-grayscale').checked
+      },
+      grain:{
+        intensity: rowVal('grain-intensity'),
+        size: grainSizeFromSlider(rowVal('grain-size'))
+      },
+      scan:{
+        lineIntensity: rowVal('scan-intensity'),
+        spacing: rowVal('scan-spacing'),
+        chroma: rowVal('scan-chroma'),
+        tracking: rowVal('scan-tracking'),
+        vignette: rowVal('scan-vignette'),
+        tearAmount: rowVal('scan-tear'),
+        tearShift: rowVal('scan-tear-shift'),
+        tearAsymmetry: rowVal('scan-tear-asym'),
+        vMisalign: rowVal('scan-vmisalign')
+      },
+      echo:{
+        amount: rowVal('echo-amount'),
+        trail: rowVal('echo-trail')
+      },
+      fried:{
+        duplicate: rowVal('fried-duplicate'),
+        offset: rowVal('fried-offset'),
+        fluorescent: rowVal('fried-fluorescent'),
+        corruption: rowVal('fried-corruption')
+      },
+      moire:{
+        amount: rowVal('moire-amount'),
+        scale: rowVal('moire-scale')
+      }
+    };
+  }
+
+  function renderToCanvas(srcCanvas, destCanvas, opts){
+    const w=srcCanvas.width, h=srcCanvas.height;
+    if(w===0||h===0) return;
+    destCanvas.width=w; destCanvas.height=h;
+    const sctx = srcCanvas.getContext('2d');
+    const dctx = destCanvas.getContext('2d');
+    const imgData = sctx.getImageData(0,0,w,h);
+    const data = imgData.data;
+    // Topo/Grain/Scanlines all have internal no-op guards (0 = do nothing),
+    // so they can just always run; Dither needs an explicit mode gate.
+    applyTopographic(data,w,h,opts.topo);
+    if(opts.dither.active){
+      if(opts.dither.type==='fs') applyFloydSteinberg(data,w,h,opts.dither.levels,opts.dither.grayscale);
+      else applyOrderedDither(data,w,h,opts.dither.matrixSize,opts.dither.levels,opts.dither.grayscale);
+    }
+    applyGrain(data,w,h,opts.grain.intensity,opts.grain.size,true);
+    applyScanlines(data,w,h,opts.scan);
+    applyMotionEcho(data,w,h,opts.echo.amount,opts.echo.trail);
+    // Fried mode runs last, on top of everything else
+    applyFluorescent(data,w,h,opts.fried.fluorescent);
+    applyDuplicate(data,w,h,opts.fried.duplicate,opts.fried.offset);
+    applyCorruption(data,w,h,opts.fried.corruption);
+    // Moire runs last, like a print/scan texture over the finished composite
+    applyMoire(data,w,h,opts.moire.amount,opts.moire.scale);
+    dctx.putImageData(imgData,0,0);
+  }
+
+  let renderPending=false;
+  function scheduleRender(){
+    if(renderPending) return;
+    renderPending=true;
+    requestAnimationFrame(()=>{ renderPending=false; doRender(); });
+  }
+  function doRender(){
+    renderToCanvas(workingCanvas, previewCanvas, getOpts());
+  }
+
+  function setImage(source, name){
+    const w0 = source.naturalWidth || source.width;
+    const h0 = source.naturalHeight || source.height;
+    const MAX_DIM = 2400;
+    const scale = Math.min(1, MAX_DIM/Math.max(w0,h0));
+    const w = Math.max(1,Math.round(w0*scale));
+    const h = Math.max(1,Math.round(h0*scale));
+    originalCanvas.width=w; originalCanvas.height=h;
+    originalCanvas.getContext('2d').drawImage(source,0,0,w,h);
+
+    const PREVIEW_MAX = 700;
+    const pscale = Math.min(1, PREVIEW_MAX/Math.max(w,h));
+    const pw = Math.max(1,Math.round(w*pscale));
+    const ph = Math.max(1,Math.round(h*pscale));
+    workingCanvas.width=pw; workingCanvas.height=ph;
+    workingCanvas.getContext('2d').drawImage(originalCanvas,0,0,pw,ph);
+
+    $('drop-hint').style.display='none';
+    $('status-dims').textContent = w+' × '+h+' px';
+    scheduleRender();
+
+    if(name) addToRecent(name, originalCanvas);
+  }
+
+  function loadImageFile(file){
+    if(!file || !file.type || !file.type.startsWith('image/')) return;
+    $('status-main').textContent='Loading image...';
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{ setImage(img, file.name); $('status-main').textContent='Ready'; };
+      img.onerror = ()=>{ $('status-main').textContent='Could not load image'; };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- Open Recent (localStorage-backed, this is a standalone saved
+  // file opened directly in the browser, not a Claude artifact preview) ----------
+  const RECENT_KEY = 'scanlineStudioRecentImages';
+  const RECENT_MAX = 5;
+
+  function loadRecentList(){
+    try{ return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]'); }
+    catch(e){ return []; }
+  }
+  function saveRecentList(list){
+    try{ localStorage.setItem(RECENT_KEY, JSON.stringify(list)); }
+    catch(e){ /* storage full or unavailable - recent list just won't persist */ }
+  }
+  function makeThumbDataURL(source, maxDim){
+    const w0 = source.naturalWidth || source.width;
+    const h0 = source.naturalHeight || source.height;
+    const scale = Math.min(1, maxDim/Math.max(w0,h0));
+    const tw = Math.max(1,Math.round(w0*scale)), th = Math.max(1,Math.round(h0*scale));
+    const c = document.createElement('canvas');
+    c.width=tw; c.height=th;
+    c.getContext('2d').drawImage(source,0,0,tw,th);
+    return c.toDataURL('image/jpeg',0.7);
+  }
+  function addToRecent(name, source){
+    const thumb = makeThumbDataURL(source, 220);
+    let list = loadRecentList().filter(e=>e.name!==name);
+    list.unshift({ name, dataURL: thumb });
+    if(list.length>RECENT_MAX) list = list.slice(0,RECENT_MAX);
+    saveRecentList(list);
+    renderRecentMenu();
+  }
+  function renderRecentMenu(){
+    const list = loadRecentList();
+    const container = $('recent-list');
+    container.innerHTML='';
+    list.forEach((entry,idx)=>{
+      const item = document.createElement('div');
+      item.className='dropdown-item recent-item';
+      item.dataset.idx = idx;
+      item.textContent = entry.name;
+      container.appendChild(item);
+    });
+    const has = list.length>0;
+    $('recent-header').style.display = has ? '' : 'none';
+    $('recent-sep').style.display = has ? '' : 'none';
+  }
+  function openRecent(idx){
+    const list = loadRecentList();
+    const entry = list[idx];
+    if(!entry) return;
+    const img = new Image();
+    img.onload = ()=>{ setImage(img, entry.name); };
+    img.src = entry.dataURL;
+  }
+
+  function generateDemoImage(){
+    const c = document.createElement('canvas');
+    c.width=640; c.height=480;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,640,480);
+    grad.addColorStop(0,'#ff6ec7');
+    grad.addColorStop(0.5,'#6ec7ff');
+    grad.addColorStop(1,'#ffd76e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,640,480);
+    for(let i=0;i<6;i++){
+      ctx.beginPath();
+      ctx.fillStyle = 'hsl('+(i*60)+',70%,60%)';
+      ctx.globalAlpha = 0.45;
+      ctx.arc(100+i*90, 240+((i%2)?60:-60), 70, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#ffffff';
+    ctx.font='bold 76px Georgia, serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText('GRAIN', 320, 244);
+    return c;
+  }
+
+  // ---------- UI wiring ----------
+  function updateAllSpans(){
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale'].forEach(id=>{
+      const span = $(id+'-val');
+      if(span) span.textContent = $(id).value;
+    });
+  }
+
+  function bindRange(id){
+    const el = $(id);
+    el.addEventListener('input', ()=>{
+      const span = $(id+'-val');
+      if(span) span.textContent = el.value;
+      scheduleRender();
+    });
+  }
+
+  function setRowActive(id, isActive){
+    const btn = document.querySelector('.item-toggle[data-target="'+id+'"]');
+    if(btn) btn.classList.toggle('active', isActive);
+    const row = $(id).closest('.control-row');
+    if(row) row.classList.toggle('row-active', isActive);
+  }
+
+  function setCheckboxRow(id, checked){
+    $(id).checked = checked;
+    const row = $(id).closest('.control-row');
+    if(row) row.classList.toggle('row-active', checked);
+  }
+
+  function randomize(){
+    // Topographic
+    setRowActive('topo-palette', Math.random()>0.15);
+    $('topo-palette').value = ['survey','classic','thermal'][Math.floor(Math.random()*3)]; // 'mono' excluded from random
+    setRowActive('topo-levels', Math.random()>0.15);
+    $('topo-levels').value = 2+Math.floor(Math.random()*6);
+    setRowActive('topo-spacing', Math.random()>0.15);
+    $('topo-spacing').value = 4+Math.floor(Math.random()*30);
+    setRowActive('topo-thickness', Math.random()>0.15);
+    $('topo-thickness').value = 1+Math.floor(Math.random()*3);
+    setRowActive('topo-strength', Math.random()>0.6);
+    $('topo-strength').value = 50+Math.floor(Math.random()*50);
+
+    // Dither
+    setRowActive('dither-levels', Math.random()>0.15);
+    $('dither-levels').value = 2+Math.floor(Math.random()*6);
+    // dither-grayscale intentionally excluded from randomization
+
+    // Film Grain
+    setRowActive('grain-intensity', Math.random()>0.2);
+    $('grain-intensity').value = Math.floor(Math.random()*80)+10;
+    setRowActive('grain-size', Math.random()>0.15);
+    $('grain-size').value = 1+Math.floor(Math.random()*10);
+
+    // Scanlines / VHS
+    setRowActive('scan-intensity', Math.random()>0.4);
+    $('scan-intensity').value = Math.floor(Math.random()*70);
+    setRowActive('scan-spacing', Math.random()>0.15);
+    $('scan-spacing').value = 1+Math.floor(Math.random()*5);
+    setRowActive('scan-chroma', Math.random()>0.4);
+    $('scan-chroma').value = Math.floor(Math.random()*8);
+    setRowActive('scan-tracking', Math.random()>0.4);
+    $('scan-tracking').value = Math.floor(Math.random()*50);
+    setRowActive('scan-vignette', Math.random()>0.4);
+    $('scan-vignette').value = Math.floor(Math.random()*60);
+    setRowActive('scan-tear', Math.random()>0.5);
+    $('scan-tear').value = Math.floor(Math.random()*70);
+    setRowActive('scan-tear-shift', Math.random()>0.15);
+    $('scan-tear-shift').value = 15+Math.floor(Math.random()*40);
+    setRowActive('scan-tear-asym', Math.random()>0.15);
+    $('scan-tear-asym').value = Math.floor(Math.random()*201)-100;
+    setRowActive('scan-vmisalign', Math.random()>0.4);
+    $('scan-vmisalign').value = Math.floor(Math.random()*80)+15;
+
+    // Motion Echo
+    setRowActive('echo-amount', Math.random()>0.5);
+    $('echo-amount').value = Math.floor(Math.random()*80)+10;
+    setRowActive('echo-trail', Math.random()>0.15);
+    $('echo-trail').value = Math.floor(Math.random()*90)+10;
+
+    // Fried mode
+    setRowActive('fried-duplicate', Math.random()>0.7);
+    $('fried-duplicate').value = Math.floor(Math.random()*80);
+    setRowActive('fried-offset', Math.random()>0.15);
+    $('fried-offset').value = Math.floor(Math.random()*100);
+    setRowActive('fried-fluorescent', Math.random()>0.7);
+    $('fried-fluorescent').value = Math.floor(Math.random()*80);
+    setRowActive('fried-corruption', Math.random()>0.75);
+    $('fried-corruption').value = Math.floor(Math.random()*70);
+
+    // Moire
+    setRowActive('moire-amount', Math.random()>0.5);
+    $('moire-amount').value = Math.floor(Math.random()*70)+15;
+    setRowActive('moire-scale', Math.random()>0.15);
+    $('moire-scale').value = Math.floor(Math.random()*100);
+
+    updateAllSpans();
+    scheduleRender();
+  }
+
+  function friedMode(){
+    setRowActive('fried-duplicate', true);
+    $('fried-duplicate').value = 55+Math.floor(Math.random()*45);
+    setRowActive('fried-offset', true);
+    $('fried-offset').value = 30+Math.floor(Math.random()*60);
+    setRowActive('fried-fluorescent', true);
+    $('fried-fluorescent').value = 60+Math.floor(Math.random()*40);
+    setRowActive('fried-corruption', true);
+    $('fried-corruption').value = 40+Math.floor(Math.random()*50);
+
+    // Lean into existing chaos knobs too, for compounding "goes insane" energy
+    setRowActive('scan-chroma', true);
+    $('scan-chroma').value = 5+Math.floor(Math.random()*5);
+    setRowActive('scan-tracking', true);
+    $('scan-tracking').value = 40+Math.floor(Math.random()*40);
+    setRowActive('scan-tear', true);
+    $('scan-tear').value = 50+Math.floor(Math.random()*50);
+    setRowActive('scan-tear-shift', true);
+    $('scan-tear-shift').value = 30+Math.floor(Math.random()*30);
+    setRowActive('scan-vmisalign', true);
+    $('scan-vmisalign').value = 65+Math.floor(Math.random()*35);
+    setRowActive('grain-intensity', true);
+    $('grain-intensity').value = 50+Math.floor(Math.random()*40);
+
+    updateAllSpans();
+    scheduleRender();
+  }
+
+  function setZoom(pct){
+    previewCanvas.style.transform = 'scale(' + (pct/100) + ')';
+    $('zoom-val').textContent = pct + '%';
+  }
+
+  function turnAllOff(){
+    document.querySelectorAll('.item-toggle').forEach(btn=>{
+      btn.classList.remove('active');
+      const row = btn.closest('.control-row');
+      if(row) row.classList.remove('row-active');
+    });
+    scheduleRender();
+  }
+
+  function resetAll(){
+    $('topo-palette').value='survey';        setRowActive('topo-palette', true);
+    $('topo-levels').value=4;                setRowActive('topo-levels', true);
+    $('topo-spacing').value=14;               setRowActive('topo-spacing', true);
+    $('topo-thickness').value=1;              setRowActive('topo-thickness', true);
+    $('topo-strength').value=100;             setRowActive('topo-strength', false);
+
+    $('dither-levels').value=4;               setRowActive('dither-levels', false);
+    setCheckboxRow('dither-grayscale', false);
+
+    $('grain-intensity').value=35;            setRowActive('grain-intensity', true);
+    $('grain-size').value=1;                  setRowActive('grain-size', true);
+
+    $('scan-intensity').value=40;             setRowActive('scan-intensity', false);
+    $('scan-spacing').value=2;                setRowActive('scan-spacing', true);
+    $('scan-chroma').value=2;                 setRowActive('scan-chroma', false);
+    $('scan-tracking').value=15;              setRowActive('scan-tracking', false);
+    $('scan-vignette').value=20;              setRowActive('scan-vignette', false);
+    $('scan-tear').value=0;                   setRowActive('scan-tear', false);
+    $('scan-tear-shift').value=30;            setRowActive('scan-tear-shift', true);
+    $('scan-tear-asym').value=0;              setRowActive('scan-tear-asym', true);
+    $('scan-vmisalign').value=55;             setRowActive('scan-vmisalign', false);
+
+    $('echo-amount').value=50;                setRowActive('echo-amount', true);
+    $('echo-trail').value=40;                 setRowActive('echo-trail', true);
+
+    $('moire-amount').value=45;               setRowActive('moire-amount', false);
+    $('moire-scale').value=50;                setRowActive('moire-scale', true);
+
+    $('fried-duplicate').value=50;            setRowActive('fried-duplicate', false);
+    $('fried-offset').value=40;               setRowActive('fried-offset', true);
+    $('fried-fluorescent').value=50;          setRowActive('fried-fluorescent', false);
+    $('fried-corruption').value=30;           setRowActive('fried-corruption', false);
+
+    $('zoom-slider').value=100;               setZoom(100);
+
+    updateAllSpans();
+    scheduleRender();
+  }
+
+  function savePNG(){
+    $('status-main').textContent='Rendering full resolution...';
+    setTimeout(()=>{
+      const opts = getOpts();
+      const temp = document.createElement('canvas');
+      renderToCanvas(originalCanvas, temp, opts);
+      temp.toBlob(blob=>{
+        if(!blob){ $('status-main').textContent='Export failed'; return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href=url; a.download='grain-export.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        $('status-main').textContent='Saved grain-export.png';
+        setTimeout(()=>{ $('status-main').textContent='Ready'; },2500);
+      },'image/png');
+    }, 60);
+  }
+
+  function closeMenus(){
+    document.querySelectorAll('.menu-item.open').forEach(i=>i.classList.remove('open'));
+  }
+
+  function syncRowClasses(){
+    document.querySelectorAll('.item-toggle').forEach(btn=>{
+      const row = btn.closest('.control-row');
+      if(row) row.classList.toggle('row-active', btn.classList.contains('active'));
+    });
+    const gs = $('dither-grayscale');
+    const gsRow = gs.closest('.control-row');
+    if(gsRow) gsRow.classList.toggle('row-active', gs.checked);
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    updateAllSpans();
+    setImage(generateDemoImage());
+
+    $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
+
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale'].forEach(bindRange);
+    $('topo-palette').addEventListener('input', scheduleRender);
+    $('topo-palette').addEventListener('change', scheduleRender);
+    $('dither-grayscale').addEventListener('change', ()=>{
+      const row = $('dither-grayscale').closest('.control-row');
+      if(row) row.classList.toggle('row-active', $('dither-grayscale').checked);
+      scheduleRender();
+    });
+
+    // Each control row's name doubles as its own on/off switch
+    document.querySelectorAll('.item-toggle').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const isActive = !btn.classList.contains('active');
+        btn.classList.toggle('active', isActive);
+        const row = btn.closest('.control-row');
+        if(row) row.classList.toggle('row-active', isActive);
+        scheduleRender();
+      });
+    });
+    syncRowClasses();
+
+    // Toolbar
+    $('btn-load').addEventListener('click', ()=>$('file-input').click());
+    $('btn-randomize').addEventListener('click', randomize);
+    $('btn-fried').addEventListener('click', friedMode);
+    $('btn-reset').addEventListener('click', resetAll);
+    $('btn-off').addEventListener('click', turnAllOff);
+    $('file-input').addEventListener('change', e=>{
+      if(e.target.files[0]) loadImageFile(e.target.files[0]);
+      e.target.value='';
+    });
+
+    // Drag and drop - works anywhere on the window, not just the canvas
+    const panel = $('canvas-panel');
+    const win = $('app-window');
+    win.addEventListener('dragover', e=>{ e.preventDefault(); panel.classList.add('drag-over'); });
+    win.addEventListener('dragleave', e=>{ if(!win.contains(e.relatedTarget)) panel.classList.remove('drag-over'); });
+    win.addEventListener('drop', e=>{
+      e.preventDefault();
+      panel.classList.remove('drag-over');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if(f) loadImageFile(f);
+    });
+
+    // Menus (only items with a dropdown toggle open/close; About opens directly)
+    document.querySelectorAll('.menu-item').forEach(item=>{
+      if(!item.querySelector('.dropdown')) return;
+      item.addEventListener('click', e=>{
+        e.stopPropagation();
+        const wasOpen = item.classList.contains('open');
+        closeMenus();
+        if(!wasOpen) item.classList.add('open');
+      });
+    });
+    document.addEventListener('click', closeMenus);
+    $('menu-about').addEventListener('click', e=>{
+      e.stopPropagation();
+      closeMenus();
+      $('about-overlay').classList.add('show');
+    });
+
+    $('mi-save').addEventListener('click', ()=>{ closeMenus(); savePNG(); });
+    $('mi-export').addEventListener('click', ()=>{ closeMenus(); savePNG(); });
+    $('mi-reset').addEventListener('click', ()=>{ closeMenus(); resetAll(); });
+    $('mi-quit').addEventListener('click', ()=>{ closeMenus(); $('exit-overlay').classList.add('show'); });
+    $('recent-list').addEventListener('click', e=>{
+      const item = e.target.closest('.recent-item');
+      if(!item) return;
+      closeMenus();
+      openRecent(parseInt(item.dataset.idx,10));
+    });
+    renderRecentMenu();
+
+    // Modals
+    $('about-close').addEventListener('click', ()=>$('about-overlay').classList.remove('show'));
+    $('about-ok').addEventListener('click', ()=>$('about-overlay').classList.remove('show'));
+    $('exit-cancel').addEventListener('click', ()=>$('exit-overlay').classList.remove('show'));
+    $('exit-reset').addEventListener('click', ()=>{ resetAll(); $('exit-overlay').classList.remove('show'); });
+
+    // Title bar controls
+    $('btn-close').addEventListener('click', ()=>$('exit-overlay').classList.add('show'));
+    $('btn-min').addEventListener('click', ()=>{
+      const win = $('app-window');
+      win.classList.add('minimized');
+      setTimeout(()=>win.classList.remove('minimized'), 450);
+    });
+    $('btn-max').addEventListener('click', ()=>{ document.body.classList.toggle('maximized'); });
+  });
+})();
+</script>
+</body>
+</html>

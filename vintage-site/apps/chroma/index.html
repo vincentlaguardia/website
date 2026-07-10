@@ -2220,15 +2220,97 @@
     }
   });
   // --- Sam Mode ---
-  const SAM_CELLS = TARGET_CELLS; // 9 evenly-distributed cells already defined
+  const SAM_SWATCH_COUNT = 9;
   enableDialogDragging(samDialog);
-  // Build a quick O(1) lookup map for zones by "col,row" used by Sam Mode renders.
-  const samZoneByPos = new Map(zones.map(function(z){ return [z.col + ',' + z.row, z]; }));
+  function getSamZoneData(){
+    return zones.map(function(zone){
+      const hex = zoneHex(zone);
+      const rgb = hexToRgbObj(hex);
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      return { zone: zone, hex: hex, rgb: rgb, hsl: hsl };
+    });
+  }
+  function getSamExpectedHues(zoneData){
+    if(importedMode){
+      const sinSum = zoneData.reduce(function(s, item){ return s + Math.sin(item.hsl.h * Math.PI / 180); }, 0);
+      const cosSum = zoneData.reduce(function(s, item){ return s + Math.cos(item.hsl.h * Math.PI / 180); }, 0);
+      return [(Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360];
+    }
+    return PHILOSOPHIES[philoIdx].hueOffsets.map(function(off){ return (baseHue + off + 3600) % 360; });
+  }
+  function pickMost(list, scoreFn){
+    if(!list.length) return null;
+    return list.reduce(function(best, item){
+      return scoreFn(item) > scoreFn(best) ? item : best;
+    }, list[0]);
+  }
+  function getSamSwatches(){
+    const pool = getSamZoneData();
+    if(!pool.length) return [];
+    const byHex = new Map();
+    pool.forEach(function(item){
+      if(!byHex.has(item.hex)) byHex.set(item.hex, item);
+    });
+    const candidates = Array.from(byHex.values());
+    const expectedHues = getSamExpectedHues(pool);
+    const picked = [];
+    const pickedHexes = new Set();
+    const pickedZoneKeys = new Set();
+    function zoneKey(item){ return item.zone.col + ',' + item.zone.row; }
+    function addPick(item){
+      if(!item || pickedHexes.has(item.hex)) return;
+      picked.push(item);
+      pickedHexes.add(item.hex);
+      pickedZoneKeys.add(zoneKey(item));
+    }
+    function addAnyPick(item){
+      if(!item) return;
+      const key = zoneKey(item);
+      if(pickedZoneKeys.has(key)) return;
+      picked.push(item);
+      pickedZoneKeys.add(key);
+      pickedHexes.add(item.hex);
+    }
+    // Outlier from expected hue behavior.
+    addPick(pickMost(candidates, function(item){
+      const minDist = expectedHues.reduce(function(best, eh){ return Math.min(best, hueDist(item.hsl.h, eh)); }, 360);
+      return minDist * (item.hsl.s / 100);
+    }));
+    // Extremes across vividness and brightness.
+    addPick(pickMost(candidates, function(item){ return item.hsl.s; }));
+    addPick(pickMost(candidates, function(item){ return 100 - item.hsl.s; }));
+    addPick(pickMost(candidates, function(item){ return item.hsl.l; }));
+    addPick(pickMost(candidates, function(item){ return 100 - item.hsl.l; }));
+    // Core palette anchors nearest expected hues.
+    expectedHues.forEach(function(eh){
+      addPick(pickMost(candidates, function(item){ return 360 - hueDist(item.hsl.h, eh); }));
+    });
+    // Fill remaining slots by maximizing diversity from already-picked samples.
+    while(picked.length < SAM_SWATCH_COUNT && picked.length < candidates.length){
+      const next = pickMost(candidates.filter(function(item){ return !pickedHexes.has(item.hex); }), function(item){
+        if(!picked.length) return 0;
+        return picked.reduce(function(minDist, chosen){
+          const dHue = hueDist(item.hsl.h, chosen.hsl.h);
+          const dSat = Math.abs(item.hsl.s - chosen.hsl.s);
+          const dLight = Math.abs(item.hsl.l - chosen.hsl.l);
+          const d = dHue * 0.7 + dSat * 0.15 + dLight * 0.15;
+          return Math.min(minDist, d);
+        }, Infinity);
+      });
+      addPick(next);
+    }
+    if(picked.length < SAM_SWATCH_COUNT){
+      pool.forEach(function(item){
+        if(picked.length >= SAM_SWATCH_COUNT) return;
+        addAnyPick(item);
+      });
+    }
+    return picked.slice(0, SAM_SWATCH_COUNT);
+  }
 
   function buildSamTheoryHtml(){
-    const hexes = SAM_CELLS.map(function(cell){
-      return zoneHex(samZoneByPos.get(cell.col + ',' + cell.row));
-    });
+    const swatches = getSamSwatches();
+    const hexes = swatches.map(function(s){ return s.hex; });
     const paras = [];
     if(importedMode){
       paras.push('this palette came from a photo you imported. the app scanned the image, pulled out the most common color groups, and spread them across the 9 swatches you see here. each swatch represents a color that was meaningfully present in that photo.');
@@ -2339,15 +2421,7 @@
     'swatch 7 (bottom left)', 'swatch 8 (bottom center)', 'swatch 9 (bottom right)'
   ];
   function buildSamOutlierParagraph(hexes){
-    let expectedHues;
-    if(importedMode){
-      const hsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
-      const sinSum = hsls.reduce(function(s, hsl){ return s + Math.sin(hsl.h * Math.PI / 180); }, 0);
-      const cosSum = hsls.reduce(function(s, hsl){ return s + Math.cos(hsl.h * Math.PI / 180); }, 0);
-      expectedHues = [(Math.atan2(sinSum, cosSum) * 180 / Math.PI + 360) % 360];
-    } else {
-      expectedHues = PHILOSOPHIES[philoIdx].hueOffsets.map(function(off){ return (baseHue + off + 3600) % 360; });
-    }
+    const expectedHues = getSamExpectedHues(getSamZoneData());
     const scored = hexes.map(function(hex, i){
       const rgb = hexToRgbObj(hex);
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
@@ -2413,10 +2487,9 @@
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
     cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
-    SAM_CELLS.forEach(function(cell, i){
-      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
-      const hex = zoneHex(zone);
-      const rgb = hexToRgbObj(hex);
+    getSamSwatches().forEach(function(swatch, i){
+      const hex = swatch.hex;
+      const rgb = swatch.rgb;
       const col = i % COLS;
       const row = Math.floor(i / COLS);
       const x = PAD + col * (SW + GAP);
@@ -2456,10 +2529,9 @@
   function renderSamMode(){
     const grid = document.getElementById('sam-grid');
     grid.innerHTML = '';
-    SAM_CELLS.forEach(function(cell){
-      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
-      const hex = zoneHex(zone);
-      const rgb = hexToRgbObj(hex);
+    getSamSwatches().forEach(function(swatch){
+      const hex = swatch.hex;
+      const rgb = swatch.rgb;
       const tc = swatchTextColor(rgb.r, rgb.g, rgb.b);
       const div = document.createElement('div');
       div.className = 'diary-swatch';
@@ -2487,10 +2559,9 @@
 
   function openSamMode(){
     // Serialize current Sam state to localStorage so sam.html can render it.
-    const cells = SAM_CELLS.map(function(cell){
-      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
-      const hex = zoneHex(zone);
-      const rgb = hexToRgbObj(hex);
+    const cells = getSamSwatches().map(function(swatch){
+      const hex = swatch.hex;
+      const rgb = swatch.rgb;
       return { hex: hex, r: rgb.r, g: rgb.g, b: rgb.b };
     });
     const theoryHtml = buildSamTheoryHtml();
@@ -2520,10 +2591,9 @@
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
     cx.fillText('chroma.exe \u2014 Sam Mode', PAD, PAD + 14);
-    SAM_CELLS.forEach(function(cell, i){
-      const zone = samZoneByPos.get(cell.col + ',' + cell.row);
-      const hex = zoneHex(zone);
-      const rgb = hexToRgbObj(hex);
+    getSamSwatches().forEach(function(swatch, i){
+      const hex = swatch.hex;
+      const rgb = swatch.rgb;
       const col = i % COLS;
       const row = Math.floor(i / COLS);
       const x = PAD + col * (SW + GAP);

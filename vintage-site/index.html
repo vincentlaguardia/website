@@ -251,6 +251,7 @@
   .chroma-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .echo-trail-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
+  .echo-trail-window.echo-trail-drag-over .echo-trail-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
   .desktop-icon-item.chroma-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
   .chroma-diary-window { resize: both; overflow: hidden; }
   .chroma-diary-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
@@ -2249,7 +2250,7 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
             activeTargetEl.classList.toggle('drop-insert-after', !reorderTarget.before);
           }
         }
-        setChromaDragHover(ev.clientX, ev.clientY, itemId);
+        setImageAppDragHover(ev.clientX, ev.clientY, itemId);
       }
     }
     function onUp(ev) {
@@ -2274,8 +2275,8 @@ function makeDraggableToTrash(el, onDropInTrash, itemId, parentId) {
         return;
       }
       // 3. Drop onto Chroma iframe -> import image
-      setChromaDragHover(-1, -1, null);
-      if (itemId && tryDropImageToChroma(ev.clientX, ev.clientY, itemId)) return;
+      setImageAppDragHover(-1, -1, null);
+      if (itemId && tryDropImageToImageApp(ev.clientX, ev.clientY, itemId)) return;
       if (!itemId || !parentId) return;
       // Hide dragged element so elementFromPoint doesn't hit it
       const oldDisplay = el.style.display;
@@ -3412,7 +3413,7 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
       const playlistEl = document.getElementById('mp-playlist');
       if (playlistEl) playlistEl.classList.toggle('drag-over', isOverPlaylistPane(e.clientX, e.clientY));
     }
-    setChromaDragHover(e.clientX, e.clientY, itemId);
+    setImageAppDragHover(e.clientX, e.clientY, itemId);
   }
   function onUp(e) {
     if (dragging && moved) {
@@ -3436,8 +3437,8 @@ function makeFolderIconFreeformDraggable(el, parentId, itemId, onOpen, onDeleteV
         openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId));
         return;
       }
-      setChromaDragHover(-1, -1, null);
-      if (itemId && tryDropImageToChroma(e.clientX, e.clientY, itemId)) { dragging = false; stopTracking(); return; }
+      setImageAppDragHover(-1, -1, null);
+      if (itemId && tryDropImageToImageApp(e.clientX, e.clientY, itemId)) { dragging = false; stopTracking(); return; }
       const oldDisplay = el.style.display;
       el.style.display = 'none';
       const dropTarget = findFolderDropTarget(e.clientX, e.clientY, itemId, dragScopeEl);
@@ -7074,6 +7075,15 @@ function setChromaDragHover(x, y, itemId) {
     iconEl.classList.toggle('chroma-drop-target', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
   }
 }
+function setEchoTrailDragHover(x, y, itemId) {
+  const isPicture = itemId && items[itemId] && items[itemId].type === 'picture';
+  const win = document.querySelector('.echo-trail-window');
+  if (!win) return;
+  const frame = win.querySelector('.echo-trail-frame');
+  if (!frame) return;
+  const r = frame.getBoundingClientRect();
+  win.classList.toggle('echo-trail-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+}
 function tryDropImageToChroma(x, y, itemId) {
   const item = itemId && items[itemId];
   if (!item || item.type !== 'picture') return false;
@@ -7127,6 +7137,30 @@ function tryDropImageToChroma(x, y, itemId) {
   }
   return false;
 }
+function tryDropImageToEchoTrail(x, y, itemId) {
+  const item = itemId && items[itemId];
+  if (!item || item.type !== 'picture') return false;
+  const rawUrl = item.file || (item.filePath ? toAssetUrl(item.filePath) : null);
+  if (!rawUrl) return false;
+  let absoluteUrl;
+  try { absoluteUrl = new URL(rawUrl, window.location.href).href; } catch(_) { return false; }
+  const frame = document.querySelector('.echo-trail-frame');
+  if (!frame) return false;
+  const fr = frame.getBoundingClientRect();
+  if (x < fr.left || x > fr.right || y < fr.top || y > fr.bottom) return false;
+  frame.contentWindow.postMessage({ type: 'echo-trail-desktop-drop', url: absoluteUrl }, window.location.origin);
+  document.querySelectorAll('.echo-trail-window').forEach(function(w) { w.classList.remove('echo-trail-drag-over'); });
+  return true;
+}
+function setImageAppDragHover(x, y, itemId) {
+  setChromaDragHover(x, y, itemId);
+  setEchoTrailDragHover(x, y, itemId);
+}
+function tryDropImageToImageApp(x, y, itemId) {
+  if (tryDropImageToChroma(x, y, itemId)) return true;
+  if (tryDropImageToEchoTrail(x, y, itemId)) return true;
+  return false;
+}
 function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, itemId, parentId) {
   let dragging = false, moved = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
   el.setAttribute('draggable', 'false');
@@ -7150,7 +7184,7 @@ function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, item
       const maxTop = window.innerHeight - el.offsetHeight - 30;
       el.style.left = Math.min(Math.max(0, origLeft + dx), maxLeft) + 'px';
       el.style.top = Math.min(Math.max(0, origTop + dy), maxTop) + 'px';
-      setChromaDragHover(e.clientX, e.clientY, itemId);
+      setImageAppDragHover(e.clientX, e.clientY, itemId);
     }
   }
   function onUp(e) {
@@ -7166,8 +7200,8 @@ function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, item
           }
         }
       }
-      setChromaDragHover(-1, -1, null);
-      if (itemId && tryDropImageToChroma(e.clientX, e.clientY, itemId)) { dragging = false; return; }
+      setImageAppDragHover(-1, -1, null);
+      if (itemId && tryDropImageToImageApp(e.clientX, e.clientY, itemId)) { dragging = false; return; }
       if (itemId && parentId) {
         const oldDisplay = el.style.display;
         el.style.display = 'none'; // don't let elementsFromPoint hit the icon being dragged
@@ -7486,8 +7520,10 @@ window.addEventListener('message', function(e) {
 
   const chromaFrame = document.querySelector('.chroma-frame');
   const diaryFrame = document.querySelector('.chroma-diary-frame');
+  const echoTrailFrame = document.querySelector('.echo-trail-frame');
   const isFromChroma = chromaFrame && e.source === chromaFrame.contentWindow;
   const isFromDiary = diaryFrame && e.source === diaryFrame.contentWindow;
+  const isFromEchoTrail = echoTrailFrame && e.source === echoTrailFrame.contentWindow;
 
   if (e.data.type === 'chroma-open-diary' && isFromChroma) {
     openChromaDiaryWindow();
@@ -7501,6 +7537,27 @@ window.addEventListener('message', function(e) {
     const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
     const dataUrl = String(e.data.dataUrl || '');
     const newId = 'chroma_' + Date.now();
+    const newItem = {
+      type: 'picture',
+      name: name,
+      file: dataUrl,
+      thumb: dataUrl,
+      modified: new Date().toISOString().slice(0, 10),
+      custom: true
+    };
+    items[newId] = newItem;
+    customFolders[newId] = newItem;
+    saveCustomFolders();
+    if (!items.desktop.children.includes(newId)) {
+      items.desktop.children.push(newId);
+      persistFolderChildren('desktop');
+    }
+    buildDesktopIcons();
+  }
+  if (e.data.type === 'echo-trail-save-to-desktop' && isFromEchoTrail) {
+    const name = String(e.data.name || '').trim() || 'echo-trail.png';
+    const dataUrl = String(e.data.dataUrl || '');
+    const newId = 'echo_trail_' + Date.now();
     const newItem = {
       type: 'picture',
       name: name,

@@ -53,6 +53,7 @@
     max-width:none;
     box-shadow:none;
   }
+  body.embedded .app-titlebar{ display:none; }
   body.embedded #btn-min,
   body.embedded #btn-max,
   body.embedded #btn-close{ display:none; }
@@ -92,7 +93,7 @@
   .dropdown-sep{ height:1px; background:var(--shadow); margin:2px 1px; box-shadow:0 1px 0 #fff; }
   .dropdown-header{ padding:3px 12px; font-size:10px; color:#555; }
 
-  .toolbar{ display:flex; gap:6px; padding:6px; border-bottom:1px solid var(--shadow); flex-wrap:wrap; }
+  .toolbar{ display:flex; gap:6px; padding:6px; border-bottom:1px solid var(--shadow); flex-wrap:wrap; align-items:center; }
   .btn95{
     background:var(--face); border:none;
     box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
@@ -153,12 +154,18 @@
   .status-field{ flex:1; padding:3px 8px; box-shadow: inset 1px 1px 0 #808080, inset -1px -1px 0 #fff; margin:3px; font-size:11px; }
   .status-field:last-child{ flex:0 0 auto; min-width:120px; }
   .zoom-control{ display:flex; align-items:center; gap:6px; }
-  .zoom-control input[type=range]{ width:80px; cursor:pointer; }
+  .toolbar .zoom-control{ margin-left:auto; padding-left:4px; }
+  .zoom-control input[type=range]{ width:92px; cursor:pointer; }
   .zoom-control span:last-child{ width:36px; text-align:right; flex-shrink:0; }
+  .palette-system.row-active select{
+    background:ButtonFace;
+    color:ButtonText;
+  }
 
   .modal-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:100; }
   .modal-overlay.show{ display:flex; }
   .window.modal{ width:360px; }
+  #about-overlay .modal-body{ gap:0; }
   .modal-body{ padding:16px; display:flex; gap:14px; align-items:flex-start; }
   .modal-icon{ width:32px; height:32px; flex-shrink:0; }
   .modal-text{ flex:1; }
@@ -170,7 +177,7 @@
 <body>
 
   <div class="window" id="app-window">
-    <div class="title-bar">
+    <div class="title-bar app-titlebar">
       <svg class="title-bar-icon" viewBox="0 0 16 16"><rect width="16" height="16" fill="#c0c0c0"/><rect x="1" y="1" width="14" height="14" fill="#000080"/><circle cx="4" cy="4" r="1" fill="#fff"/><circle cx="9" cy="3" r="1" fill="#ffd76e"/><circle cx="12" cy="7" r="1.2" fill="#ff6ec7"/><circle cx="5" cy="9" r="1" fill="#6ec7ff"/><circle cx="11" cy="11" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#ffd76e"/></svg>
       <div class="title-bar-text">Echo Trail</div>
       <div class="title-bar-controls">
@@ -203,18 +210,23 @@
       <button class="btn95" id="btn-fried">Fucked</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
+      <div class="zoom-control">
+        <span>Zoom</span>
+        <input type="range" id="zoom-slider" min="25" max="300" step="5" value="115">
+        <span id="zoom-val">115%</span>
+      </div>
       <input type="file" id="file-input" accept="image/*" hidden>
     </div>
 
     <div class="main-area">
       <div class="canvas-panel sunken" id="canvas-panel">
         <canvas id="preview-canvas"></canvas>
-        <div class="drop-hint" id="drop-hint">Drop an image here<br>or use File &#9656; Open</div>
+        <div class="drop-hint" id="drop-hint">Drop an image here<br>or use Load Image</div>
       </div>
 
       <div class="controls-panel">
         <div class="controls-col">
-          <div class="control-row" style="--row-color:#E8834E;">
+          <div class="control-row palette-system" style="--row-color:#E8834E;">
             <button type="button" class="item-toggle active" data-target="topo-palette" data-off="survey">Palette</button>
             <select id="topo-palette">
               <option value="survey" selected>Survey</option>
@@ -353,15 +365,11 @@
       </div>
     </div>
 
-    <div class="status-bar">
-      <div class="status-field" id="status-main">Ready</div>
-      <div class="status-field" id="status-dims">&mdash; &times; &mdash; px</div>
-      <div class="status-field zoom-control">
-        <span>Zoom</span>
-        <input type="range" id="zoom-slider" min="25" max="300" step="5" value="100">
-        <span id="zoom-val">100%</span>
-      </div>
-    </div>
+  </div>
+
+  <div hidden aria-hidden="true">
+    <span id="status-main">Ready</span>
+    <span id="status-dims">&mdash; &times; &mdash; px</span>
   </div>
 
   <div class="modal-overlay" id="about-overlay">
@@ -371,9 +379,8 @@
         <div class="title-bar-controls"><button id="about-close">&times;</button></div>
       </div>
       <div class="modal-body">
-        <svg class="modal-icon" viewBox="0 0 16 16"><rect width="16" height="16" fill="#000080"/><circle cx="4" cy="4" r="1" fill="#fff"/><circle cx="9" cy="3" r="1" fill="#ffd76e"/><circle cx="12" cy="7" r="1.2" fill="#ff6ec7"/><circle cx="5" cy="9" r="1" fill="#6ec7ff"/><circle cx="11" cy="11" r="1" fill="#fff"/><circle cx="3" cy="12" r="1" fill="#ffd76e"/></svg>
         <div class="modal-text">
-          <h3>Echo Trail v1.0</h3>
+          <h3>Echo Trail</h3>
           <p>created by dr vincent j laguardia</p>
         </div>
       </div>
@@ -1334,29 +1341,81 @@
     $('fried-fluorescent').value=50;          setRowActive('fried-fluorescent', false);
     $('fried-corruption').value=30;           setRowActive('fried-corruption', false);
 
-    $('zoom-slider').value=100;               setZoom(100);
+    $('zoom-slider').value=115;               setZoom(115);
 
     updateAllSpans();
     scheduleRender();
   }
 
-  function savePNG(){
-    $('status-main').textContent='Rendering full resolution...';
-    setTimeout(()=>{
-      const opts = getOpts();
-      const temp = document.createElement('canvas');
-      renderToCanvas(originalCanvas, temp, opts);
-      temp.toBlob(blob=>{
-        if(!blob){ $('status-main').textContent='Export failed'; return; }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href=url; a.download='grain-export.png';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        $('status-main').textContent='Saved grain-export.png';
-        setTimeout(()=>{ $('status-main').textContent='Ready'; },2500);
-      },'image/png');
-    }, 60);
+  function timestampTag(){
+    return new Date().toISOString().replace(/[:.]/g,'-').replace('T','-').replace('Z','');
+  }
+
+  function renderOutputCanvas(){
+    if(!originalCanvas.width || !originalCanvas.height){
+      alert('Load an image first.');
+      return null;
+    }
+    const temp = document.createElement('canvas');
+    renderToCanvas(originalCanvas, temp, getOpts());
+    return temp;
+  }
+
+  function canvasToBlob(canvas, type, quality){
+    return new Promise(resolve=>canvas.toBlob(resolve, type, quality));
+  }
+
+  async function savePNGToDisk(){
+    const temp = renderOutputCanvas();
+    if(!temp) return;
+    const blob = await canvasToBlob(temp, 'image/png');
+    if(!blob){
+      alert('Export failed.');
+      return;
+    }
+    const defaultName = 'echo-trail-' + timestampTag() + '.png';
+    if(window.showSaveFilePicker && window.isSecureContext){
+      try{
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultName,
+          types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      } catch(err){
+        if(err && err.name === 'AbortError') return;
+        console.warn('showSaveFilePicker failed, falling back to download.', err);
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = defaultName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportToVirtualDesktop(){
+    if(window.self === window.top){
+      alert('Export to Desktop is only available inside the virtual desktop.');
+      return;
+    }
+    const temp = renderOutputCanvas();
+    if(!temp) return;
+    const defaultName = 'echo-trail-' + timestampTag() + '.png';
+    const raw = window.prompt('Export image to virtual desktop as:', defaultName);
+    if(raw === null) return;
+    let fname = raw.trim() || defaultName;
+    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.png';
+    window.parent.postMessage({
+      type: 'echo-trail-save-to-desktop',
+      name: fname,
+      dataUrl: temp.toDataURL('image/png')
+    }, window.location.origin);
   }
 
   function closeMenus(){
@@ -1379,6 +1438,7 @@
     }
     updateAllSpans();
     setImage(generateDemoImage());
+    setZoom(parseInt($('zoom-slider').value,10));
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
@@ -1443,8 +1503,8 @@
       $('about-overlay').classList.add('show');
     });
 
-    $('mi-save').addEventListener('click', ()=>{ closeMenus(); savePNG(); });
-    $('mi-export').addEventListener('click', ()=>{ closeMenus(); savePNG(); });
+    $('mi-save').addEventListener('click', ()=>{ closeMenus(); savePNGToDisk(); });
+    $('mi-export').addEventListener('click', ()=>{ closeMenus(); exportToVirtualDesktop(); });
     $('mi-reset').addEventListener('click', ()=>{ closeMenus(); resetAll(); });
     $('mi-quit').addEventListener('click', ()=>{ closeMenus(); $('exit-overlay').classList.add('show'); });
     $('recent-list').addEventListener('click', e=>{
@@ -1456,10 +1516,48 @@
     renderRecentMenu();
 
     // Modals
-    $('about-close').addEventListener('click', ()=>$('about-overlay').classList.remove('show'));
-    $('about-ok').addEventListener('click', ()=>$('about-overlay').classList.remove('show'));
-    $('exit-cancel').addEventListener('click', ()=>$('exit-overlay').classList.remove('show'));
+    [['about-overlay','about-close'],['about-overlay','about-ok'],['exit-overlay','exit-cancel']].forEach(([overlayId, buttonId])=>{
+      $(buttonId).addEventListener('click', ()=>$(overlayId).classList.remove('show'));
+    });
     $('exit-reset').addEventListener('click', ()=>{ resetAll(); $('exit-overlay').classList.remove('show'); });
+    document.addEventListener('click', e=>{
+      ['about-overlay','exit-overlay'].forEach(id=>{
+        const overlay = $(id);
+        if(!overlay.classList.contains('show')) return;
+        const dialog = overlay.querySelector('.window.modal');
+        if(dialog && !dialog.contains(e.target)) overlay.classList.remove('show');
+      });
+    }, true);
+
+    window.addEventListener('message', async e=>{
+      if(!e.data || e.data.type !== 'echo-trail-desktop-drop') return;
+      if(e.origin !== window.location.origin) return;
+      const rawUrl = String(e.data.url || '').trim();
+      if(!rawUrl) return;
+      let parsedUrl;
+      try{
+        parsedUrl = new URL(rawUrl, window.location.href);
+      } catch(_){
+        alert('Could not load the dropped desktop image.');
+        return;
+      }
+      try{
+        if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
+        const res = await fetch(parsedUrl.href);
+        if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
+        const blob = await res.blob();
+        if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
+        const rawName = parsedUrl.pathname.split('/').pop().split('?')[0] || 'image';
+        const name = (()=>{ try{ return decodeURIComponent(rawName); } catch(_){ return rawName; } })();
+        panel.classList.add('drag-over');
+        loadImageFile(new File([blob], name, { type: blob.type }));
+      } catch(err){
+        console.warn('Desktop image drop failed.', err);
+        alert(err && err.message ? err.message : 'Could not load the dropped desktop image.');
+      } finally {
+        panel.classList.remove('drag-over');
+      }
+    });
 
     // Title bar controls
     $('btn-close').addEventListener('click', ()=>$('exit-overlay').classList.add('show'));

@@ -7201,9 +7201,9 @@ async function openMediaPlayerWindow(trackId) {
 }
 
 /* ---------- desktop icon ---------- */
-const DESKTOP_LEFT_GRID_JITTER = 0.15;
-const DESKTOP_DEFAULT_LAYOUT_SEED = 'desktop-default-v2';
-const DESKTOP_LEFT_REQUIRED_IDS = ['chromashortcut', 'solitaireshortcut', 'ieshortcut', 'paintshortcut'];
+const DESKTOP_LEFT_GRID_JITTER = 0;
+const DESKTOP_DEFAULT_LAYOUT_SEED = 'desktop-default-v3';
+const DESKTOP_LEFT_REQUIRED_IDS = ['chromashortcut', 'solitaireshortcut', 'ieshortcut', 'paintshortcut', 'exorcistshortcut', 'echotrailshortcut'];
 const DESKTOP_LEFT_REQUIRED_LABELS = new Set(['applications', 'chroma.exe', 'solitaire', 'internet', 'internet explorer', 'paint']);
 
 function hashString32(seed) {
@@ -7312,8 +7312,7 @@ function placeScatteredDesktopPos(seedKey, item, occupied, exclusionRect) {
   const bounds = desktopIconPlacementBounds(item);
   const rand = seededRandom(DESKTOP_DEFAULT_LAYOUT_SEED + ':scatter:' + seedKey);
   for (let attempt = 0; attempt < 100; attempt++) {
-    const leftBias = Math.pow(rand(), 1.85);
-    const left = bounds.minLeft + leftBias * (bounds.maxLeft - bounds.minLeft);
+    const left = bounds.minLeft + rand() * (bounds.maxLeft - bounds.minLeft);
     const top = bounds.minTop + rand() * (bounds.maxTop - bounds.minTop);
     const pos = { left: Math.round(left), top: Math.round(top) };
     if (canPlaceDesktopPos(pos, item, occupied, exclusionRect)) return pos;
@@ -7355,6 +7354,12 @@ function resolveDesktopLeftGridItemIds(children) {
     if (!item) return;
     const label = normalizedDesktopLabel(getItemDisplayName(id, item));
     if (DESKTOP_LEFT_REQUIRED_LABELS.has(label)) push(id);
+  });
+  // Any remaining shortcut-type items also belong on the left grid
+  children.forEach(id => {
+    if (used.has(id)) return;
+    const item = items[id];
+    if (item && item.type === 'shortcut') push(id);
   });
   return result;
 }

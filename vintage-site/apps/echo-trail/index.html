@@ -1084,6 +1084,11 @@
     reader.readAsDataURL(file);
   }
 
+  function decodePathPart(value){
+    try{ return decodeURIComponent(value); }
+    catch(_){ return value; }
+  }
+
   // ---------- Open Recent (localStorage-backed, this is a standalone saved
   // file opened directly in the browser, not a Claude artifact preview) ----------
   const RECENT_KEY = 'scanlineStudioRecentImages';
@@ -1548,14 +1553,11 @@
         const blob = await res.blob();
         if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
         const rawName = parsedUrl.pathname.split('/').pop().split('?')[0] || 'image';
-        const name = (()=>{ try{ return decodeURIComponent(rawName); } catch(_){ return rawName; } })();
-        panel.classList.add('drag-over');
+        const name = decodePathPart(rawName);
         loadImageFile(new File([blob], name, { type: blob.type }));
       } catch(err){
         console.warn('Desktop image drop failed.', err);
         alert(err && err.message ? err.message : 'Could not load the dropped desktop image.');
-      } finally {
-        panel.classList.remove('drag-over');
       }
     });
 

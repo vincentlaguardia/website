@@ -46,7 +46,8 @@
     position:relative;
     display:flex;
     flex-direction:column;
-    width:834px;
+    width:900px;
+    height:900px;
     max-width:96vw;
     min-width:320px;
     min-height:480px;
@@ -1129,6 +1130,7 @@
   const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
   let TARGET = hexToRgbObj(targetColorInput.value);
+  let hasUserSelectedTargetColor = false;
   const TARGET_CELLS = [
     {col:1,row:1}, {col:3,row:1}, {col:5,row:1},
     {col:1,row:3}, {col:3,row:3}, {col:5,row:3},
@@ -1141,6 +1143,7 @@
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
+  const DEFAULT_MATCH_SAT_HEX = '#fbf432';
   const PHILOSOPHIES = [
     { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
     { name:'Analogous', hueOffsets:[-30,0,30], pattern:[0,1,2,1] },
@@ -1486,6 +1489,7 @@
   });
   function applyTargetHex(hex){
     targetColorInput.value = hex;
+    hasUserSelectedTargetColor = true;
     importedMode = false;
     TARGET = hexToRgbObj(hex);
     drawScene();
@@ -1499,7 +1503,8 @@
   });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
   matchSatBtn.addEventListener('click', ()=>{
-    const targetSat = rgbToHsl(TARGET.r, TARGET.g, TARGET.b).s;
+    const matchSatColor = hasUserSelectedTargetColor ? TARGET : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
+    const targetSat = rgbToHsl(matchSatColor.r, matchSatColor.g, matchSatColor.b).s;
     const satMin = +satSlider.min, satMax = +satSlider.max;
     const pct = Math.max(satMin, Math.min(satMax, Math.round((targetSat/BASE_SAT)*100)));
     satSlider.value = pct;
@@ -1606,12 +1611,9 @@
   resizeCanvas();
   (function fitInitialWindowSize(){
     if(window.self !== window.top) return; // skip in embedded/iframe mode
-    const winRect = win.getBoundingClientRect();
-    const wrapRect = ccWrap.getBoundingClientRect();
-    const chromeW = winRect.width - wrapRect.width;
-    const chromeH = winRect.height - wrapRect.height;
-    const targetW = Math.min(Math.round(800 + chromeW), Math.floor(window.innerWidth*0.96));
-    const targetH = Math.min(Math.round(800 + chromeH), Math.floor(window.innerHeight*0.96));
+    const DEFAULT_WINDOW_SIZE = 900;
+    const targetW = Math.min(DEFAULT_WINDOW_SIZE, Math.floor(window.innerWidth*0.96));
+    const targetH = Math.min(DEFAULT_WINDOW_SIZE, Math.floor(window.innerHeight*0.96));
     win.style.width = targetW + 'px';
     win.style.height = targetH + 'px';
     resizeCanvas();

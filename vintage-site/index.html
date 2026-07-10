@@ -6208,8 +6208,8 @@ function openFlightSimWindow() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out';
   cascade = (cascade + 1) % 8;
-  const openW = 640;
-  const openH = 380; // 360px content (16:9 for 320×180 canvas at 2×) + 20px titlebar
+  const openW = 1120;
+  const openH = 650; // 630px content (16:9) + 20px titlebar
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
   win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';

@@ -6107,13 +6107,13 @@ function openChromaWindow() {
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out chroma-window';
   cascade = (cascade + 1) % 8;
-  const openW = Math.max(400, Math.round(window.innerWidth * 0.55));
+  const openW = Math.max(1040, Math.round(window.innerWidth * 0.55));
   const openH = Math.max(320, Math.round(window.innerHeight * 0.70));
   win.style.left = (Math.max(0, Math.round((window.innerWidth - openW) / 2)) + cascade * 20) + 'px';
-  win.style.top = (Math.max(0, Math.round((window.innerHeight - openH) / 2)) + cascade * 18) + 'px';
+  win.style.top = (Math.max(0, Math.round(window.innerHeight * 0.05)) + cascade * 18) + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
-  win.style.minWidth = '400px';
+  win.style.minWidth = '1040px';
   win.style.minHeight = '320px';
 
   const titlebar = document.createElement('div');
@@ -7197,9 +7197,6 @@ async function tryLogin() {
     setInterval(updateClock, 30000);
     // Open order controls stacking (last opened ends up on top): browser
     // furthest back, then Solitaire, and media player on top.
-    // chroma.exe opens minimized to the taskbar on startup.
-    openChromaWindow();
-    toggleMinimize('chroma');
     openBrowserWindow('https://en.wikipedia.org/wiki/United_States_involvement_in_regime_change');
     openSolitaireWindow(true);
     openMediaPlayerWindow();

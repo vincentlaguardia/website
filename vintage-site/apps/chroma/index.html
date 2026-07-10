@@ -2229,7 +2229,8 @@
   });
   // --- Sam Mode ---
   const SAM_SWATCH_COUNT = 16;
-  const SAM_SWATCH_COLUMNS = 4;
+  const SAM_COORD_COLUMNS = 4;
+  const SAM_SWATCH_COLUMNS = SAM_COORD_COLUMNS;
   const SAM_SWATCH_ROWS = Math.ceil(SAM_SWATCH_COUNT / SAM_SWATCH_COLUMNS);
   const SAM_DIVERSITY_HUE_WEIGHT = 0.7;
   const SAM_DIVERSITY_SAT_WEIGHT = 0.15;
@@ -2445,9 +2446,19 @@
     return 'pink';
   }
   function samSwatchCoordLabel(index){
-    const row = Math.floor(index / SAM_SWATCH_COLUMNS);
-    const col = index % SAM_SWATCH_COLUMNS;
-    return String.fromCharCode(65 + row) + (col + 1);
+    const row = Math.floor(index / SAM_COORD_COLUMNS);
+    const col = index % SAM_COORD_COLUMNS;
+    return samRowLabel(row) + (col + 1);
+  }
+  function samRowLabel(rowIndex){
+    let label = '';
+    let n = rowIndex + 1;
+    while(n > 0){
+      const rem = (n - 1) % 26;
+      label = String.fromCharCode(65 + rem) + label;
+      n = Math.floor((n - 1) / 26);
+    }
+    return label;
   }
   function buildSamPaletteMathText(){
     const swatches = getSamSwatches();

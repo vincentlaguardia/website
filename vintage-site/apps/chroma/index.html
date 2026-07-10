@@ -2286,22 +2286,22 @@
     // Fill remaining slots by maximizing diversity from already-picked samples.
     const unpicked = candidates.filter(function(item){ return !pickedHexes.has(item.hex); });
     while(picked.length < SAM_SWATCH_COUNT && unpicked.length){
-      // Sentinel values: "no candidate chosen yet".
+      // Initialize tracking for the next most diverse candidate.
       let bestIdx = -1;
       let bestScore = -Infinity;
       for(let i = 0; i < unpicked.length; i++){
         const item = unpicked[i];
-        let score = Infinity;
+        let minDistanceToChosen = Infinity;
         for(let j = 0; j < picked.length; j++){
           const chosen = picked[j];
           const dHue = hueDist(item.hsl.h, chosen.hsl.h);
           const dSat = Math.abs(item.hsl.s - chosen.hsl.s);
           const dLight = Math.abs(item.hsl.l - chosen.hsl.l);
           const d = dHue * SAM_DIVERSITY_HUE_WEIGHT + dSat * SAM_DIVERSITY_SAT_WEIGHT + dLight * SAM_DIVERSITY_LIGHT_WEIGHT;
-          if(d < score) score = d;
+          if(d < minDistanceToChosen) minDistanceToChosen = d;
         }
-        if(score > bestScore){
-          bestScore = score;
+        if(minDistanceToChosen > bestScore){
+          bestScore = minDistanceToChosen;
           bestIdx = i;
         }
       }
@@ -2310,10 +2310,10 @@
       addPick(next, false);
     }
     if(picked.length < SAM_SWATCH_COUNT){
-      pool.forEach(function(item){
-        if(picked.length >= SAM_SWATCH_COUNT) return;
+      for(let i = 0; i < pool.length && picked.length < SAM_SWATCH_COUNT; i++){
+        const item = pool[i];
         addPick(item, true);
-      });
+      }
     }
     return picked.slice(0, SAM_SWATCH_COUNT);
   }

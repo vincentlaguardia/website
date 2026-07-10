@@ -6485,6 +6485,11 @@ function openExorcistWindow() {
   bringToFront(id);
 }
 
+// --- Echo Trail launch position config ---
+// Adjust these constants to tune the gap between the app window and screen edges.
+const ECHO_TRAIL_BOTTOM_GAP  = 12;  // px gap between window bottom and taskbar
+const ECHO_TRAIL_RIGHT_MARGIN = 12;  // px gap between window right edge and screen right
+
 function openEchoTrailWindow() {
   const id = 'echo_trail';
   if (openWindows[id]) {
@@ -6494,23 +6499,20 @@ function openEchoTrailWindow() {
   }
   const win = document.createElement('div');
   win.className = 'win98-window bevel-out echo-trail-window';
-  cascade = (cascade + 1) % 8;
   const taskbar = document.getElementById('taskbar');
   const taskbarHeight = taskbar ? taskbar.offsetHeight : 30;
+  // Work area: full viewport minus taskbar height
+  const availW = window.innerWidth;
   const availH = window.innerHeight - taskbarHeight;
-  const viewportPadX = 48;
-  const viewportPadY = 72;
-  const minOpenW = Math.min(720, Math.max(240, window.innerWidth - 16));
+  const minOpenW = Math.min(720, Math.max(240, availW - 16));
   const minOpenH = Math.min(560, Math.max(320, availH - 16));
-  const openW = Math.min(960, Math.max(minOpenW, window.innerWidth - viewportPadX));
-  const openH = Math.min(920, Math.max(minOpenH, availH - viewportPadY));
-  const maxLeft = Math.max(0, window.innerWidth - openW);
-  const maxTop = Math.max(0, availH - openH);
-  const centeredLeft = Math.round((window.innerWidth - openW) / 2);
-  const centeredTop = Math.round((availH - openH) / 2);
-  const nearTop = Math.min(maxTop, 74 + cascade * 18);
-  win.style.left = Math.min(maxLeft, Math.max(0, centeredLeft + cascade * 20)) + 'px';
-  win.style.top = Math.max(0, nearTop) + 'px';
+  const openW = Math.min(960, Math.max(minOpenW, availW - 48));
+  const openH = Math.min(920, Math.max(minOpenH, availH - 72));
+  // Bottom-right placement: keep a visible gap above taskbar and from the right edge
+  const winLeft = Math.max(0, availW - openW - ECHO_TRAIL_RIGHT_MARGIN);
+  const winTop  = Math.max(0, availH - openH - ECHO_TRAIL_BOTTOM_GAP);
+  win.style.left = winLeft + 'px';
+  win.style.top  = winTop  + 'px';
   win.style.width = openW + 'px';
   win.style.height = openH + 'px';
   win.style.minWidth = minOpenW + 'px';

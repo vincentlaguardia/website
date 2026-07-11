@@ -1781,9 +1781,9 @@
     }
     if(pastramiMode){
       pastramiMode = false;
+      syncPastramiButtonState();
+      applyPastramiDropdown();
     }
-    syncPastramiButtonState();
-    applyPastramiDropdown();
     drawScene();
   }
   const pastramiBtn = document.getElementById('pastrami-btn');

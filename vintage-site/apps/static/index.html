@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Static Coefficient Calculator</title>
+<style>
+  * { box-sizing: border-box; }
+  body { background: #008080; font-family: "MS Sans Serif","Tahoma",sans-serif; font-size: 12px; margin: 0; padding: 24px; color: #000; }
+  .window { max-width: 600px; margin: 0 auto; background: #c0c0c0; border: 2px solid #fff; border-right-color: #000; border-bottom-color: #000; box-shadow: 1px 1px 0 #000, inset 1px 1px 0 #dfdfdf; }
+  .titlebar { background: linear-gradient(90deg,#000080,#1084d0); color: #fff; padding: 3px 4px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; letter-spacing: .5px; }
+  .titlebar .btns span { display: inline-block; width: 16px; height: 14px; background: #c0c0c0; border: 1px solid #fff; border-right-color: #000; border-bottom-color: #000; text-align: center; line-height: 12px; margin-left: 2px; font-weight: bold; color: #000; font-family: monospace; }
+  .menubar { display: flex; gap: 0; padding: 2px 4px; border-bottom: 1px solid #808080; background: #c0c0c0; }
+  .menu-item { position: relative; padding: 2px 8px; cursor: default; }
+  .menu-item:hover, .menu-item.open { background: #000080; color: #fff; }
+  .dropdown { display: none; position: absolute; top: 100%; left: 0; background: #c0c0c0; border: 2px solid #fff; border-right-color: #000; border-bottom-color: #000; min-width: 130px; z-index: 50; box-shadow: 2px 2px 0 rgba(0,0,0,.4); }
+  .dropdown.show { display: block; }
+  .dropdown-opt { padding: 4px 18px; color: #000; }
+  .dropdown-opt:hover { background: #000080; color: #fff; }
+
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-backdrop.show { display: flex; }
+  .dialog { background: #c0c0c0; border: 2px solid #fff; border-right-color: #000; border-bottom-color: #000; box-shadow: 3px 3px 0 rgba(0,0,0,.5); width: 560px; max-width: 100%; max-height: 88vh; display: flex; flex-direction: column; }
+  .dialog-body { padding: 14px 16px; overflow-y: auto; background: #c0c0c0; }
+  .dialog-footer { padding: 8px; display: flex; justify-content: center; gap: 8px; border-top: 1px solid #808080; box-shadow: inset 0 1px 0 #fff; }
+  .dialog-footer button { min-width: 88px; }
+
+  /* white paper */
+  .paper { background: #fff; border: 2px solid #808080; border-top-color: #404040; border-left-color: #404040; padding: 20px 22px; font-family: "Times New Roman", Georgia, serif; font-size: 13px; line-height: 1.5; color: #000; }
+  .paper h1 { font-size: 17px; text-align: center; margin: 0 0 2px; }
+  .paper .subtitle { text-align: center; font-style: italic; margin-bottom: 10px; }
+  .paper .byline { text-align: center; font-size: 12px; margin-bottom: 4px; }
+  .paper .affil { text-align: center; font-size: 11px; color: #444; margin-bottom: 16px; }
+  .paper h2 { font-size: 14px; border-bottom: 1px solid #999; margin: 16px 0 6px; padding-bottom: 2px; }
+  .paper p { margin: 0 0 9px; text-align: justify; }
+  .paper .abstract { font-size: 12px; background: #f0f0f0; border-left: 3px solid #808080; padding: 8px 10px; margin-bottom: 12px; }
+  .paper table { border-collapse: collapse; width: 100%; font-family: "Courier New", monospace; font-size: 11px; margin: 6px 0 12px; }
+  .paper table th, .paper table td { border: 1px solid #999; padding: 2px 5px; text-align: center; }
+  .paper table th { background: #e0e0e0; }
+  .paper table td.l, .paper table th.l { text-align: left; }
+  .paper .eq { font-family: "Courier New", monospace; background: #f0f0f0; padding: 6px 10px; margin: 4px 0 10px; border: 1px solid #ccc; text-align: center; }
+  .paper .refs { font-size: 11px; }
+  .paper .refs p { margin-bottom: 4px; }
+
+  .shutdown { display: none; position: fixed; inset: 0; background: #000; color: #f0a020; z-index: 200; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: "Courier New", monospace; cursor: pointer; }
+  .shutdown h2 { font-size: 22px; font-weight: normal; margin: 0 0 10px; }
+  .shutdown p { font-size: 13px; color: #c08010; }
+  .content { padding: 10px; }
+  fieldset { border: 1px solid #808080; box-shadow: inset 1px 1px 0 #fff; margin-bottom: 8px; padding: 8px; }
+  legend { font-weight: bold; padding: 0 6px; background: #c0c0c0; }
+  .hint { font-size: 11px; margin-bottom: 6px; color: #202020; }
+  .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  select { font-family: inherit; font-size: 12px; border: 2px solid #808080; border-top-color: #404040; border-left-color: #404040; background: #fff; padding: 2px 4px; }
+  button { font-family: inherit; font-size: 12px; background: #c0c0c0; border: 2px solid #fff; border-right-color: #000; border-bottom-color: #000; padding: 4px 12px; cursor: pointer; }
+  button:active { border-color: #000 #fff #fff #000; }
+  table.matrix { border-collapse: collapse; width: 100%; font-size: 11px; }
+  .garment-table { border-collapse: collapse; width: 100%; font-size: 11px; margin-top: 8px; }
+  .garment-table th, .garment-table td { border: 1px solid #808080; padding: 2px 5px; text-align: center; }
+  .garment-table th { background: #e0e0e0; }
+  .garment-table td.l, .garment-table th.l { text-align: left; }
+  .garment-table .swatch { display: inline-block; vertical-align: middle; margin-right: 5px; }
+  .garment-table select { font-size: 11px; vertical-align: middle; max-width: 118px; border: 2px solid #808080; border-top-color: #404040; border-left-color: #404040; background: #fff; padding: 1px 3px; }
+  .garment-table .legend-lock, .garment-table .legend-remove { padding: 1px 6px; }
+  .garment-table .gt-total th { background: #c0c0c0; }
+  table.matrix td, table.matrix th { border: 1px solid #808080; padding: 2px 4px; text-align: center; }
+  table.matrix th { background: #e0e0e0; }
+  table.matrix td.name, table.matrix th.name { text-align: left; }
+
+  /* --- segmented proportion bar --- */
+  .seg-bar {
+    position: relative;
+    height: 46px;
+    width: 100%;
+    border: 2px solid #808080;
+    border-top-color: #404040;
+    border-left-color: #404040;
+    background: #fff;
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    margin-bottom: 8px;
+  }
+  .seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.45);
+  }
+  .seg-handle {
+    position: absolute;
+    top: -2px;
+    width: 24px;
+    height: calc(100% + 4px);
+    margin-left: -12px;
+    cursor: ew-resize;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+  }
+  .seg-handle::before {
+    content: "";
+    width: 6px;
+    height: 60%;
+    background: #c0c0c0;
+    border: 1px solid #fff;
+    border-right-color: #000;
+    border-bottom-color: #000;
+    box-shadow: 0 0 0 1px #404040;
+  }
+
+  .swatch { width: 14px; height: 14px; flex-shrink: 0; border: 1px solid #000; }
+  .legend-remove { padding: 2px 8px; line-height: 1; }
+  .legend-lock { padding: 2px 6px; line-height: 1; font-size: 12px; }
+  .legend-lock.locked { border-color: #000 #fff #fff #000; background: #b0b0b0; }
+  .seg.locked { box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px #000; }
+  .comp-total { font-size: 11px; font-family: "Courier New",monospace; margin-top: 2px; }
+
+  .coef-readout { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+  .coef-number { font-family: "Courier New",monospace; font-size: 40px; font-weight: bold; color: #F00081; background: #fff; border: 2px solid #808080; border-top-color: #404040; border-left-color: #404040; padding: 8px 14px; min-width: 110px; text-align: center; }
+  .coef-band { font-size: 12px; font-weight: bold; margin-top: 4px; text-align: center; display: inline-block; padding: 2px 12px; border: 2px solid #404040; }
+  .scale-wrap { flex: 1; }
+  .scale-track { position: relative; height: 18px; background: linear-gradient(90deg,#34FF6B,#B4FF40 50%,#FF474D); border: 1px solid #404040; margin-bottom: 2px; }
+  .scale-marker { position: absolute; top: -3px; width: 4px; height: 24px; background: #000; }
+  .scale-labels { display: flex; justify-content: space-between; font-size: 10px; }
+  .metrics { font-family:'Courier New',monospace; font-size: 11px; margin-top: 8px; }
+  .sc-extra { margin-top: 8px; border-top: 1px solid #808080; box-shadow: inset 0 1px 0 #fff; padding-top: 8px; }
+  .sc-formula { font-family: "Courier New",monospace; font-size: 11px; background: #fff; border: 1px solid #808080; padding: 4px 8px; margin-bottom: 6px; }
+  .sc-verdict { font-size: 12px; margin-bottom: 4px; }
+  .sc-nearest { font-size: 11px; color: #202020; }
+</style>
+</head>
+<body>
+
+<div class="window">
+  <div class="menubar">
+    <div class="menu-item" id="menuFile">File<div class="dropdown" id="fileDropdown"><div class="dropdown-opt" id="optClose">Close</div></div></div>
+    <div class="menu-item" id="menuInfo">Info</div>
+    <div class="menu-item" id="menuAbout">About</div>
+  </div>
+
+  <div class="content">
+
+    <fieldset>
+      <legend>Your Garment Fabric Composition</legend>
+      <div class="hint">Drag the dividers to set each material's share. The total always locks to 100%. Use the dropdowns below to name each section, or add and remove materials.</div>
+      <div class="seg-bar" id="segBar"></div>
+      <div id="legendRows"></div>
+      <div class="row"><button id="addMaterialBtn">+ Add material</button><span class="comp-total" id="compTotal"></span></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Static Coefficient (SC Index)</legend>
+      <div class="hint">
+        Static reactivity is modeled as <b>generation × retention</b>. <b>Generation (G)</b> is the blend's
+        normalized displacement from the triboelectric neutral point (~66): charge transfer scales with
+        separation on the series, so fibers at either extreme develop larger contact potentials against an
+        arbitrary counter surface. <b>Retention (R)</b> is the reciprocal of charge dissipation capacity,
+        governed by <b>moisture regain</b>. Adsorbed water raises surface conductivity, lowering the charge decay
+        time constant. R = 1/(1 + β·regain·RH/65). Evaluated at a 40% RH reference; SC = 100·G·R.
+      </div>
+      <div class="coef-readout">
+        <div>
+          <div class="coef-number" id="coefNumber">&nbsp;</div>
+          <div class="coef-band" id="coefBand">&nbsp;</div>
+        </div>
+        <div class="scale-wrap">
+          <div class="scale-track"><div class="scale-marker" id="scaleMarker" style="left:0%"></div></div>
+          <div class="scale-labels"><span>0 Calm</span><span>50</span><span>100 Volatile</span></div>
+          <div class="metrics">
+            <div>Generation potential G: <span id="genVal">&nbsp;</span></div>
+            <div id="scFormula">&nbsp;</div>
+            <div>Retention factor R&nbsp;&nbsp;: <span id="retVal">&nbsp;</span></div>
+            <div>Blend regain&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span id="mrVal">&nbsp;</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-extra">
+        <div class="sc-verdict" id="scVerdict">&nbsp;</div>
+        <div class="sc-nearest">Closest pure fiber: <span id="scNearest">&nbsp;</span></div>
+      </div>
+    </fieldset>
+
+  </div>
+</div>
+
+<!-- ABOUT DIALOG -->
+<div class="modal-backdrop" id="aboutBackdrop">
+  <div class="dialog" style="width:360px;">
+    <div class="titlebar"><span>about static coefficient calculator</span><span class="btns"><span class="modal-x" data-close="aboutBackdrop">×</span></span></div>
+    <div class="dialog-body" style="text-align:center;">
+      <div style="font-weight:bold; margin-bottom:4px;">static coefficient calculator</div>
+      <div style="font-size:11px; margin-bottom:12px;">version 14.9 · fabric static analyzer</div>
+      <div>created by<br><b>dr. vincent j. pastrami</b></div>
+    </div>
+    <div class="dialog-footer"><button class="modal-ok" data-close="aboutBackdrop">ok</button></div>
+  </div>
+</div>
+
+<!-- INFO / WHITE PAPER -->
+<div class="modal-backdrop" id="infoBackdrop">
+  <div class="dialog">
+    <div class="titlebar"><span>info: static coefficient white paper</span><span class="btns"><span class="modal-x" data-close="infoBackdrop">×</span></span></div>
+    <div class="dialog-body">
+      <div class="paper">
+        <h1>a two factor model for the intrinsic static reactivity of textile fabrics</h1>
+        <div class="subtitle">the static coefficient (sc index)</div>
+        <div class="byline">dr. vincent j. pastrami</div>
+        <div class="affil">institute for applied triboelectrics</div>
+
+        <div class="abstract"><b>abstract.</b> the classical triboelectric series ranks materials only in
+        pairs and therefore cannot, on its own, assign a static score to a single garment. we present a
+        two factor model in which a fabric's intrinsic static reactivity is the product of charge
+        <i>generation</i>, its distance from the triboelectric neutral point, and charge <i>retention</i>,
+        its inability to dissipate accumulated charge, governed by moisture regain. the resulting static
+        coefficient (sc index) reproduces the empirically known behaviour of common fibres, cotton calm,
+        polyester volatile, wool self regulating, from first principles, and extends naturally to blends
+        and to varying ambient humidity.</div>
+
+        <h2>1. the problem with the series</h2>
+        <p>ask which fabric is "most static" and intuition reaches for the triboelectric series, the ranked
+        list of materials by their tendency to gain or lose electrons on contact. but the series is
+        inherently <i>relational</i>: it predicts the charge developed between <i>two</i> surfaces rubbed
+        together, as a function of their separation on the list. it says nothing directly about a lone
+        garment. a single fabric has no triboelectric partner until it meets one, and in daily life it meets
+        many: skin, upholstery, other garments, itself. a useful single fabric metric must therefore
+        characterise a tendency averaged over the many surfaces a garment actually encounters.</p>
+
+        <h2>2. two competing processes</h2>
+        <p>observed static nuisance, cling, crackle, the doorknob shock, is not governed by charge
+        generation alone. it is the net result of two opposing processes. charge is <i>generated</i> by
+        contact and separation; charge is simultaneously <i>dissipated</i> by conduction away from the
+        surface. a fabric that generates strongly but dissipates instantly is calm in practice; a fabric
+        that generates modestly but cannot shed what it makes becomes a persistent offender. any faithful
+        model must represent both, and multiply them: a garment is troublesome only when it both acquires
+        charge <i>and</i> holds onto it.</p>
+
+        <h2>3. generation potential (g)</h2>
+        <p>we proxy a fabric's charging tendency by its distance from the triboelectric <i>neutral point</i>,
+        the region of the series (near cotton and steel) where materials neither strongly donate nor
+        strongly accept electrons. a fabric at an extreme of the series sits far from most surfaces it will
+        meet, and large separations yield large charge transfer; a near neutral fabric sits close to most
+        surfaces and charges weakly against them. generation potential is thus defined as the normalised
+        absolute distance of the fabric's series position from neutral, saturating at unity:</p>
+        <div class="eq">g = min(1, gap / 40),  where gap is the distance of position from 66</div>
+
+        <h2>4. retention factor (r)</h2>
+        <p>the dominant control on charge dissipation in textiles is not the dry polymer, which is an
+        excellent insulator, but the thin film of <i>absorbed atmospheric moisture</i> it carries. water
+        provides the conductive pathway along which accumulated charge bleeds away. the relevant material
+        property is therefore <b>moisture regain</b>: the mass of water a conditioned fibre holds relative to
+        its dry mass. hydrophilic fibres (wool &#8776; 16%, cotton &#8776; 8.5%) drain charge readily; hydrophobic
+        synthetics (polyester &#8776; 0.4%) cannot. we model retention, the <i>failure</i> to dissipate, as a
+        saturating inverse function of absorbed moisture:</p>
+        <div class="eq">r = 1 / (1 + &#946; &#183; regain &#183; rh/65)</div>
+        <p>where the regain value is scaled by ambient relative humidity against the 65% rh standard at which
+        it is defined, and &#946; tunes the strength of moisture's static quenching effect. as humidity rises,
+        even a modestly hygroscopic fabric acquires enough surface water to shed charge, and r falls.</p>
+
+        <h2>5. formulation</h2>
+        <p>the static coefficient is the product of the two factors, expressed on a 0 to 100 scale:</p>
+        <div class="eq">sc = 100 &#183; g &#183; r</div>
+        <p>the intrinsic coefficient reported by the instrument evaluates r at a 40% rh indoor dry reference,
+        chosen because it is the regime in which static actually manifests and therefore best exposes a
+        fabric's latent personality. a low sc denotes a fabric that is calm because it barely charges, barely
+        retains, or both; a high sc denotes one that both charges strongly and cannot let go.</p>
+
+        <h2>6. humidity dependence</h2>
+        <p>because r is a function of ambient humidity, the same garment does not possess a single fixed
+        static value but a <i>response curve</i>. a polyester fleece remains volatile across almost the entire
+        humidity range; a cotton shirt is calm throughout; wool traverses a wide arc, crackling in a heated,
+        dry room yet placid in damp outdoor air. this humidity sensitivity is a feature of the physics, not a
+        modelling artefact, and it explains why static complaints spike in winter, when indoor heating drives
+        relative humidity, and thus fibre moisture, toward zero.</p>
+
+        <h2>7. fibre by fibre findings</h2>
+        <p>evaluated at the reference condition, the model orders common fibres as follows, in close accord
+        with everyday experience:</p>
+        <table>
+          <tr><th class="l">fibre</th><th>g</th><th>regain %</th><th>sc index</th><th class="l">character</th></tr>
+          <tr><td class="l">polyester</td><td>0.75</td><td>0.4</td><td>67</td><td class="l">volatile, charges and holds</td></tr>
+          <tr><td class="l">fleece</td><td>0.70</td><td>0.4</td><td>62</td><td class="l">volatile</td></tr>
+          <tr><td class="l">acrylic</td><td>0.65</td><td>1.5</td><td>45</td><td class="l">high</td></tr>
+          <tr><td class="l">nylon</td><td>0.65</td><td>4.0</td><td>29</td><td class="l">moderate, charges but partly drains</td></tr>
+          <tr><td class="l">wool</td><td>0.55</td><td>16.0</td><td>9</td><td class="l">self regulating</td></tr>
+          <tr><td class="l">silk</td><td>0.35</td><td>11.0</td><td>8</td><td class="l">low</td></tr>
+          <tr><td class="l">cotton</td><td>0.05</td><td>8.5</td><td>1</td><td class="l">calm, neutral and dissipative</td></tr>
+        </table>
+        <p>two results deserve comment. <b>nylon</b> sits at the far positive extreme of the series (the
+        strongest generator among garment fibres) yet is unusually hygroscopic for a synthetic; its moderate
+        regain rescues it into the middle of the scale. <b>wool</b> generates heavily but carries the highest
+        regain of any common fibre, and so self regulates, a physical account of why wool feels lively when
+        dry but rarely clings outdoors.</p>
+
+        <h2>8. blends</h2>
+        <p>for a multi fibre garment, both governing properties, series position and regain, are taken as
+        the mass weighted averages of the constituent fibres, and the coefficient is computed from the blend
+        values. a blend therefore interpolates between its parents: a 60/40 cotton polyester shirt lands
+        between calm cotton and volatile polyester, weighted toward the larger share. this linear
+        composition is a first order approximation; interfacial effects between dissimilar fibres are not
+        modelled.</p>
+
+        <h2>9. limitations</h2>
+        <p>the model is deliberately reduced. triboelectric ordering is not strictly one dimensional and
+        shifts with surface finish, contaminants, and prior handling; the neutral point is an empirical
+        anchor, not a fundamental constant. fabric <i>construction</i>, knit versus weave, nap, pile, and
+        total contact area, measurably affects real charging but is outside the present scope. the
+        generation from neutral distance step is a defensible modelling choice rather than a directly
+        measured quantity, though every fibre property feeding it is drawn from published data. several minor
+        fibres are positioned by analogy to a listed relative and are flagged accordingly in the instrument.</p>
+
+        <h2>10. data and references</h2>
+        <div class="refs">
+          <p>triboelectric series positions: classroom reference series, carolina biological supply.</p>
+          <p>moisture regain values: astm d1909, standard table of commercial moisture regains for textile
+          fibers.</p>
+          <p>charge dissipation and the role of absorbed moisture in fibre conductivity: standard textile
+          physics literature on static propensity and surface resistivity.</p>
+          <p style="margin-top:8px; font-style:italic;">prepared by the institute for applied triboelectrics.
+          values are approximate and intended for illustrative and entertainment purposes.</p>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer"><button class="modal-ok" data-close="infoBackdrop">Close</button></div>
+  </div>
+</div>
+
+<!-- SHUTDOWN SCREEN -->
+<div class="shutdown" id="shutdownScreen">
+  <h2>It's now safe to close this<br>program.</h2>
+  <p>(click anywhere to relaunch)</p>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// FIBER PROPERTY TABLE
+// tribo: triboelectric series position (0-100, Carolina Biological Supply reference)
+// mr:    standard moisture regain % at 65% RH (ASTM D1909 commercial values)
+// est:   true if either value is estimated by analogy rather than directly sourced
+// ---------------------------------------------------------------------------
+const FIBER = {
+  "Wool":            { tribo: 88, mr: 16.0, est: false },
+  "Cashmere":        { tribo: 86, mr: 15.0, est: true  },
+  "Fur":             { tribo: 84, mr: 16.0, est: false },
+  "Silk":            { tribo: 80, mr: 11.0, est: false },
+  "Linen":           { tribo: 70, mr: 12.0, est: false },
+  "Rayon/Viscose":   { tribo: 70, mr: 11.0, est: false },
+  "Cotton":          { tribo: 68, mr: 8.5,  est: false },
+  "Nylon":           { tribo: 92, mr: 4.0,  est: false },
+  "Acetate":         { tribo: 58, mr: 6.0,  est: true  },
+  "Acrylic":         { tribo: 40, mr: 1.5,  est: false },
+  "Spandex/Elastane":{ tribo: 38, mr: 1.0,  est: true  },
+  "Polyester":       { tribo: 36, mr: 0.4,  est: false },
+  "Fleece":          { tribo: 38, mr: 0.4,  est: true  },
+};
+const FABRICS = Object.keys(FIBER);
+const PALETTE = ['#FF474D','#2CBFFF','#34FF6B','#F623FF','#F778A6','#B4FF40','#91F7E0','#A5ED91','#FF42C6','#EAB1E2','#C3F7D9','#E4F6B8','#EACBF5'];
+
+// ---- Model constants (physically motivated, tuned to reproduce known behavior) ----
+const NEUTRAL = 66;   // triboelectric neutral point (natural-fiber calm zone, ~cotton/steel)
+const GEN_SPAN = 40;  // normalization: distance at which generation saturates to 1.0
+const REF_RH = 40;    // indoor-dry reference RH for the intrinsic coefficient
+const STD_RH = 65;    // RH at which regain values are defined
+const BETA = 0.5;     // how strongly absorbed moisture kills charge retention
+const MIN_SEG = 2;    // smallest allowed share (%) per material
+
+function generationPotential(tribo) { return Math.min(1, Math.abs(tribo - NEUTRAL) / GEN_SPAN); }
+function effectiveMoisture(mr, rh)  { return mr * (rh / STD_RH); }
+function retentionFactor(mr, rh)    { return 1 / (1 + BETA * effectiveMoisture(mr, rh)); }
+
+let itemState = [{ fabric: "Wool", pct: 100, locked: false }];
+
+// Assign integer pcts summing to `target` across a subset (references into itemState),
+// proportional to current pcts (equal split if all zero). Largest-remainder rounding.
+function distributeSubset(arr, target) {
+  if (arr.length === 0) return;
+  const raw = arr.map(r => Math.max(0, r.pct));
+  const allZero = raw.every(v => v === 0);
+  const sum = raw.reduce((a,b)=>a+b,0) || 1;
+  const scaled = allZero ? arr.map(()=>target/arr.length) : raw.map(v => v/sum*target);
+  const floored = scaled.map(v => Math.floor(v));
+  let rem = target - floored.reduce((a,b)=>a+b,0);
+  const order = scaled.map((v,i)=>({ i, f: v - Math.floor(v) })).sort((a,b)=>b.f-a.f);
+  for (let k=0; k<rem; k++) floored[order[k % order.length].i]++;
+  arr.forEach((r,i)=> r.pct = floored[i]);
+}
+
+// Normalize to exactly 100, holding locked fabrics fixed and absorbing the rest into unlocked.
+function normalizePcts() {
+  const unlocked = itemState.filter(r => !r.locked);
+  const locked = itemState.filter(r => r.locked);
+  if (unlocked.length === 0) { distributeSubset(itemState, 100); return; } // safety
+  let lockedSum = locked.reduce((a,b)=>a+b.pct,0);
+  const maxLocked = 100 - MIN_SEG * unlocked.length;
+  if (lockedSum > maxLocked) { distributeSubset(locked, Math.max(0, maxLocked)); lockedSum = locked.reduce((a,b)=>a+b.pct,0); }
+  distributeSubset(unlocked, 100 - lockedSum);
+}
+
+function blendProps() {
+  const total = itemState.reduce((s,r)=>s+r.pct,0) || 1;
+  let tribo = 0, mr = 0;
+  itemState.forEach(r => { const w = r.pct/total; tribo += FIBER[r.fabric].tribo*w; mr += FIBER[r.fabric].mr*w; });
+  return { tribo, mr };
+}
+function staticCoefficient(rh) {
+  const { tribo, mr } = blendProps();
+  const G = generationPotential(tribo);
+  const R = retentionFactor(mr, rh);
+  return { sc: 100*G*R, G, R, tribo, mr };
+}
+function bandFor(sc) {
+  if (sc < 12) return ["CALM", "#34FF6B", "#F00081"];
+  if (sc < 28) return ["LOW", "#B4FF40", "#F00081"];
+  if (sc < 45) return ["MODERATE", "#FF42C6", "#C8F6F3"];
+  if (sc < 62) return ["HIGH", "#FF474D", "#C8F6F3"];
+  return ["VOLATILE", "#F00081", "#C8F6F3"];
+}
+
+// shared segment label (used by render + drag layout so the lock glyph persists)
+function segLabel(r) {
+  const name = r.fabric.replace('/Viscose','').replace('/Elastane','');
+  const lock = r.locked ? '🔒' : '';
+  if (r.pct >= 16) return (lock ? lock + ' ' : '') + name + ' ' + r.pct + '%';
+  if (r.pct >= 7)  return (lock ? lock + ' ' : '') + r.pct + '%';
+  return lock;
+}
+
+// ---- Render the segmented bar + legend ----
+function renderComposition() {
+  const bar = document.getElementById('segBar');
+  const legend = document.getElementById('legendRows');
+  let cum = 0;
+  // segments
+  bar.innerHTML = itemState.map((r,i)=>{
+    const color = PALETTE[i % PALETTE.length];
+    const lockedCls = r.locked ? ' locked' : '';
+    return `<div class="seg${lockedCls}" style="flex:0 0 ${r.pct}%; background:${color}">${segLabel(r)}</div>`;
+  }).join('');
+  // handles only at boundaries where NEITHER neighbour is locked
+  let handlesHtml = '';
+  for (let i=0; i<itemState.length-1; i++) {
+    cum += itemState[i].pct;
+    if (itemState[i].locked || itemState[i+1].locked) continue;
+    handlesHtml += `<div class="seg-handle" data-boundary="${i}" style="left:${cum}%"></div>`;
+  }
+  bar.insertAdjacentHTML('beforeend', handlesHtml);
+  attachHandleDrag(bar);
+
+  // legend + per-material breakdown as one compact table
+  const rowsHtml = itemState.map((r,i)=>{
+    const color = PALETTE[i % PALETTE.length];
+    const opts = FABRICS.map(f=>`<option value="${f}" ${f===r.fabric?'selected':''}>${f}${FIBER[f].est?'*':''}</option>`).join('');
+    return `<tr class="gt-row" data-idx="${i}">
+      <td class="l"><span class="swatch" style="background:${color}"></span><select class="legend-fabric">${opts}</select></td>
+      <td class="gt-share"></td>
+      <td>${FIBER[r.fabric].tribo}</td>
+      <td>${FIBER[r.fabric].mr}</td>
+      <td class="gt-wtd"></td>
+      <td><button class="legend-lock${r.locked?' locked':''}" title="${r.locked?'Unlock':'Lock this share'}">${r.locked?'🔒':'🔓'}</button></td>
+      <td>${itemState.length>1?'<button class="legend-remove">×</button>':''}</td>
+    </tr>`;
+  }).join('');
+  legend.innerHTML = `<table class="garment-table">
+    <tr><th class="l">Material</th><th>Share</th><th>Tribo</th><th>Regain</th><th>SC solo→wtd</th><th>🔒</th><th></th></tr>
+    ${rowsHtml}
+    <tr class="gt-total"><th class="l" colspan="4">Blend SC Index</th><th class="gt-blend"></th><th colspan="2"></th></tr>
+  </table>`;
+  legend.querySelectorAll('.gt-row').forEach(row=>{
+    const idx = +row.dataset.idx;
+    row.querySelector('.legend-fabric').addEventListener('change', e=>{ itemState[idx].fabric = e.target.value; renderComposition(); recompute(); });
+    row.querySelector('.legend-lock').addEventListener('click', ()=> toggleLock(idx));
+    const rm = row.querySelector('.legend-remove');
+    if (rm) rm.addEventListener('click', ()=>{ itemState.splice(idx,1); normalizePcts(); renderComposition(); recompute(); });
+  });
+
+  const lockedN = itemState.filter(r=>r.locked).length;
+  document.getElementById('compTotal').textContent =
+    `${itemState.length} material${itemState.length>1?'s':''} · total 100%` + (lockedN?` · ${lockedN} locked`:'');
+}
+
+function toggleLock(idx) {
+  const item = itemState[idx];
+  if (!item.locked) {
+    const unlockedCount = itemState.filter(r=>!r.locked).length;
+    if (unlockedCount <= 1) { flashStatus("Keep at least one fabric unlocked"); return; }
+    const lockedSum = itemState.filter(r=>r.locked).reduce((a,b)=>a+b.pct,0);
+    if (lockedSum + item.pct > 100 - MIN_SEG * (unlockedCount - 1)) { flashStatus("Not enough room to lock that"); return; }
+    item.locked = true;
+  } else {
+    item.locked = false;
+  }
+  normalizePcts();
+  renderComposition();
+  recompute();
+}
+
+let flashTimer = null;
+function flashStatus(msg) {
+  const el = document.getElementById('statusLeft');
+  if (!el) return;
+  el.textContent = msg;
+  if (flashTimer) clearTimeout(flashTimer);
+  flashTimer = setTimeout(()=>{ el.textContent = "Ready"; }, 1800);
+}
+
+// ---- Lightweight in-place layout update (used during drag; no innerHTML rebuild) ----
+function updateLayout() {
+  const bar = document.getElementById('segBar');
+  const segs = bar.querySelectorAll('.seg');
+  itemState.forEach((r,i)=>{
+    if (!segs[i]) return;
+    segs[i].style.flex = `0 0 ${r.pct}%`;
+    segs[i].textContent = segLabel(r);
+  });
+  bar.querySelectorAll('.seg-handle').forEach(h=>{
+    const b = +h.dataset.boundary;
+    let cum = 0;
+    for (let i=0; i<=b; i++) cum += itemState[i].pct;
+    h.style.left = cum + '%';
+  });
+  recompute();
+}
+
+// ---- Divider drag (pointer events on document: robust for mouse + touch) ----
+function attachHandleDrag(bar) {
+  bar.querySelectorAll('.seg-handle').forEach(handle=>{
+    handle.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const b = +handle.dataset.boundary;
+      const rect = bar.getBoundingClientRect();
+
+      const move = ev=>{
+        const clientX = (ev.clientX != null) ? ev.clientX : (ev.touches && ev.touches[0] ? ev.touches[0].clientX : 0);
+        const pointerPct = Math.max(0, Math.min(100, (clientX - rect.left) / rect.width * 100));
+        let leftEdge = 0;
+        for (let i=0;i<b;i++) leftEdge += itemState[i].pct;
+        const pairTotal = itemState[b].pct + itemState[b+1].pct;
+        let left = Math.round(pointerPct - leftEdge);
+        left = Math.max(MIN_SEG, Math.min(pairTotal - MIN_SEG, left));
+        itemState[b].pct = left;
+        itemState[b+1].pct = pairTotal - left;
+        updateLayout();   // in-place: does NOT recreate the handle being dragged
+      };
+      const up = ()=>{
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+        document.removeEventListener('pointercancel', up);
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', up);
+    });
+  });
+}
+
+document.getElementById('addMaterialBtn').addEventListener('click', ()=>{
+  const used = new Set(itemState.map(r=>r.fabric));
+  const next = FABRICS.find(f=>!used.has(f)) || FABRICS[0];
+  const unlockedPcts = itemState.filter(r=>!r.locked).map(r=>r.pct);
+  const meanUnlocked = unlockedPcts.length ? unlockedPcts.reduce((a,b)=>a+b,0)/unlockedPcts.length : 100/(itemState.length+1);
+  itemState.push({ fabric: next, pct: meanUnlocked, locked: false });
+  normalizePcts();   // holds locked fixed, splits the rest (incl. the new one)
+  renderComposition();
+  recompute();
+});
+
+function verdictText(G, R, sc) {
+  const gen = G < 0.25 ? "barely charges" : G < 0.5 ? "charges moderately" : "charges strongly";
+  const ret = R < 0.30 ? "and sheds it almost immediately"
+            : R < 0.60 ? "and sheds it slowly"
+            : "and holds nearly all of it";
+  const outcome = sc < 12 ? "no meaningful static"
+              : sc < 28 ? "occasional light cling"
+              : sc < 45 ? "noticeable cling in dry air"
+              : sc < 62 ? "frequent cling and shocks"
+              : "persistent cling and shocks even at moderate humidity";
+  const s = `${gen} ${ret}. Expect ${outcome}.`;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// nearest single fiber by SC at the reference condition, for intuition
+function nearestFiber(blendSC) {
+  let best = null, bestD = Infinity;
+  for (const [name, f] of Object.entries(FIBER)) {
+    const solo = 100 * generationPotential(f.tribo) * retentionFactor(f.mr, REF_RH);
+    const d = Math.abs(solo - blendSC);
+    if (d < bestD) { bestD = d; best = { name, solo }; }
+  }
+  return best;
+}
+
+function recompute() {
+  const { sc, G, R, tribo, mr } = staticCoefficient(REF_RH);
+  document.getElementById('coefNumber').textContent = sc.toFixed(1);
+  const [band, bg, fg] = bandFor(sc);
+  const bandEl = document.getElementById('coefBand');
+  bandEl.textContent = band; bandEl.style.background = bg; bandEl.style.color = fg;
+  document.getElementById('scaleMarker').style.left = Math.max(0,Math.min(100,sc)) + '%';
+  document.getElementById('genVal').textContent = G.toFixed(3) + '  (blend tribo ' + tribo.toFixed(1) + ')';
+  document.getElementById('retVal').textContent = R.toFixed(3);
+  document.getElementById('mrVal').textContent = mr.toFixed(1) + '%';
+
+  document.getElementById('scFormula').textContent =
+    `SC = 100 × G × R = 100 × ${G.toFixed(3)} × ${R.toFixed(3)} = ${sc.toFixed(1)}`;
+  document.getElementById('scVerdict').textContent = verdictText(G, R, sc);
+  const nf = nearestFiber(sc);
+  document.getElementById('scNearest').textContent = `${nf.name}${FIBER[nf.name].est?'*':''} (SC ${nf.solo.toFixed(1)})`;
+
+  const total = itemState.reduce((s,r)=>s+r.pct,0) || 1;
+  const shareEls = document.querySelectorAll('#legendRows .gt-share');
+  const wtdEls = document.querySelectorAll('#legendRows .gt-wtd');
+  itemState.forEach((r,i)=>{
+    const w = r.pct/total;
+    const solo = 100 * generationPotential(FIBER[r.fabric].tribo) * retentionFactor(FIBER[r.fabric].mr, REF_RH);
+    if (shareEls[i]) shareEls[i].textContent = r.pct + '%';
+    if (wtdEls[i]) wtdEls[i].textContent = solo.toFixed(1) + ' → ' + (solo*w).toFixed(1);
+  });
+  const blendEl = document.querySelector('#legendRows .gt-blend');
+  if (blendEl) blendEl.textContent = sc.toFixed(1);
+}
+
+function showInitError(e) {
+  console.error(e);
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#c0c0c0;border:2px solid #808080;padding:8px;margin:8px;color:#800000;font-weight:bold;font-family:monospace;';
+  box.textContent = 'INIT ERROR: ' + (e && e.message ? e.message : String(e));
+  (document.body || document.documentElement).appendChild(box);
+}
+function wireMenus() {
+  const fileItem = document.getElementById('menuFile');
+  const fileDropdown = document.getElementById('fileDropdown');
+
+  function closeFileMenu() { fileItem.classList.remove('open'); fileDropdown.classList.remove('show'); }
+  fileItem.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open = fileDropdown.classList.toggle('show');
+    fileItem.classList.toggle('open', open);
+  });
+  document.addEventListener('click', closeFileMenu);
+
+  function openModal(id){ document.getElementById(id).classList.add('show'); }
+  function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+  document.getElementById('menuInfo').addEventListener('click', e=>{ e.stopPropagation(); closeFileMenu(); openModal('infoBackdrop'); });
+  document.getElementById('menuAbout').addEventListener('click', e=>{ e.stopPropagation(); closeFileMenu(); openModal('aboutBackdrop'); });
+
+  document.querySelectorAll('[data-close]').forEach(el=>{
+    el.addEventListener('click', ()=> closeModal(el.dataset.close));
+  });
+  // click backdrop (outside dialog) closes
+  document.querySelectorAll('.modal-backdrop').forEach(bd=>{
+    bd.addEventListener('click', e=>{ if (e.target === bd) bd.classList.remove('show'); });
+  });
+
+  // File > Close (and main window ×) -> shutdown screen; click to relaunch
+  const shutdown = document.getElementById('shutdownScreen');
+  function doClose(){ closeFileMenu(); shutdown.style.display = 'flex'; }
+  document.getElementById('optClose').addEventListener('click', e=>{ e.stopPropagation(); doClose(); });
+  const mainClose = document.getElementById('mainCloseBtn');
+  if (mainClose) mainClose.addEventListener('click', doClose);
+  shutdown.addEventListener('click', ()=>{ shutdown.style.display = 'none'; });
+}
+
+function init() { normalizePcts(); renderComposition(); recompute(); wireMenus(); }
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ()=>{ try { init(); } catch(e){ showInitError(e); } });
+  } else { init(); }
+} catch(e){ showInitError(e); }
+</script>
+</body>
+</html>

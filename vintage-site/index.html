@@ -286,6 +286,7 @@
     position: absolute; top: 0; left: 0; transform-origin: top left;
   }
   .ie-window, .chroma-window, .echo-trail-window { resize: both; overflow: hidden; }
+  .static-window { resize: both; overflow: hidden; min-width: 540px; min-height: 420px; }
   .colormixer95-window { overflow: hidden; }
   .colormixer95-resize-handle {
     position: absolute;
@@ -2009,7 +2010,7 @@ function openTrashWindow() {
     return;
   }
   const win = document.createElement('div');
-  win.className = 'win98-window bevel-out';
+  win.className = 'win98-window bevel-out static-window';
   cascade = (cascade + 1) % 8;
   win.style.left = (60 + cascade * 24) + 'px';
   win.style.top = (40 + cascade * 22) + 'px';
@@ -6929,7 +6930,7 @@ function openStaticWindow() {
   const content = document.createElement('div');
   content.className = 'win98-content';
   content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
-  content.innerHTML = `<iframe src="apps/static/index.html" title="static coefficient calculator" style="border:0;width:100%;height:100%;background:#c0c0c0;"></iframe>`;
+  content.innerHTML = `<iframe src="apps/static/index.html?embedded=1" title="static coefficient calculator" style="border:0;width:100%;height:100%;background:#c0c0c0;"></iframe>`;
 
   win.appendChild(titlebar);
   win.appendChild(content);
@@ -9025,14 +9026,20 @@ window.addEventListener('message', function(e) {
   const samFrame = document.querySelector('.chroma-sam-frame');
   const echoTrailFrame = document.querySelector('.echo-trail-frame');
   const colorMixer95Frame = document.querySelector('iframe[title="colormixer95"]');
+  const staticFrame = document.querySelector('iframe[title="static coefficient calculator"]');
   const isFromChroma = chromaFrame && e.source === chromaFrame.contentWindow;
   const isFromDiary = diaryFrame && e.source === diaryFrame.contentWindow;
   const isFromSam = samFrame && e.source === samFrame.contentWindow;
   const isFromEchoTrail = echoTrailFrame && e.source === echoTrailFrame.contentWindow;
   const isFromColorMixer95 = colorMixer95Frame && e.source === colorMixer95Frame.contentWindow;
+  const isFromStatic = staticFrame && e.source === staticFrame.contentWindow;
 
   if (e.data.type === 'chroma-open-diary' && isFromChroma) {
     openChromaDiaryWindow();
+    return;
+  }
+  if (e.data.type === 'static-close' && isFromStatic) {
+    closeWindow('static');
     return;
   }
   if (e.data.type === 'chroma-diary-close' && isFromDiary) {

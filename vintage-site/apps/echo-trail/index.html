@@ -245,6 +245,7 @@
     </div>
 
     <div class="toolbar">
+      <button class="btn95" id="btn-load">Load Image</button>
       <button class="btn95" id="btn-save">Save</button>
       <button class="btn95" id="btn-randomize">Randomize</button>
       <button class="btn95" id="btn-fried">Fucked</button>
@@ -1729,6 +1730,10 @@
     document.querySelectorAll('.menu-item.open').forEach(i=>i.classList.remove('open'));
   }
 
+  function promptForImageFile(){
+    $('file-input').click();
+  }
+
   function syncRowClasses(){
     document.querySelectorAll('.item-toggle').forEach(btn=>{
       const row = btn.closest('.control-row');
@@ -1762,6 +1767,7 @@
     syncRowClasses();
 
     // Toolbar
+    $('btn-load').addEventListener('click', promptForImageFile);
     $('btn-randomize').addEventListener('click', randomize);
     $('btn-fried').addEventListener('click', friedMode);
     $('btn-reset').addEventListener('click', resetAll);
@@ -1825,7 +1831,7 @@
       $('about-overlay').classList.add('show');
     });
 
-    $('mi-load').addEventListener('click', ()=>{ closeMenus(); $('file-input').click(); });
+    $('mi-load').addEventListener('click', ()=>{ closeMenus(); promptForImageFile(); });
     $('mi-save').addEventListener('click', ()=>{ closeMenus(); savePNGToDisk(); });
     $('mi-export').addEventListener('click', ()=>{ closeMenus(); exportToVirtualDesktop(); });
     $('mi-reset').addEventListener('click', ()=>{ closeMenus(); resetAll(); });

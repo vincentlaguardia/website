@@ -584,9 +584,9 @@
     if(!previewCanvas.width || !previewCanvas.height) return null;
     const rect = previewCanvas.getBoundingClientRect();
     if(!rect.width || !rect.height) return null;
-    const pixelX = Math.max(0, Math.min(previewCanvas.width - 1, Math.floor((clientX - rect.left) * previewCanvas.width / rect.width)));
-    const pixelY = Math.max(0, Math.min(previewCanvas.height - 1, Math.floor((clientY - rect.top) * previewCanvas.height / rect.height)));
-    const px = previewCanvas.getContext('2d').getImageData(pixelX, pixelY, 1, 1).data;
+    const canvasPixelX = Math.max(0, Math.min(previewCanvas.width - 1, Math.floor((clientX - rect.left) * previewCanvas.width / rect.width)));
+    const canvasPixelY = Math.max(0, Math.min(previewCanvas.height - 1, Math.floor((clientY - rect.top) * previewCanvas.height / rect.height)));
+    const px = previewCanvas.getContext('2d').getImageData(canvasPixelX, canvasPixelY, 1, 1).data;
     return { r: px[0], g: px[1], b: px[2], hex: rgbToHex([px[0], px[1], px[2]]) };
   }
 
@@ -604,16 +604,19 @@
 
   function copyToClipboard(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+      navigator.clipboard.writeText(text).catch(err=>{
+        console.warn('echo-trail: clipboard api failed, using fallback copy', err);
+        fallbackCopy(text);
+      });
     } else {
       fallbackCopy(text);
     }
   }
 
   function diaryTimestampTag(){
-    const n = new Date();
-    return n.getFullYear() + String(n.getMonth()+1).padStart(2,'0') + String(n.getDate()).padStart(2,'0') + '-' +
-           String(n.getHours()).padStart(2,'0') + String(n.getMinutes()).padStart(2,'0') + String(n.getSeconds()).padStart(2,'0');
+    const now = new Date();
+    return now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' +
+           String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + String(now.getSeconds()).padStart(2,'0');
   }
 
   // ---------- Bayer matrix ----------
@@ -1858,9 +1861,9 @@
       ctx.fillStyle = '#000'; ctx.font = 'bold 13px Tahoma,Arial,sans-serif';
       ctx.textAlign = 'left'; ctx.fillText('Echo Trail — Color Diary', DIARY_PAD, DIARY_PAD + 14);
       diaryColors.forEach((color, i)=>{
-        const col = i % DIARY_EXPORT_COLS, row = Math.floor(i / DIARY_EXPORT_COLS);
-        const x = DIARY_PAD + col * (DIARY_SW + DIARY_GAP);
-        const y = DIARY_PAD + DIARY_HEADER + row * (DIARY_SH + DIARY_GAP);
+        const columnIndex = i % DIARY_EXPORT_COLS, rowIndex = Math.floor(i / DIARY_EXPORT_COLS);
+        const x = DIARY_PAD + columnIndex * (DIARY_SW + DIARY_GAP);
+        const y = DIARY_PAD + DIARY_HEADER + rowIndex * (DIARY_SH + DIARY_GAP);
         ctx.fillStyle = color.hex; ctx.fillRect(x, y, DIARY_SW, DIARY_SH);
         ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, DIARY_SW-1, DIARY_SH-1);
         const tc = diarySwatchTextColor(color.r, color.g, color.b);

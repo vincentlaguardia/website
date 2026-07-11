@@ -1068,8 +1068,14 @@
     if(name) addToRecent(name, originalCanvas);
   }
 
+  function isLikelyImageFile(file){
+    if(!file) return false;
+    if(file.type && file.type.startsWith('image/')) return true;
+    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i.test(String(file.name || ''));
+  }
+
   function loadImageFile(file){
-    if(!file || !file.type || !file.type.startsWith('image/')) return;
+    if(!isLikelyImageFile(file)) return;
     $('status-main').textContent='Loading image...';
     const reader = new FileReader();
     reader.onload = e=>{
@@ -1096,6 +1102,40 @@
       .replace(/\.+/g, '.')
       .replace(/^\.+|\.+$/g, '');
     return cleaned || fallback;
+  }
+
+  async function loadImageFromUrl(rawUrl, opts){
+    const options = opts || {};
+    const allowCrossOrigin = !!options.allowCrossOrigin;
+    let parsedUrl;
+    try{
+      parsedUrl = new URL(String(rawUrl || '').trim(), window.location.href);
+    } catch(_){
+      throw new Error('Could not load the dropped image.');
+    }
+    if(!allowCrossOrigin && parsedUrl.origin !== window.location.origin){
+      throw new Error('Cross-origin image drops are not allowed.');
+    }
+    const res = await fetch(parsedUrl.href);
+    if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
+    const blob = await res.blob();
+    if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
+    const rawName = options.name || parsedUrl.pathname.split('/').pop() || 'image';
+    const name = sanitizeFileName(decodePathPart(rawName), 'image');
+    loadImageFile(new File([blob], name, { type: blob.type || 'image/png' }));
+  }
+
+  function getDroppedUrl(dataTransfer){
+    if(!dataTransfer) return '';
+    const uriList = String(dataTransfer.getData('text/uri-list') || '').trim();
+    if(uriList){
+      const first = uriList.split(/\r?\n/).map(line => line.trim()).find(line => line && !line.startsWith('#'));
+      if(first) return first;
+    }
+    const plain = String(dataTransfer.getData('text/plain') || '').trim();
+    if(!plain) return '';
+    if(/^(https?:|data:image\/|blob:|\/)/i.test(plain)) return plain;
+    return '';
   }
 
   // ---------- Open Recent (localStorage-backed, this is a standalone saved
@@ -1483,11 +1523,19 @@
     const win = $('app-window');
     win.addEventListener('dragover', e=>{ e.preventDefault(); panel.classList.add('drag-over'); });
     win.addEventListener('dragleave', e=>{ if(!win.contains(e.relatedTarget)) panel.classList.remove('drag-over'); });
-    win.addEventListener('drop', e=>{
+    win.addEventListener('drop', async e=>{
       e.preventDefault();
       panel.classList.remove('drag-over');
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if(f) loadImageFile(f);
+      if(f && isLikelyImageFile(f)){ loadImageFile(f); return; }
+      const droppedUrl = getDroppedUrl(e.dataTransfer);
+      if(!droppedUrl) return;
+      try{
+        await loadImageFromUrl(droppedUrl, { allowCrossOrigin: true });
+      } catch(err){
+        console.warn('Image URL drop failed.', err);
+        alert(err && err.message ? err.message : 'Could not load the dropped image.');
+      }
     });
 
     // Menus (only items with a dropdown toggle open/close; About opens directly)
@@ -1538,24 +1586,11 @@
       if(e.origin !== window.location.origin) return;
       const rawUrl = String(e.data.url || '').trim();
       if(!rawUrl) return;
-      let parsedUrl;
       try{
-        parsedUrl = new URL(rawUrl, window.location.href);
-      } catch(_){
-        alert('Could not load the dropped desktop image.');
-        return;
-      }
-      try{
-        if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
+        const parsedUrl = new URL(rawUrl, window.location.href);
         const decodedPath = decodePathPart(parsedUrl.pathname);
         if(decodedPath.split('/').includes('..')) throw new Error('Invalid desktop image path.');
-        const res = await fetch(parsedUrl.href);
-        if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
-        const blob = await res.blob();
-        if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
-        const rawName = parsedUrl.pathname.split('/').pop() || 'image';
-        const name = sanitizeFileName(decodePathPart(rawName), 'image');
-        loadImageFile(new File([blob], name, { type: blob.type }));
+        await loadImageFromUrl(parsedUrl.href, { allowCrossOrigin: false, name: parsedUrl.pathname.split('/').pop() || 'image' });
       } catch(err){
         console.warn('Desktop image drop failed.', err);
         alert(err && err.message ? err.message : 'Could not load the dropped desktop image.');

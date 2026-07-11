@@ -303,7 +303,8 @@
   .echo-trail-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-window.chroma-drag-over .chroma-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
   .echo-trail-window.echo-trail-drag-over .echo-trail-frame { outline: 3px dashed #0078d7; outline-offset: -3px; }
-  .desktop-icon-item.chroma-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
+  .desktop-icon-item.chroma-drop-target,
+  .desktop-icon-item.echo-trail-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
   .chroma-diary-window { resize: both; overflow: hidden; }
   .chroma-diary-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-sam-window { resize: both; overflow: hidden; }
@@ -8422,11 +8423,18 @@ function setChromaDragHover(x, y, itemId) {
 function setEchoTrailDragHover(x, y, itemId) {
   const isPicture = itemId && items[itemId] && items[itemId].type === 'picture';
   const win = document.querySelector('.echo-trail-window');
-  if (!win) return;
-  const frame = win.querySelector('.echo-trail-frame');
-  if (!frame) return;
-  const r = frame.getBoundingClientRect();
-  win.classList.toggle('echo-trail-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  if (win) {
+    const frame = win.querySelector('.echo-trail-frame');
+    if (frame) {
+      const r = frame.getBoundingClientRect();
+      win.classList.toggle('echo-trail-drag-over', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+    }
+  }
+  const iconEl = document.querySelector('.desktop-icon-item[data-item-id="echotrailshortcut"]');
+  if (iconEl) {
+    const r = iconEl.getBoundingClientRect();
+    iconEl.classList.toggle('echo-trail-drop-target', isPicture && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  }
 }
 function tryDropImageToChroma(x, y, itemId) {
   const item = itemId && items[itemId];
@@ -8488,13 +8496,46 @@ function tryDropImageToEchoTrail(x, y, itemId) {
   if (!rawUrl) return false;
   let absoluteUrl;
   try { absoluteUrl = new URL(rawUrl, window.location.href).href; } catch(_) { return false; }
-  const frame = document.querySelector('.echo-trail-frame');
-  if (!frame) return false;
-  const fr = frame.getBoundingClientRect();
-  if (x < fr.left || x > fr.right || y < fr.top || y > fr.bottom) return false;
-  frame.contentWindow.postMessage({ type: 'echo-trail-desktop-drop', url: absoluteUrl }, window.location.origin);
-  document.querySelectorAll('.echo-trail-window').forEach(function(w) { w.classList.remove('echo-trail-drag-over'); });
-  return true;
+  function sendToFrame(frame) {
+    frame.contentWindow.postMessage({ type: 'echo-trail-desktop-drop', url: absoluteUrl }, window.location.origin);
+    document.querySelectorAll('.echo-trail-window').forEach(function(w) { w.classList.remove('echo-trail-drag-over'); });
+    document.querySelectorAll('.desktop-icon-item[data-item-id="echotrailshortcut"]').forEach(function(el) { el.classList.remove('echo-trail-drop-target'); });
+  }
+  const existingFrame = document.querySelector('.echo-trail-frame');
+  if (existingFrame) {
+    const fr = existingFrame.getBoundingClientRect();
+    if (x >= fr.left && x <= fr.right && y >= fr.top && y <= fr.bottom) {
+      sendToFrame(existingFrame);
+      return true;
+    }
+  }
+  const iconEl = document.querySelector('.desktop-icon-item[data-item-id="echotrailshortcut"]');
+  if (iconEl) {
+    const ir = iconEl.getBoundingClientRect();
+    if (x >= ir.left && x <= ir.right && y >= ir.top && y <= ir.bottom) {
+      iconEl.classList.remove('echo-trail-drop-target');
+      if (existingFrame) {
+        openEchoTrailWindow();
+        sendToFrame(existingFrame);
+      } else {
+        openEchoTrailWindow();
+        (function pollForFrame(attempt) {
+          const f = document.querySelector('.echo-trail-frame');
+          if (!f) {
+            if (attempt < 20) setTimeout(function() { pollForFrame(attempt + 1); }, 100);
+            return;
+          }
+          if (f.contentDocument && f.contentDocument.readyState === 'complete') {
+            sendToFrame(f);
+          } else {
+            f.addEventListener('load', function() { sendToFrame(f); }, { once: true });
+          }
+        }(0));
+      }
+      return true;
+    }
+  }
+  return false;
 }
 function setImageAppDragHover(x, y, itemId) {
   setChromaDragHover(x, y, itemId);

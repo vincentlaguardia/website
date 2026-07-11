@@ -30,32 +30,6 @@
       box-sizing: inherit;
     }
 
-    .hud {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .meter {
-      height: 19px;
-      padding: 3px;
-      background: #fff;
-      border: 2px solid;
-      border-color: #404040 #fff #fff #404040;
-    }
-
-    .meter i {
-      display: block;
-      height: 100%;
-      width: 4%;
-      background: var(--blood);
-      transition: 0.08s;
-    }
-
     .scene {
       position: relative;
       flex: 1;
@@ -662,17 +636,6 @@
       text-shadow: 3px 3px #a76a19;
     }
 
-    .caption {
-      margin-top: 9px;
-      padding: 8px;
-      min-height: 38px;
-      background: #111;
-      color: #68ff65;
-      border: 2px inset #fff;
-      font-size: 12px;
-      line-height: 1.35;
-    }
-
     .controls {
       display: flex;
       gap: 8px;
@@ -709,20 +672,6 @@
       letter-spacing: 2px;
       text-shadow: 4px 4px #000;
       animation: prompt 1s steps(2) infinite;
-    }
-
-    .prayer-count {
-      position: absolute;
-      z-index: 51;
-      top: 10px;
-      right: 12px;
-      padding: 5px 7px;
-      background: #000080;
-      color: #fff;
-      border: 2px solid #fff;
-      box-shadow: 2px 2px #000;
-      font-size: 12px;
-      font-weight: bold;
     }
 
     .water-burst,
@@ -952,12 +901,6 @@
     }
   </style>
 
-  <div class="hud">
-    <span>DEMONIC INFLUENCE</span>
-    <div class="meter"><i id="meter-fill"></i></div>
-    <span id="percent">4%</span>
-  </div>
-
   <div class="scene" id="scene">
     <div class="wallpaper"></div>
     <div class="windowmoon"></div>
@@ -998,11 +941,6 @@
     <div class="water-burst" id="water-burst" aria-hidden="true"></div>
     <div class="water-splash" id="water-splash" aria-hidden="true"></div>
     <div class="pray-intro" id="pray-intro">PUSH SPACE TO PRAY</div>
-    <div class="prayer-count" id="prayer-count">PRAYERS: 0</div>
-  </div>
-
-  <div class="caption" id="caption" aria-live="polite">
-    Mother: “Father, she keeps changing the Wi-Fi password!”
   </div>
 
   <div class="controls">
@@ -1018,14 +956,10 @@
   (() => {
     const scene = document.getElementById('scene');
     const girl = document.getElementById('girl');
-    const meter = document.getElementById('meter-fill');
-    const pct = document.getElementById('percent');
-    const caption = document.getElementById('caption');
     const score = document.getElementById('score');
     const prayButton = document.getElementById('pray-button');
     const soundButton = document.getElementById('sound-button');
     const intro = document.getElementById('pray-intro');
-    const prayerCount = document.getElementById('prayer-count');
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
     const powerAudio = document.getElementById('power-audio');
@@ -1039,14 +973,6 @@
     let powerPlayed = false;
     let prayerAnimTimer = 0;
     let waterAnimTimer = 0;
-
-    const lines = [
-      'Priest: “THE POWER OF CHRIST COMPELS YOU!”',
-      'Demon: “Fine. But I’m taking the Netflix password.”',
-      'Mother: “Don’t let her open another browser tab!”',
-      'The bed squeaks ominously. It has seen things.',
-      'Priest: “Begone, foul pop-up window!”'
-    ];
 
     function ensureAudio() {
       if (muted) return null;
@@ -1136,14 +1062,10 @@
     }
 
     function draw() {
-      meter.style.width = influence + '%';
-      meter.style.background = influence > 65 ? '#9d121b' : influence > 30 ? '#efc450' : '#38a83d';
-      pct.textContent = Math.round(influence) + '%';
       girl.style.bottom = 27 + influence * 0.34 + '%';
       scene.classList.toggle('possessed', influence > 42);
       scene.classList.toggle('ceiling-fire', influence >= 100);
       score.textContent = 'Holy Squirts: ' + prayers + ' | Record: ' + record;
-      prayerCount.textContent = 'PRAYERS: ' + prayers;
     }
 
     function restart() {
@@ -1152,7 +1074,6 @@
       won = false;
       intro.hidden = false;
       prayButton.textContent = 'SPRAY (SPACE)';
-      caption.textContent = 'Mother: “Father, she keeps changing the Wi-Fi password!”';
       beep(360, 0.08, 'square', 0.025, 120);
       draw();
     }
@@ -1178,12 +1099,9 @@
 
       if (influence <= 0) {
         won = true;
-        caption.textContent = '✦ EXORCISM COMPLETE! The demon has been sent to AOL dial-up. Press SPACE to replay.';
         prayButton.textContent = 'REBOOT RITUAL';
         beep(523, 0.12, 'triangle', 0.05, 260);
         window.setTimeout(() => beep(784, 0.24, 'triangle', 0.05, 110), 120);
-      } else {
-        caption.textContent = lines[prayers % lines.length];
       }
 
       draw();
@@ -1194,7 +1112,6 @@
         influence = Math.min(100, influence + 0.12);
         if (Math.round(influence) % 15 === 0) beep(92, 0.12, 'sawtooth', 0.018, -35);
         if (influence >= 100) {
-          caption.textContent = 'GAME OVER: The demon installed BonziBuddy. Press SPACE to try again.';
           won = true;
           prayButton.textContent = 'REBOOT RITUAL';
           beep(100, 0.55, 'sawtooth', 0.05, -65);

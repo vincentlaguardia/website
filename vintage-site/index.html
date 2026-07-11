@@ -1828,6 +1828,16 @@ function triggerNewFolder(parentId) {
   if (newEl) startInlineRename(newEl.querySelector('.label'), newId, () => refreshFolderView(parentId));
 }
 
+// Desktop-specific "New Folder" -- creates the folder, rebuilds the desktop
+// icons, then starts an inline rename on the new icon.
+function triggerDesktopNewFolder() {
+  const newId = createNewFolder('desktop');
+  if (!newId) return;
+  buildDesktopIcons();
+  const newEl = document.querySelector('#desktop-icons .desktop-icon-item[data-item-id="' + newId + '"]');
+  if (newEl) startInlineRename(newEl.querySelector('.label'), newId, () => buildDesktopIcons());
+}
+
 function renameItem(id, newName) {
   newName = (newName || '').trim();
   if (!newName || !items[id]) return;
@@ -2274,17 +2284,19 @@ function openBrowserWindow(landingUrlOverride) {
 }
 
 /* ---------- context menu ---------- */
+function closeSubmenu() {
+  const existing = document.getElementById('ctx-submenu');
+  if (existing) existing.remove();
+}
+
 function closeContextMenu() {
+  closeSubmenu();
   const existing = document.getElementById('ctx-menu');
   if (existing) existing.remove();
 }
 
-function showContextMenu(x, y, menuEntries) {
-  closeContextMenu();
-  const menu = document.createElement('div');
-  menu.id = 'ctx-menu';
-  menu.className = 'ctx-menu';
-  menuEntries.forEach(entry => {
+function buildMenuRows(entries, menuEl, isSubmenu) {
+  entries.forEach(entry => {
     const row = document.createElement('div');
     row.className = 'ctx-menu-item';
     if (entry.color) {
@@ -2307,21 +2319,41 @@ function showContextMenu(x, y, menuEntries) {
       row.textContent = entry.label;
     }
     if (entry.subMenu) {
-      row.addEventListener('click', e => {
-        e.stopPropagation();
+      const openSub = () => {
+        closeSubmenu();
         const rect = row.getBoundingClientRect();
-        closeContextMenu();
-        showContextMenu(rect.right + 2, rect.top, entry.subMenu);
-      });
-    } else if (entry.onClick) {
-      row.addEventListener('click', e => {
-        e.stopPropagation();
-        closeContextMenu();
-        entry.onClick();
-      });
+        const sub = document.createElement('div');
+        sub.id = 'ctx-submenu';
+        sub.className = 'ctx-menu';
+        buildMenuRows(entry.subMenu, sub, true);
+        document.body.appendChild(sub);
+        const maxLeft = window.innerWidth - sub.offsetWidth - 4;
+        const maxTop = window.innerHeight - sub.offsetHeight - 4;
+        sub.style.left = Math.min(rect.right + 2, Math.max(0, maxLeft)) + 'px';
+        sub.style.top = Math.min(rect.top, Math.max(0, maxTop)) + 'px';
+      };
+      row.addEventListener('mouseenter', openSub);
+      row.addEventListener('click', e => { e.stopPropagation(); openSub(); });
+    } else {
+      row.addEventListener('mouseenter', closeSubmenu);
+      if (entry.onClick) {
+        row.addEventListener('click', e => {
+          e.stopPropagation();
+          closeContextMenu();
+          entry.onClick();
+        });
+      }
     }
-    menu.appendChild(row);
+    menuEl.appendChild(row);
   });
+}
+
+function showContextMenu(x, y, menuEntries) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.id = 'ctx-menu';
+  menu.className = 'ctx-menu';
+  buildMenuRows(menuEntries, menu, false);
   document.body.appendChild(menu);
   const maxLeft = window.innerWidth - menu.offsetWidth - 4;
   const maxTop = window.innerHeight - menu.offsetHeight - 4;
@@ -5081,7 +5113,7 @@ function openWindow(id) {
         { label: (isDetails ? '✓ ' : '  ') + 'List', onClick: () => setFolderViewMode(id, 'details') },
         { label: (!isDetails ? '✓ ' : '  ') + 'Thumbnail', onClick: () => setFolderViewMode(id, 'icons') },
         { label: '─────────────', onClick: null },
-        { label: 'Arrange By', subMenu: [
+        { label: 'Sort By...', subMenu: [
           { label: chk('name') + 'Name',          onClick: () => setFolderSortMode(id, 'name') },
           { label: chk('type') + 'File Type',     onClick: () => setFolderSortMode(id, 'type') },
           { label: chk('size') + 'Size',          onClick: () => setFolderSortMode(id, 'size') },
@@ -8429,10 +8461,14 @@ function makeDesktopIconDraggable(el, storageKey, onOpen, onDeleteViaTrash, item
   }
   document.addEventListener('mousemove', onMove);
   document.addEventListener('mouseup', onUp);
-  el.addEventListener('click', () => {
+  el.addEventListener('click', e => {
     if (moved) { moved = false; return; }
-    document.querySelectorAll('.desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
-    el.classList.add('selected');
+    if (e.metaKey || e.ctrlKey) {
+      el.classList.toggle('selected');
+    } else {
+      document.querySelectorAll('.desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+      el.classList.add('selected');
+    }
   });
   if (onOpen) {
     el.addEventListener('dblclick', () => {
@@ -8555,8 +8591,9 @@ function buildDesktopIcons() {
       e.preventDefault();
       e.stopPropagation();
       const menuEntries = [];
+      menuEntries.push({ label: 'New Folder...', onClick: () => triggerDesktopNewFolder() });
       menuEntries.push({
-        label: 'Arrange Icons By',
+        label: 'Sort By...',
         subMenu: [
           { label: 'Name',          onClick: () => cleanUpDesktopBySort('name') },
           { label: 'Type',          onClick: () => cleanUpDesktopBySort('type') },
@@ -8565,7 +8602,7 @@ function buildDesktopIcons() {
       });
       menuEntries.push(
         { label: 'Change Background', onClick: openBackgroundPickerWindow },
-        { label: 'Scheme', onClick: openSchemeWindow }
+        { label: 'Palette', onClick: openSchemeWindow }
       );
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
@@ -8573,9 +8610,71 @@ function buildDesktopIcons() {
 
   if (!wrap.dataset.deselectBound) {
     wrap.dataset.deselectBound = '1';
-    document.getElementById('desktop').addEventListener('mousedown', e => {
-      if (!e.target.closest('.desktop-icon-item')) {
-        document.querySelectorAll('.desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+    // Rubber-band selection + Cmd/Ctrl deselect on blank space
+    let rubberActive = false, rubberStartX = 0, rubberStartY = 0, rubberMoved = false;
+    const desktopEl = document.getElementById('desktop');
+
+    function getOrCreateSelectionRect() {
+      let r = document.getElementById('desktop-rubber-rect');
+      if (!r) {
+        r = document.createElement('div');
+        r.id = 'desktop-rubber-rect';
+        r.style.cssText = 'position:fixed;border:1px dotted #000080;background:rgba(0,0,128,0.08);pointer-events:none;z-index:2;display:none;';
+        desktopEl.appendChild(r);
+      }
+      return r;
+    }
+
+    desktopEl.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      if (e.target.closest('.desktop-icon-item, #taskbar, .win98-window')) return;
+      rubberActive = true;
+      rubberMoved = false;
+      rubberStartX = e.clientX;
+      rubberStartY = e.clientY;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!rubberActive) return;
+      const dx = Math.abs(e.clientX - rubberStartX);
+      const dy = Math.abs(e.clientY - rubberStartY);
+      if (dx > 4 || dy > 4) {
+        rubberMoved = true;
+        const r = getOrCreateSelectionRect();
+        r.style.display = 'block';
+        const x1 = Math.min(rubberStartX, e.clientX);
+        const y1 = Math.min(rubberStartY, e.clientY);
+        r.style.left = x1 + 'px';
+        r.style.top = y1 + 'px';
+        r.style.width = Math.abs(e.clientX - rubberStartX) + 'px';
+        r.style.height = Math.abs(e.clientY - rubberStartY) + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', e => {
+      if (!rubberActive) return;
+      rubberActive = false;
+      const r = document.getElementById('desktop-rubber-rect');
+      if (rubberMoved && r && r.style.display === 'block') {
+        r.style.display = 'none';
+        const rx1 = parseInt(r.style.left);
+        const ry1 = parseInt(r.style.top);
+        const rx2 = rx1 + parseInt(r.style.width);
+        const ry2 = ry1 + parseInt(r.style.height);
+        if (!e.metaKey && !e.ctrlKey) {
+          document.querySelectorAll('.desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+        }
+        document.querySelectorAll('#desktop-icons .desktop-icon-item').forEach(icon => {
+          const b = icon.getBoundingClientRect();
+          if (b.right >= rx1 && b.left <= rx2 && b.bottom >= ry1 && b.top <= ry2) {
+            icon.classList.add('selected');
+          }
+        });
+      } else if (!rubberMoved) {
+        if (!e.metaKey && !e.ctrlKey) {
+          document.querySelectorAll('.desktop-icon-item.selected').forEach(s => s.classList.remove('selected'));
+        }
       }
     });
   }

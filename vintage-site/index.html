@@ -2363,7 +2363,7 @@ function buildMenuRows(entries, menuEl, isSubmenu) {
       row.addEventListener('mouseenter', openSub);
       row.addEventListener('click', e => { e.stopPropagation(); openSub(); });
     } else {
-      row.addEventListener('mouseenter', closeSubmenu);
+      if (!isSubmenu) row.addEventListener('mouseenter', closeSubmenu);
       if (entry.onClick) {
         row.addEventListener('click', e => {
           e.stopPropagation();

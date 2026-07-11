@@ -1210,6 +1210,7 @@ function getDesktopIconSize(item) {
   if (!item) return 128;
   if (item.iconSize && item.iconSize > 0) return item.iconSize;
   if (item.type === 'text' || item.customIcon === 'notepad' || item.customIcon === 'notepadshortcut') return 64;
+  if (item.type === 'audio') return 96;
   if (item.type === 'picture') return 96;
   if ((item.type === 'video' || item.type === 'shortcut') && item.thumb) return 96;
   return 128;

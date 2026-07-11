@@ -258,6 +258,13 @@
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
   p.lead{ line-height:1.5; margin:6px 0 12px; max-width:64ch; }
+  #theory-plus-content p.lead{ max-width:none; }
+  #theory-plus-content table{ border-collapse:collapse; margin:8px 0 12px; font-size:12px; }
+  #theory-plus-content th, #theory-plus-content td{ border:1px solid var(--shadow); padding:3px 8px; text-align:left; }
+  #theory-plus-content th{ background:var(--face); font-weight:bold; }
+  #theory-plus-content pre{ font-family:monospace; font-size:11px; margin:6px 0 12px; line-height:1.6; background:none; border:none; padding:0; white-space:pre; }
+  #theory-plus-content blockquote{ border-left:2px solid var(--shadow); margin:6px 0 12px 8px; padding-left:10px; font-style:italic; }
+  #theory-plus-content .math{ font-family:monospace; font-size:11px; display:block; margin:6px 0 12px; text-align:center; }
   .resize-handle{
     position:absolute;
     right:1px; bottom:1px;
@@ -634,6 +641,7 @@
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
+      <div class="menu-item" id="menu-theory-plus" tabindex="0" aria-haspopup="dialog">Theory +</div>
       <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Techno</div>
       <div class="menu-item" id="menu-sam" tabindex="0" aria-haspopup="dialog">Sam Mode</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
@@ -803,6 +811,201 @@
     </div>
   </div>
 </div>
+<div id="theory-plus-dialog" class="dialog">
+  <div class="titlebar">
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Theory +</span></div>
+    <div class="titlebar-btns"><div class="tbtn" id="theory-plus-close">X</div></div>
+  </div>
+  <div class="winbody">
+    <div class="content-panel sunken">
+      <div id="theory-plus-content">
+        <p class="lead" style="margin-top:0;"><strong>techno mode</strong></p>
+        <p class="lead">a parametric model of controlled visual conflict in color composition</p>
+        <p class="lead"><strong>abstract</strong></p>
+        <p class="lead">techno mode is a parametric color composition system defined over a fixed 7 &times; 7 grid. it combines four mechanisms: a restricted set of source harmony grammars; a bimodal pastel and neon state model; a normalized strange parameter controlling chromatic deviation; and a deterministic modular diagonal field that assigns cells to four repeating bands. the system is designed to produce controlled visual conflict: measurable chromatic deviation operating within an invariant spatial structure.</p>
+        <p class="lead">unlike conventional harmony systems, which primarily prescribe stable relationships among hues, techno mode treats a harmony grammar as an initial condition that may be mutated. its central distinction is therefore not a new geometry on the hue wheel, but a formal separation between structural invariance and probabilistic color behavior. this paper specifies the model, distinguishes source harmony from generated palette geometry, introduces measures for grammar deviation and local perceptual conflict, and identifies the conditions under which the system remains reproducible and empirically testable.</p>
+        <p class="lead"><strong>1. introduction</strong></p>
+        <p class="lead">computational color systems must negotiate a recurring tension between coherence and variation. highly constrained systems, such as fixed complementary or triadic schemes, produce recognizable relationships but may limit expressive range. unbounded random sampling produces greater variation but can weaken compositional identity.</p>
+        <p class="lead">techno mode occupies the interval between those conditions. it preserves an invariant spatial substrate while expanding the admissible behavior of color within it. grid geometry and band membership remain deterministic. harmony family, hue mutation, chromatic state, and per cell variation determine the generated surface.</p>
+        <p class="lead">the resulting model can be summarized as:</p>
+        <span class="math">controlled visual conflict = structural invariance + bounded chromatic deviation</span>
+        <p class="lead">here, conflict does not mean arbitrary discord. it refers to perceptual differences that depart from an initial palette grammar while remaining statistically bounded and spatially organized.</p>
+        <p class="lead">techno mode is best understood as a parametric color composition system, rather than solely as a traditional color harmony theory. traditional theories generally ask which colors belong together. techno mode asks a different question:</p>
+        <blockquote>how far can a palette depart from an underlying color relationship while the composition retains an identifiable structural character?</blockquote>
+        <p class="lead"><strong>2. conceptual position</strong></p>
+        <p class="lead">techno mode draws upon several established ideas without being reducible to any one of them:</p>
+        <ul>
+          <li class="lead">traditional harmony families supply source relationships among hues.</li>
+          <li class="lead">perceptual color spaces make chromatic differences measurable.</li>
+          <li class="lead">modular arithmetic supplies a deterministic spatial field.</li>
+          <li class="lead">mixture distributions produce distinct pastel and neon populations.</li>
+          <li class="lead">constrained stochastic generation produces variation without altering the underlying topology.</li>
+        </ul>
+        <p class="lead">the distinctive contribution is the architecture connecting these components. harmony is treated as a source grammar, not a guaranteed description of the final palette. randomness operates only in the color layer and never modifies spatial band membership. a single control variable increases the permitted deviation while preserving the compositional scaffold.</p>
+        <p class="lead">this position differs from color harmonization methods that optimize an existing image toward a recognized harmony template. techno mode permits movement away from such a template and treats the resulting tension as an intended feature.</p>
+        <p class="lead"><strong>3. structural substrate</strong></p>
+        <p class="lead"><strong>3.1 grid</strong></p>
+        <p class="lead">the reference composition uses a 7 &times; 7 grid containing 49 cells. nine cells contain target circles and 40 act as background or support cells:</p>
+        <span class="math">9/49 &asymp; 18.4%&nbsp;&nbsp;&nbsp;&nbsp;40/49 &asymp; 81.6%</span>
+        <p class="lead">because support cells occupy most of the field, the overall composition is driven primarily by relationships among background colors, not by the target circles alone.</p>
+        <p class="lead">the 7 &times; 7 configuration is the reference implementation rather than a mathematical necessity. a generalized implementation may use an r &times; c grid, provided the spatial and chromatic stages remain separate.</p>
+        <p class="lead"><strong>3.2 modular diagonal band field</strong></p>
+        <p class="lead">for zero indexed row r, column c, and band count n, band membership is:</p>
+        <span class="math">b(r,c) = (r+c) mod n</span>
+        <p class="lead">for the reference configuration, n = 4. the grid therefore begins:</p>
+        <pre>0 1 2 3 0 1 2
+1 2 3 0 1 2 3
+2 3 0 1 2 3 0
+3 0 1 2 3 0 1
+0 1 2 3 0 1 2
+1 2 3 0 1 2 3
+2 3 0 1 2 3 0</pre>
+        <p class="lead">cells with equal values of (r+c) mod n occupy a repeating diagonal residue class. this construction is described here as a modular diagonal band field. when the grid and band count are both n, the same formula generates a cyclic latin square. the 7 &times; 7, four band reference case is periodic but is not itself a latin square because symbols repeat within individual rows and columns.</p>
+        <p class="lead">diagonal repetition is used because it produces a woven directional rhythm while remaining deterministic. horizontal and vertical neighbors always advance by one band modulo n. consequently, the field encodes a predictable adjacency structure before any colors are generated.</p>
+        <p class="lead"><strong>4. source harmony grammar</strong></p>
+        <p class="lead">the full application recognizes six conventional palette families:</p>
+        <ol>
+          <li class="lead">monochromatic;</li>
+          <li class="lead">analogous;</li>
+          <li class="lead">complementary;</li>
+          <li class="lead">split complementary;</li>
+          <li class="lead">triadic; and</li>
+          <li class="lead">tetradic.</li>
+        </ol>
+        <p class="lead">techno mode admits four: monochromatic, analogous, split complementary, and tetradic. complementary and triadic are excluded.</p>
+        <span class="math">admitted fraction = 4/6 &asymp; 66.7%&nbsp;&nbsp;&nbsp;&nbsp;excluded fraction = 2/6 &asymp; 33.3%</span>
+        <p class="lead">this restriction should not be interpreted as proof that complementary and triadic palettes are universally more resolved than other families. rather, it is an explicit design decision: in the implementation, these two families provide strongly legible symmetric intervals that work against the desired aesthetic of asymmetrical mutation.</p>
+        <p class="lead">the chosen family defines the source grammar g, consisting of a set of nominal hue positions: g = {g&#8321;, g&#8322;, &hellip;, g&#8342;} where g&#7522; &isin; [0, 360).</p>
+        <p class="lead">after mutation, the generated hues need not retain the conventional label of the source grammar. the system therefore distinguishes between:</p>
+        <ul>
+          <li class="lead">source grammar: the relationship used to initialize the palette;</li>
+          <li class="lead">generated geometry: the relationships present after mutation; and</li>
+          <li class="lead">grammar deviation: the measured distance between the two.</li>
+        </ul>
+        <p class="lead">this distinction prevents a heavily mutated palette from being described as analogous or tetradic when its final geometry no longer supports that description.</p>
+        <p class="lead"><strong>5. bimodal chromatic states</strong></p>
+        <p class="lead">each generated cell occupies one of two states. in the reference hsl implementation, their ranges are:</p>
+        <table>
+          <thead><tr><th>state</th><th>saturation</th><th>lightness</th><th>approximate mean</th></tr></thead>
+          <tbody>
+            <tr><td>pastel</td><td>50 to 80</td><td>72 to 88</td><td>s=65, l=80</td></tr>
+            <tr><td>neon</td><td>92 to 100</td><td>47 to 67</td><td>s=96, l=57</td></tr>
+          </tbody>
+        </table>
+        <p class="lead">the mean separation is approximately 31 saturation points and 23 lightness points. the saturation intervals do not overlap, so the states form two deliberately separated populations rather than positions along a continuous pastel to neon gradient.</p>
+        <p class="lead">these names describe operational states within techno mode; they are not proposed as universal definitions of pastel and neon. hsl is retained here to document the reference implementation, but it is not perceptually uniform. a perceptual implementation should transform generated colors into oklch or cielab before evaluating distances and conflict.</p>
+        <p class="lead"><strong>6. the strange parameter</strong></p>
+        <p class="lead">let the interface value strange range from 0 to 100. its normalized form is:</p>
+        <span class="math">w = strange / 100&nbsp;&nbsp;&nbsp;&nbsp;0 &le; w &le; 1</span>
+        <p class="lead">the parameter w controls the magnitude of permitted chromatic deviation. in the reference implementation it affects both hue spread and state probability. it therefore functions similarly to a mutation amplitude or temperature control: higher values enlarge the available output space without changing the underlying band field.</p>
+        <p class="lead"><strong>6.1 hue spread</strong></p>
+        <p class="lead">the total permitted hue spread is:</p>
+        <span class="math">s&#8346;(w) = 80&deg; + 220&deg; &times; w</span>
+        <p class="lead">thus:</p>
+        <span class="math">s&#8346;(0) = 80&deg;&nbsp;&nbsp;&nbsp;&nbsp;s&#8346;(1) = 300&deg;</span>
+        <p class="lead">this corresponds to 22.2% through 83.3% of the hue circle. if spread is centered on a source hue g, a cell hue may be sampled as h = (g + &epsilon;&#8341;) mod 360&deg;, where &epsilon;&#8341; is drawn uniformly from [&minus;s&#8346;(w)/2, s&#8346;(w)/2]. this equation makes explicit both the meaning of spread and the wraparound behavior at 0&deg; and 360&deg;.</p>
+        <p class="lead">at large values of w, generated hues may more closely resemble another conventional palette family than their source grammar. this is an expected form of mutation, not a change to the source grammar itself.</p>
+        <p class="lead"><strong>6.2 pastel probability</strong></p>
+        <p class="lead">let d, e be independent uniform random variables on [0, 1]. the reference condition assigns a cell to the pastel state when d &gt; 0.38 + 0.24we. the resulting marginal probability is:</p>
+        <span class="math">Pr(pastel | w) = 0.62 &minus; 0.12w</span>
+        <p class="lead">consequently:</p>
+        <span class="math">Pr(pastel | 0) = 0.62&nbsp;&nbsp;&nbsp;&nbsp;Pr(pastel | 1) = 0.50</span>
+        <p class="lead">the neon probability is:</p>
+        <span class="math">Pr(neon | w) = 0.38 + 0.12w</span>
+        <p class="lead">increasing strange therefore moves the binary state distribution from a pastel bias toward an equal split. it does not make the state distribution more random in an absolute sense; instead, it increases its binary shannon entropy toward the one bit maximum. the entropy H(w) is computed from p(w) = 0.62 &minus; 0.12w.</p>
+        <p class="lead"><strong>7. two stage generation</strong></p>
+        <p class="lead">techno mode strictly separates structure from chromatic deviation.</p>
+        <p class="lead"><strong>stage 1: deterministic structure</strong></p>
+        <ol>
+          <li class="lead">construct the grid.</li>
+          <li class="lead">assign each cell to b(r,c) = (r+c) mod n.</li>
+          <li class="lead">assign structural roles, including target and support cells.</li>
+          <li class="lead">select or receive a source harmony grammar.</li>
+        </ol>
+        <p class="lead"><strong>stage 2: bounded color generation</strong></p>
+        <ol>
+          <li class="lead">associate each band or cell role with a source hue.</li>
+          <li class="lead">calculate w and s&#8346;(w).</li>
+          <li class="lead">sample the pastel or neon state.</li>
+          <li class="lead">sample hue, saturation, and lightness within the permitted distributions.</li>
+          <li class="lead">convert the result to a perceptual color space for evaluation.</li>
+        </ol>
+        <p class="lead">randomness never feeds back into stage 1. therefore every output shares a common spatial topology even when its color realization changes substantially.</p>
+        <p class="lead">for reproducibility, every generation should record: {r, c, n, g, w, seed, color space version}. a fixed pseudorandom seed makes the output deterministic and allows exact comparisons between parameter settings.</p>
+        <p class="lead"><strong>8. measuring deviation and conflict</strong></p>
+        <p class="lead">bounded input ranges alone do not establish that an output contains controlled visual conflict. to make the claim testable, techno mode distinguishes deviation from the source grammar from perceptual contrast among generated cells.</p>
+        <p class="lead"><strong>8.1 circular hue distance</strong></p>
+        <p class="lead">for hue angles a and b, define the shortest circular distance as:</p>
+        <span class="math">d&#8341;(a,b) = min(|a &minus; b|, 360&deg; &minus; |a &minus; b|)</span>
+        <p class="lead"><strong>8.2 grammar deviation</strong></p>
+        <p class="lead">let g&#7522; be the nominal source hue assigned to cell i, and h&#7522; its generated hue. mean hue deviation is:</p>
+        <span class="math">d&#8347; = (1/m) &times; &sum; d&#8341;(h&#7522;, g&#7522;)&nbsp;&nbsp;&nbsp;&nbsp;summed over i = 1 to m</span>
+        <p class="lead">where m is the number of evaluated cells.</p>
+        <p class="lead">if rotation of the entire source template is permitted, a rotation invariant measure d&#8347;* minimizes the mean hue distance over all global rotations &theta; &isin; [0, 360). the first measure evaluates mutation from the exact initialized palette; the second evaluates deformation of the underlying interval structure independent of global rotation.</p>
+        <p class="lead"><strong>8.3 local perceptual conflict</strong></p>
+        <p class="lead">represent the generated color of cell i by a perceptual coordinate x&#7522;, preferably in oklab/oklch or cielab. let E be the set of adjacent cell pairs. a basic local contrast score is:</p>
+        <span class="math">c&#8347;&#8338;&#8346;&#8341; = (1/|E|) &times; &sum; &delta;(x&#7522;, x&#11785;)&nbsp;&nbsp;&nbsp;&nbsp;for (i,j) &isin; E</span>
+        <p class="lead">where &delta; is a specified perceptual color distance function.</p>
+        <p class="lead">because high contrast is not automatically equivalent to aesthetic conflict, a more specific model may define a target conflict interval [&delta;&#8321;, &delta;&#8322;]. pairwise values below &delta;&#8321; are low contrast, values within the interval are controlled conflict, and values above &delta;&#8322; are extreme separation. these thresholds should be determined empirically rather than asserted as universal constants.</p>
+        <p class="lead"><strong>8.4 multiscale measures</strong></p>
+        <p class="lead">conflict may be summarized at several levels:</p>
+        <ul>
+          <li class="lead">cell level: deviation of one generated color from its source;</li>
+          <li class="lead">neighbor level: perceptual distance across an adjacency edge;</li>
+          <li class="lead">band level: within band dispersion and between band separation;</li>
+          <li class="lead">grid level: overall color dispersion, state balance, and spatial autocorrelation.</li>
+        </ul>
+        <p class="lead">for band b, within band dispersion v&#7495; is computed as the mean squared perceptual distance from the band centroid &mu;&#7495; over all cells i&#7495; in band b. these measures make it possible to test the main claim of the system: as w increases, chromatic deviation and some forms of perceptual conflict should increase, while spatial band membership remains invariant.</p>
+        <p class="lead"><strong>9. operational definition of controlled visual conflict</strong></p>
+        <p class="lead">for techno mode, controlled visual conflict is present when all three of the following conditions hold:</p>
+        <ol>
+          <li class="lead">structural invariance: band membership and compositional roles are unchanged across generations.</li>
+          <li class="lead">bounded deviation: every sampled color remains within distributions explicitly determined by w, its source hue, and its chromatic state.</li>
+          <li class="lead">measurable tension: the generated palette produces nonzero grammar deviation and a specified distribution of perceptual differences at the cell, neighbor, band, or grid level.</li>
+        </ol>
+        <p class="lead">this can be expressed schematically as CVC(p) = &alpha;d&#8347; + &beta;c&#8347;&#8338;&#8346;&#8341; + &gamma;c&#7495;&#8341;&#8345;&#8347; + &eta;H, subject to invariant structural field b. the coefficients are not universal aesthetic constants. they are model parameters that must be selected for a particular implementation or estimated through perceptual studies.</p>
+        <p class="lead">the equation is therefore a measurement framework, not a claim that aesthetic experience can be reduced completely to one scalar.</p>
+        <p class="lead"><strong>10. hypotheses and validation</strong></p>
+        <p class="lead">the model supports several falsifiable hypotheses:</p>
+        <ul>
+          <li class="lead">H1: mean grammar deviation increases monotonically with w.</li>
+          <li class="lead">H2: pastel to neon state entropy increases with w, approaching one bit.</li>
+          <li class="lead">H3: spatial autocorrelation associated with band membership remains stable across values of w.</li>
+          <li class="lead">H4: perceived conflict increases with measured grammar deviation and local perceptual contrast, up to a saturation point.</li>
+          <li class="lead">H5: removing the modular band field while holding the color distributions constant reduces perceived structural coherence.</li>
+        </ul>
+        <p class="lead">a validation study could generate matched images using identical seeds and several values of w. participants could rate perceived coherence, conflict, visual interest, and randomness. an ablation condition could randomize band membership without changing the palette distribution. this would test whether the deterministic substrate, not merely the bounded palette, is responsible for the claimed sense of controlled instability.</p>
+        <p class="lead"><strong>11. scope and limitations</strong></p>
+        <p class="lead">techno mode currently has several defined limitations:</p>
+        <ol>
+          <li class="lead">hsl sampling is implementation friendly but not perceptually uniform.</li>
+          <li class="lead">pastel and neon are operational labels whose perceived meaning varies with display, adaptation, context, and culture.</li>
+          <li class="lead">hue deviation alone cannot predict aesthetic conflict.</li>
+          <li class="lead">conventional harmony labels describe source conditions, not necessarily final outputs.</li>
+          <li class="lead">the reference system addresses a specific 7 &times; 7 composition and does not yet establish independent of scale behavior.</li>
+          <li class="lead">claims about perceptual conflict require observer studies for validation.</li>
+          <li class="lead">target circle colors, relative area, and figure and ground interaction require separate specification if they participate in the conflict model.</li>
+        </ol>
+        <p class="lead">these limitations do not weaken the system specification. they distinguish what is mathematically defined from what remains an empirical aesthetic hypothesis.</p>
+        <p class="lead"><strong>12. conclusion</strong></p>
+        <p class="lead">techno mode is a structured stochastic system for computational color composition. its principal contribution is the separation of an invariant modular spatial field from a mutable chromatic layer. a restricted source grammar establishes an initial palette logic; a bimodal state model separates pastel and neon behavior; and the normalized strange parameter expands hue mutation while moving state selection toward maximum binary entropy.</p>
+        <p class="lead">the system does not propose that visual conflict can be inferred from hue spread alone. instead, it provides a framework in which source grammar deviation, perceptual adjacency contrast, band dispersion, and state entropy can be measured separately. this refinement makes controlled visual conflict an empirically testable proposition:</p>
+        <span class="math">controlled visual conflict = invariant spatial order + bounded, measurable chromatic deviation</span>
+        <p class="lead">techno mode consequently differs from conventional harmony prescriptions in both purpose and operation. it does not seek a single resolved palette. it defines a reproducible family of compositions in which chromatic instability may increase without dissolving the structure that makes the instability legible.</p>
+        <p class="lead"><strong>references and related foundations</strong></p>
+        <ul>
+          <li class="lead">cohen or, d., sorkine, o., gal, r., leyvand, t., and xu, y. q. &ldquo;color harmonization.&rdquo; acm transactions on graphics 25, no. 3 (2006): 624&ndash;630.</li>
+          <li class="lead">moon, p., and spencer, d. e. &ldquo;geometric formulation of classical color harmony.&rdquo; journal of the optical society of america 34, no. 1 (1944): 46&ndash;59.</li>
+          <li class="lead">international commission on illumination. colorimetry, cie 15. cie central bureau.</li>
+          <li class="lead">fairchild, m. d. color appearance models. wiley.</li>
+        </ul>
+      </div>
+      <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
+        <button class="win-btn" id="theory-plus-ok">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="sam-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>Sam Mode — chroma.exe</span></div>
@@ -853,6 +1056,7 @@
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Theory</div>
+  <div class="sm-item" id="sm-theory-plus">Theory +</div>
   <div class="sm-item" id="sm-theory">Techno</div>
   <div class="sm-item" id="sm-sam">Sam Mode</div>
   <div class="sm-item" id="sm-about">About</div>
@@ -1055,7 +1259,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory-plus', 'menu-theory', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -1071,10 +1275,12 @@
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
+  const theoryPlusDialog = document.getElementById('theory-plus-dialog');
   const samDialog = document.getElementById('sam-dialog');
   function openHelp(){
     closeAbout();
     closeTheory();
+    closeTheoryPlus();
     helpDialog.classList.add('show');
   }
   function closeHelp(){
@@ -1087,15 +1293,24 @@
   function openAbout(){
     closeHelp();
     closeTheory();
+    closeTheoryPlus();
     aboutDialog.classList.add('show');
   }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
   function openTheory(){
     closeHelp();
     closeAbout();
+    closeTheoryPlus();
     theoryDialog.classList.add('show');
   }
   function closeTheory(){ theoryDialog.classList.remove('show'); }
+  function openTheoryPlus(){
+    closeHelp();
+    closeAbout();
+    closeTheory();
+    theoryPlusDialog.classList.add('show');
+  }
+  function closeTheoryPlus(){ theoryPlusDialog.classList.remove('show'); }
   function closeSamMode(){ samDialog.classList.remove('show'); }
   const helpContent = document.getElementById('help-content');
   const helpEditBtn = document.getElementById('help-edit');
@@ -1118,6 +1333,7 @@
   helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
   helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
   document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
+  document.getElementById('menu-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheoryPlus(); });
   document.getElementById('menu-theory').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheory(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
   document.getElementById('help-close').addEventListener('click', closeHelp);
@@ -1125,12 +1341,15 @@
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('theory-close').addEventListener('click', closeTheory);
   document.getElementById('theory-ok').addEventListener('click', closeTheory);
+  document.getElementById('theory-plus-close').addEventListener('click', closeTheoryPlus);
+  document.getElementById('theory-plus-ok').addEventListener('click', closeTheoryPlus);
   // Capture phase ensures outside clicks close open dialogs even when nested handlers stop propagation.
   document.addEventListener('click', function(e){
     [
       { dialog: aboutDialog, close: closeAbout },
       { dialog: helpDialog, close: closeHelp },
-      { dialog: theoryDialog, close: closeTheory }
+      { dialog: theoryDialog, close: closeTheory },
+      { dialog: theoryPlusDialog, close: closeTheoryPlus }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
       const contentPanel = dialog.querySelector('.content-panel');
@@ -1227,6 +1446,7 @@
   document.getElementById('sm-programs').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#programs'; });
   document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
   document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
+  document.getElementById('sm-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheoryPlus(); });
   document.getElementById('sm-theory').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheory(); });
   document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
   document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });

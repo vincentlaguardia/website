@@ -25,6 +25,7 @@
     color:#000;
     -webkit-font-smoothing:none;
   }
+  html.ui-inverted body,
   body.ui-inverted{
     filter: invert(1) hue-rotate(180deg);
   }
@@ -327,6 +328,19 @@
                 inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--white);
   }
 </style>
+<script>
+  (function(){
+    const storageKey = 'chroma.ui.invert';
+    let invertEnabled = false;
+    try {
+      invertEnabled = window.localStorage.getItem(storageKey) === 'true';
+    } catch (e) {}
+    if(invertEnabled){
+      document.documentElement.classList.add('ui-inverted');
+    }
+    window.__chromaUiInvert = { storageKey, enabled: invertEnabled };
+  })();
+</script>
 </head>
 <body>
 <script>if (window.self !== window.top) { document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
@@ -341,14 +355,26 @@
 (function(){
   const invertBtn = document.getElementById('invert-btn');
   const INVERT_CLASS = 'ui-inverted';
-  function setInvertState(enabled){
+  const invertState = window.__chromaUiInvert || { storageKey: 'chroma.ui.invert', enabled: false };
+  function persistInvertState(enabled){
+    try {
+      window.localStorage.setItem(invertState.storageKey, enabled ? 'true' : 'false');
+    } catch (e) {}
+  }
+  function setInvertState(enabled, persist = true){
+    document.documentElement.classList.toggle(INVERT_CLASS, enabled);
     document.body.classList.toggle(INVERT_CLASS, enabled);
+    invertState.enabled = enabled;
     if(invertBtn){
       invertBtn.classList.toggle('active', enabled);
       invertBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
       invertBtn.textContent = enabled ? 'Invert: On' : 'Invert';
     }
+    if(persist){
+      persistInvertState(enabled);
+    }
   }
+  setInvertState(Boolean(invertState.enabled || document.documentElement.classList.contains(INVERT_CLASS)), false);
   if(invertBtn){
     invertBtn.addEventListener('click', ()=>{
       const next = !document.body.classList.contains(INVERT_CLASS);

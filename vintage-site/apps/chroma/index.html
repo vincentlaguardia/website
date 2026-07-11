@@ -686,11 +686,11 @@
       <div class="match-sat-control">
         <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Sat: continuously lock Saturation to the selected source color" aria-pressed="false">Match Sat</button>
         <div class="match-source-wrap">
-          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select saturation match source">Circles &#9662;</button>
+          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select saturation match source">Circle &#9662;</button>
           <div class="match-source-dropdown raised" id="cc-match-source-dropdown">
-            <div class="menu-option active" data-source="circles">Circles</div>
+            <div class="menu-option active" data-source="circle">Circle</div>
             <div class="menu-option" data-source="skew">Skew</div>
-            <div class="menu-option" data-source="buttons">Buttons</div>
+            <div class="menu-option" data-source="focus">Focus</div>
             <div class="menu-option" data-source="user" id="cc-match-source-user" style="display:none">User</div>
           </div>
         </div>
@@ -1504,7 +1504,6 @@
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
-  const DEFAULT_MATCH_SAT_HEX = '#fbf432';
   const PHILOSOPHIES = [
     { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
     { name:'Analogous', hueOffsets:[-30,0,30], pattern:[0,1,2,1] },
@@ -1669,7 +1668,7 @@
   let focusActive = false;
   let focusHex = '#1fff8b';
   let matchSatActive = false;
-  let matchSatSource = 'circles'; // 'circles' | 'skew' | 'buttons' | 'user'
+  let matchSatSource = 'circle'; // 'circle' | 'skew' | 'focus' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
@@ -1678,9 +1677,9 @@
   // --- Match Sat helpers ---
   function getMatchSatSourceRgb(){
     switch(matchSatSource){
-      case 'circles': return userChangedTargetColor ? TARGET : hexToRgbObj(DEFAULT_MATCH_SAT_HEX);
+      case 'circle': return TARGET;
       case 'skew': return (skewColor !== null) ? hexToRgbObj(skewInput.value) : null;
-      case 'buttons': return lastColor ? { r:lastColor.r, g:lastColor.g, b:lastColor.b } : null;
+      case 'focus': return hexToRgbObj(focusHex);
       case 'user': return matchSatUserColor ? { r:matchSatUserColor.r, g:matchSatUserColor.g, b:matchSatUserColor.b } : null;
       default: return null;
     }
@@ -1726,7 +1725,7 @@
     } else {
       userOption.style.display = 'none';
     }
-    const labels = { circles:'Circles', skew:'Skew', buttons:'Buttons', user:'User' };
+    const labels = { circle:'Circle', skew:'Skew', focus:'Focus', user:'User' };
     matchSourceBtn.innerHTML = (labels[src] || 'Source') + ' &#9662;';
     syncMatchSatUI();
     if(matchSatActive){ applyMatchSat(); drawScene(); }
@@ -1961,7 +1960,7 @@
     e.preventDefault();
     if(matchSatSource === 'user'){
       matchSatUserColor = null;
-      setMatchSatSource('circles');
+      setMatchSatSource('circle');
     }
   });
   syncMatchSatUI();

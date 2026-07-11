@@ -711,6 +711,7 @@
       </div>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
+          <button class="ctrl-btn" id="cc-normal-mode" title="Switch to a classic RGB triadic palette">Normal Mode</button>
           <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
@@ -1426,6 +1427,7 @@
   const lastSwatchEl = document.getElementById('cc-lastswatch');
   const hexBoxEl = document.getElementById('cc-hexbox');
   const rgbBoxEl = document.getElementById('cc-rgbbox');
+  const normalModeBtn = document.getElementById('cc-normal-mode');
   const exportPaletteBtn = document.getElementById('cc-export-palette');
   const loadImageBtn = document.getElementById('cc-load-image');
   const saveImageBtn = document.getElementById('cc-save-image');
@@ -1735,6 +1737,51 @@
       }
     });
   }
+  const NORMAL_MODE = {
+    philosophyIdx: 4, // Triadic
+    baseHue: 0,       // RGB triad: red, green, blue
+    strange: 0,
+    saturation: 100,
+    seed: { angle: 0, repeats: 1, phase: 0 }
+  };
+  function activateNormalMode(){
+    importedMode = false;
+    randomStyle = false;
+    philoIdx = NORMAL_MODE.philosophyIdx;
+    baseHue = NORMAL_MODE.baseHue;
+    strange = NORMAL_MODE.strange;
+    globalSatMul = NORMAL_MODE.saturation / 100;
+    seed = { ...NORMAL_MODE.seed };
+    hueSlider.value = String(NORMAL_MODE.baseHue);
+    weirdSlider.value = String(NORMAL_MODE.strange);
+    satSlider.value = String(NORMAL_MODE.saturation);
+    styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
+    styleOptions.forEach(o=>o.classList.remove('active'));
+    const triadicOption = [...styleOptions].find(o=>o.dataset.idx === String(NORMAL_MODE.philosophyIdx));
+    if(triadicOption) triadicOption.classList.add('active');
+    if(matchSatActive){
+      matchSatActive = false;
+      matchSatValue = null;
+      syncMatchSatUI();
+    }
+    if(skewActive){
+      skewActive = false;
+      syncSkewButtonState();
+    }
+    if(focusActive){
+      focusActive = false;
+      syncFocusButtonState();
+    }
+    if(pastramiMode){
+      pastramiMode = false;
+      syncPastramiButtonState();
+      applyPastramiDropdown();
+    } else {
+      syncPastramiButtonState();
+      applyPastramiDropdown();
+    }
+    drawScene();
+  }
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
@@ -1906,6 +1953,7 @@
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);
+  normalModeBtn.addEventListener('click', activateNormalMode);
   loadImageBtn.addEventListener('click', promptForPhotoImport);
   saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));
   async function processImportedPhotoFile(file){

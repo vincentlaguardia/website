@@ -711,7 +711,6 @@
       </div>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
-          <button class="ctrl-btn" id="cc-normal-mode" type="button" title="Toggle Normal Mode (restores baseline colors without locking controls)" aria-label="Toggle Normal Mode" aria-pressed="false">Normal Mode</button>
           <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
@@ -1427,7 +1426,6 @@
   const lastSwatchEl = document.getElementById('cc-lastswatch');
   const hexBoxEl = document.getElementById('cc-hexbox');
   const rgbBoxEl = document.getElementById('cc-rgbbox');
-  const normalModeBtn = document.getElementById('cc-normal-mode');
   const exportPaletteBtn = document.getElementById('cc-export-palette');
   const loadImageBtn = document.getElementById('cc-load-image');
   const saveImageBtn = document.getElementById('cc-save-image');
@@ -1737,67 +1735,6 @@
       }
     });
   }
-  const NORMAL_MODE = {
-    philosophyIdx: 4, // Triadic
-    baseHue: 0,       // RGB triad: red, green, blue
-    strange: 0,
-    saturation: 100,
-    seed: { angle: 0, repeats: 1, phase: 0 }
-  };
-  let normalModeActive = false;
-  function syncNormalModeButtonState(){
-    normalModeBtn.classList.toggle('is-active', normalModeActive);
-    normalModeBtn.setAttribute('aria-pressed', String(normalModeActive));
-  }
-  /**
-   * Resets chroma.exe to a stable RGB triadic baseline.
-   * Disables imported/techno/focus/skew/match-sat modes and restores ordinary triadic controls.
-   */
-  function activateNormalMode() {
-    if(normalModeActive){
-      normalModeActive = false;
-      syncNormalModeButtonState();
-      return;
-    }
-    importedMode = false;
-    randomStyle = false;
-    philoIdx = NORMAL_MODE.philosophyIdx;
-    baseHue = NORMAL_MODE.baseHue;
-    strange = NORMAL_MODE.strange;
-    globalSatMul = NORMAL_MODE.saturation / 100;
-    seed = { ...NORMAL_MODE.seed };
-    hueSlider.value = String(NORMAL_MODE.baseHue);
-    weirdSlider.value = String(NORMAL_MODE.strange);
-    satSlider.value = String(NORMAL_MODE.saturation);
-    styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
-    let triadicOption = null;
-    styleOptions.forEach(styleOption => {
-      styleOption.classList.remove('active');
-      if(styleOption.dataset.idx === String(NORMAL_MODE.philosophyIdx)) triadicOption = styleOption;
-    });
-    if(triadicOption) triadicOption.classList.add('active');
-    if(matchSatActive){
-      matchSatActive = false;
-      matchSatValue = null;
-      syncMatchSatUI();
-    }
-    if(skewActive){
-      skewActive = false;
-      syncSkewButtonState();
-    }
-    if(focusActive){
-      focusActive = false;
-      syncFocusButtonState();
-    }
-    if(pastramiMode){
-      pastramiMode = false;
-      syncPastramiButtonState();
-      applyPastramiDropdown();
-    }
-    normalModeActive = true;
-    syncNormalModeButtonState();
-    drawScene();
-  }
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';
@@ -1888,10 +1825,6 @@
   }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;
-    if(pastramiMode){
-      normalModeActive = false;
-      syncNormalModeButtonState();
-    }
     syncPastramiButtonState();
     applyPastramiDropdown();
     // If current philosophy is not allowed in Techno mode, switch it
@@ -1973,7 +1906,6 @@
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);
-  normalModeBtn.addEventListener('click', activateNormalMode);
   loadImageBtn.addEventListener('click', promptForPhotoImport);
   saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));
   async function processImportedPhotoFile(file){
@@ -1983,8 +1915,6 @@
     if(!palette.length) return;
     importedPalette = palette;
     importedMode = true;
-    normalModeActive = false;
-    syncNormalModeButtonState();
     randomStyle = false;
     styleBtn.innerHTML = 'Photo Palette &#9662;';
     styleOptions.forEach(o=>o.classList.remove('active'));
@@ -2592,7 +2522,7 @@
       paras.push(swatchRef(0) + ' and ' + swatchRef(15) + ' sit at opposite ends of that range. if those two swatches look very different, the photo had a wide variety of colors. if they look similar, the image had a tight, consistent palette. the swatches in between fill in the steps along that journey.');
     } else if(pastramiMode){
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
-      paras.push('techno mode is active, running on a ' + philoName + ' base with its starting hue at ' + Math.round(baseHue) + '\u00b0. in normal mode, colors follow predictable rules for how bright or vivid they get. techno mode throws those rules out and randomly pushes each zone toward either a washed-out pastel or a full-blast neon. no middle ground.');
+      paras.push('techno mode is active, running on a ' + philoName + ' base with its starting hue at ' + Math.round(baseHue) + '\u00b0. techno mode throws out predictable brightness and vividness rules, randomly pushing each zone toward either a washed-out pastel or a full-blast neon. no middle ground.');
       const pastramiHsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
       const neonIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s > pastramiHsls[best].s ? i : best; }, 0);
       const pastelIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s < pastramiHsls[best].s ? i : best; }, 0);

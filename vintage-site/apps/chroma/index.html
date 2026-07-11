@@ -1279,16 +1279,16 @@
   const theoryPlusContent = document.getElementById('theory-plus-content');
   const samDialog = document.getElementById('sam-dialog');
   const THEORY_PLUS_REDACTION_CHAR = '█';
+  const redactTheoryPlusDigits = text => text
+    .replace(/[0-9]/g, THEORY_PLUS_REDACTION_CHAR)
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, THEORY_PLUS_REDACTION_CHAR)
+    .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, THEORY_PLUS_REDACTION_CHAR);
   function redactTheoryPlusNumbers(){
     if(!theoryPlusContent || theoryPlusContent.dataset.numbersRedacted === '1') return;
-    const walker = document.createTreeWalker(theoryPlusContent, NodeFilter.SHOW_TEXT);
-    const redactDigits = text => text
-      .replace(/[0-9]/g, THEORY_PLUS_REDACTION_CHAR)
-      .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, THEORY_PLUS_REDACTION_CHAR)
-      .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, THEORY_PLUS_REDACTION_CHAR);
+    const walker = document.createTreeWalker(theoryPlusContent, NodeFilter.SHOW_TEXT, null);
     let node = walker.nextNode();
     while(node){
-      node.nodeValue = redactDigits(node.nodeValue);
+      node.nodeValue = redactTheoryPlusDigits(node.nodeValue);
       node = walker.nextNode();
     }
     theoryPlusContent.dataset.numbersRedacted = '1';

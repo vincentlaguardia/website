@@ -641,7 +641,7 @@
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
-      <div class="menu-item" id="menu-theory-plus" tabindex="0" aria-haspopup="dialog">Techno</div>
+      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Techno</div>
       <div class="menu-item" id="menu-sam" tabindex="0" aria-haspopup="dialog">Sam Mode</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
@@ -799,10 +799,10 @@
     </div>
   </div>
 </div>
-<div id="theory-plus-dialog" class="dialog">
+<div id="techno-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
-    <div class="titlebar-btns"><div class="tbtn" id="theory-plus-close">X</div></div>
+    <div class="titlebar-btns"><div class="tbtn" id="techno-close">X</div></div>
   </div>
   <div class="winbody">
     <div class="content-panel sunken">
@@ -989,7 +989,7 @@
         </ul>
       </div>
       <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
-        <button class="win-btn" id="theory-plus-ok">OK</button>
+        <button class="win-btn" id="techno-ok">OK</button>
       </div>
     </div>
   </div>
@@ -1247,7 +1247,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory-plus', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-techno', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -1263,12 +1263,12 @@
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
-  const theoryPlusDialog = document.getElementById('theory-plus-dialog');
+  const technoDialog = document.getElementById('techno-dialog');
   const samDialog = document.getElementById('sam-dialog');
   function openHelp(){
     closeAbout();
     closeTheory();
-    closeTheoryPlus();
+    closeTechno();
     helpDialog.classList.add('show');
   }
   function closeHelp(){
@@ -1281,24 +1281,24 @@
   function openAbout(){
     closeHelp();
     closeTheory();
-    closeTheoryPlus();
+    closeTechno();
     aboutDialog.classList.add('show');
   }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
   function openTheory(){
     closeHelp();
     closeAbout();
-    closeTheoryPlus();
+    closeTechno();
     theoryDialog.classList.add('show');
   }
   function closeTheory(){ theoryDialog.classList.remove('show'); }
-  function openTheoryPlus(){
+  function openTechno(){
     closeHelp();
     closeAbout();
     closeTheory();
-    theoryPlusDialog.classList.add('show');
+    technoDialog.classList.add('show');
   }
-  function closeTheoryPlus(){ theoryPlusDialog.classList.remove('show'); }
+  function closeTechno(){ technoDialog.classList.remove('show'); }
   function closeSamMode(){ samDialog.classList.remove('show'); }
   const helpContent = document.getElementById('help-content');
   const helpEditBtn = document.getElementById('help-edit');
@@ -1321,22 +1321,22 @@
   helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
   helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
   document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
-  document.getElementById('menu-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheoryPlus(); });
+  document.getElementById('menu-techno').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTechno(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
   document.getElementById('theory-close').addEventListener('click', closeTheory);
   document.getElementById('theory-ok').addEventListener('click', closeTheory);
-  document.getElementById('theory-plus-close').addEventListener('click', closeTheoryPlus);
-  document.getElementById('theory-plus-ok').addEventListener('click', closeTheoryPlus);
+  document.getElementById('techno-close').addEventListener('click', closeTechno);
+  document.getElementById('techno-ok').addEventListener('click', closeTechno);
   // Capture phase ensures outside clicks close open dialogs even when nested handlers stop propagation.
   document.addEventListener('click', function(e){
     [
       { dialog: aboutDialog, close: closeAbout },
       { dialog: helpDialog, close: closeHelp },
       { dialog: theoryDialog, close: closeTheory },
-      { dialog: theoryPlusDialog, close: closeTheoryPlus }
+      { dialog: technoDialog, close: closeTechno }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
       const contentPanel = dialog.querySelector('.content-panel');
@@ -1433,7 +1433,7 @@
   document.getElementById('sm-programs').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#programs'; });
   document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
   document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
-  document.getElementById('sm-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheoryPlus(); });
+  document.getElementById('sm-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTechno(); });
   document.getElementById('sm-theory').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheory(); });
   document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
   document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });

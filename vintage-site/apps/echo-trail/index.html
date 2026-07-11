@@ -1068,8 +1068,62 @@
     if(name) addToRecent(name, originalCanvas);
   }
 
+  function isLikelyImageFile(file){
+    if(!file) return false;
+    if(file.type && file.type.startsWith('image/')) return true;
+    return /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(String(file.name || ''));
+  }
+
+  function inferImageMimeType(name){
+    const lower = String(name || '').toLowerCase();
+    if(lower.endsWith('.png')) return 'image/png';
+    if(lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if(lower.endsWith('.gif')) return 'image/gif';
+    if(lower.endsWith('.webp')) return 'image/webp';
+    if(lower.endsWith('.avif')) return 'image/avif';
+    if(lower.endsWith('.bmp')) return 'image/bmp';
+    return '';
+  }
+
+  async function blobCanDecodeAsImage(blob){
+    const IMAGE_DECODE_TIMEOUT_MS = 10000;
+    if(typeof createImageBitmap === 'function'){
+      try{
+        const bitmap = await createImageBitmap(blob);
+        if(bitmap && typeof bitmap.close === 'function') bitmap.close();
+        return true;
+      } catch(_){}
+    }
+    return await new Promise(resolve=>{
+      let settled = false;
+      let blobUrl = '';
+      const done = result => {
+        if(settled) return;
+        settled = true;
+        if(img){
+          img.onload = null;
+          img.onerror = null;
+        }
+        if(blobUrl) URL.revokeObjectURL(blobUrl);
+        resolve(result);
+      };
+      let img;
+      try{
+        img = new Image();
+        blobUrl = URL.createObjectURL(blob);
+      } catch(_){
+        done(false);
+        return;
+      }
+      const timer = setTimeout(()=>done(false), IMAGE_DECODE_TIMEOUT_MS);
+      img.onload = ()=>{ clearTimeout(timer); done(true); };
+      img.onerror = ()=>{ clearTimeout(timer); done(false); };
+      try{ img.src = blobUrl; } catch(_){ clearTimeout(timer); done(false); }
+    });
+  }
+
   function loadImageFile(file){
-    if(!file || !file.type || !file.type.startsWith('image/')) return;
+    if(!isLikelyImageFile(file)) return;
     $('status-main').textContent='Loading image...';
     const reader = new FileReader();
     reader.onload = e=>{
@@ -1088,6 +1142,19 @@
     catch(err){ return value; }
   }
 
+  function hasPathTraversal(pathname){
+    let decoded = String(pathname || '');
+    // Three rounds catches common nested encodings (e.g. %252e%252e -> %2e%2e -> ..)
+    // without unbounded decode loops on malformed input.
+    const MAX_DECODE_ITERATIONS = 3;
+    for(let i=0;i<MAX_DECODE_ITERATIONS;i++){
+      const next = decodePathPart(decoded);
+      if(next === decoded) break;
+      decoded = next;
+    }
+    return decoded.replace(/\\/g, '/').split('/').includes('..');
+  }
+
   function sanitizeFileName(value, fallback){
     const cleaned = String(value || '')
       .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
@@ -1096,6 +1163,53 @@
       .replace(/\.+/g, '.')
       .replace(/^\.+|\.+$/g, '');
     return cleaned || fallback;
+  }
+
+  async function loadImageFromUrl(rawUrl, opts){
+    const options = opts || {};
+    const allowCrossOrigin = !!options.allowCrossOrigin;
+    let parsedUrl;
+    try{
+      parsedUrl = new URL(String(rawUrl || '').trim(), window.location.href);
+    } catch(_){
+      throw new Error('Could not load the dropped image.');
+    }
+    if(!/^https?:$/i.test(parsedUrl.protocol)){
+      throw new Error('Only HTTP(S) image URLs are supported.');
+    }
+    if(!allowCrossOrigin && parsedUrl.origin !== window.location.origin){
+      throw new Error('Cross-origin image drops are not allowed.');
+    }
+    if(hasPathTraversal(parsedUrl.pathname)) throw new Error('Invalid image path.');
+    const res = await fetch(parsedUrl.href);
+    if(!res.ok) throw new Error('Could not load image from dropped URL (HTTP ' + res.status + ').');
+    const blob = await res.blob();
+    const rawName = options.name || parsedUrl.pathname.split('/').pop() || 'image';
+    const name = sanitizeFileName(decodePathPart(rawName), 'image');
+    const inferredType = inferImageMimeType(name);
+    const blobType = (blob.type && blob.type.startsWith('image/')) ? blob.type : '';
+    if(inferredType && blobType && inferredType !== blobType){
+      throw new Error('Dropped image type does not match file extension.');
+    }
+    const detectedType = inferredType || blobType;
+    if(!detectedType) throw new Error('Dropped item is not an image.');
+    if(!(await blobCanDecodeAsImage(blob))) throw new Error('Dropped item is not a valid image.');
+    loadImageFile(new File([blob], name, { type: detectedType }));
+  }
+
+  function getDroppedUrl(dataTransfer){
+    if(!dataTransfer) return '';
+    const uriList = String(dataTransfer.getData('text/uri-list') || '').trim();
+    if(uriList){
+      const first = uriList.split(/\r?\n/).map(line => line.trim()).find(line => line && !line.startsWith('#'));
+      if(first) return first;
+    }
+    const plain = String(dataTransfer.getData('text/plain') || '').trim();
+    if(!plain) return '';
+    // Accept only full http(s) URLs or single-slash absolute paths; reject
+    // protocol-relative values ("//...") and non-http schemes.
+    if(/^(https?:\/\/|\/(?!\/))/i.test(plain)) return plain;
+    return '';
   }
 
   // ---------- Open Recent (localStorage-backed, this is a standalone saved
@@ -1483,11 +1597,19 @@
     const win = $('app-window');
     win.addEventListener('dragover', e=>{ e.preventDefault(); panel.classList.add('drag-over'); });
     win.addEventListener('dragleave', e=>{ if(!win.contains(e.relatedTarget)) panel.classList.remove('drag-over'); });
-    win.addEventListener('drop', e=>{
+    win.addEventListener('drop', async e=>{
       e.preventDefault();
       panel.classList.remove('drag-over');
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if(f) loadImageFile(f);
+      if(f && isLikelyImageFile(f)){ loadImageFile(f); return; }
+      const droppedUrl = getDroppedUrl(e.dataTransfer);
+      if(!droppedUrl){ $('status-main').textContent='Drop an image file or URL.'; return; }
+      try{
+        await loadImageFromUrl(droppedUrl, { allowCrossOrigin: false });
+      } catch(err){
+        console.warn('Image URL drop failed.', err);
+        alert(err && err.message ? err.message : 'Could not load the dropped image.');
+      }
     });
 
     // Menus (only items with a dropdown toggle open/close; About opens directly)
@@ -1538,24 +1660,9 @@
       if(e.origin !== window.location.origin) return;
       const rawUrl = String(e.data.url || '').trim();
       if(!rawUrl) return;
-      let parsedUrl;
       try{
-        parsedUrl = new URL(rawUrl, window.location.href);
-      } catch(_){
-        alert('Could not load the dropped desktop image.');
-        return;
-      }
-      try{
-        if(parsedUrl.origin !== window.location.origin) throw new Error('Cross-origin image drops are not allowed.');
-        const decodedPath = decodePathPart(parsedUrl.pathname);
-        if(decodedPath.split('/').includes('..')) throw new Error('Invalid desktop image path.');
-        const res = await fetch(parsedUrl.href);
-        if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
-        const blob = await res.blob();
-        if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
-        const rawName = parsedUrl.pathname.split('/').pop() || 'image';
-        const name = sanitizeFileName(decodePathPart(rawName), 'image');
-        loadImageFile(new File([blob], name, { type: blob.type }));
+        const parsedUrl = new URL(rawUrl, window.location.href);
+        await loadImageFromUrl(parsedUrl.href, { allowCrossOrigin: false, name: parsedUrl.pathname.split('/').pop() || 'image' });
       } catch(err){
         console.warn('Desktop image drop failed.', err);
         alert(err && err.message ? err.message : 'Could not load the dropped desktop image.');

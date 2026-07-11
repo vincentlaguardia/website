@@ -1077,17 +1077,30 @@
     const SPLASH_HIGH_FREQ_END = 280;
     const SPLASH_LOW_FREQ_START = 410;
     const SPLASH_LOW_FREQ_END = 150;
+    const HIT_FLASH_DURATION = 220;
     let splashAnimTimer = 0;
     let waterAnimTimer = 0;
     let hitTimer = 0;
     let splashCount = 0;
     let backgroundStarted = false;
     let splashFxContext = null;
+    let sceneStateReady = false;
     const defaultSceneClasses = ['possessed', 'ceiling-fire'];
 
     backgroundSound.preload = 'auto';
     backgroundSound.volume = 0.72;
-    defaultSceneClasses.forEach((className) => scene.classList.add(className));
+    function ensureSceneState() {
+      if (sceneStateReady) return;
+      defaultSceneClasses.forEach((className) => scene.classList.add(className));
+      sceneStateReady = true;
+    }
+
+    function ensureSplashContext(AudioCtx) {
+      if (!splashFxContext) {
+        splashFxContext = new AudioCtx();
+      }
+      return splashFxContext;
+    }
 
     function setThrowState(active) {
       waterBurst.classList.toggle('active', active);
@@ -1110,18 +1123,16 @@
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
 
-      if (!splashFxContext) {
-        splashFxContext = new AudioCtx();
-      }
+      const context = ensureSplashContext(AudioCtx);
 
       const playBurst = () => {
-        const now = splashFxContext.currentTime;
-        const output = splashFxContext.createGain();
+        const now = context.currentTime;
+        const output = context.createGain();
         output.gain.setValueAtTime(MIN_GAIN_EPSILON, now);
         output.gain.exponentialRampToValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
         output.gain.setValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
         output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + SPLASH_DURATION);
-        output.connect(splashFxContext.destination);
+        output.connect(context.destination);
 
         let endedOscillators = 0;
         const cleanup = (oscillator) => {
@@ -1132,7 +1143,7 @@
           }
         };
 
-        const high = splashFxContext.createOscillator();
+        const high = context.createOscillator();
         high.type = 'triangle';
         high.frequency.setValueAtTime(SPLASH_HIGH_FREQ_START, now);
         high.frequency.exponentialRampToValueAtTime(SPLASH_HIGH_FREQ_END, now + SPLASH_DURATION);
@@ -1141,7 +1152,7 @@
         high.start(now);
         high.stop(now + SPLASH_DURATION);
 
-        const low = splashFxContext.createOscillator();
+        const low = context.createOscillator();
         low.type = 'sine';
         low.frequency.setValueAtTime(SPLASH_LOW_FREQ_START, now);
         low.frequency.exponentialRampToValueAtTime(SPLASH_LOW_FREQ_END, now + SPLASH_DURATION);
@@ -1151,8 +1162,8 @@
         low.stop(now + SPLASH_DURATION);
       };
 
-      if (splashFxContext.state === 'suspended') {
-        splashFxContext.resume().then(playBurst).catch((error) => {
+      if (context.state === 'suspended') {
+        context.resume().then(playBurst).catch((error) => {
           console.warn('exorcist splash effect resume failed', error);
         });
         return;
@@ -1164,7 +1175,7 @@
     function reactToHolyWater() {
       clearTimeout(hitTimer);
       scene.classList.add('hit-by-water');
-      hitTimer = window.setTimeout(() => scene.classList.remove('hit-by-water'), 220);
+      hitTimer = window.setTimeout(() => scene.classList.remove('hit-by-water'), HIT_FLASH_DURATION);
     }
 
     function animateThrow() {
@@ -1184,6 +1195,7 @@
     function splashNow() {
       intro.classList.add('dismissed');
       startBackgroundSound();
+      ensureSceneState();
       splashCount += 1;
       splashCounter.textContent = String(splashCount);
       playSplashSound();

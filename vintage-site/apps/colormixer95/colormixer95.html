@@ -279,7 +279,8 @@
   .diary-footer{
     display:flex; align-items:center; gap:8px; padding:4px 4px 2px; flex:0 0 auto;
   }
-  #cmDiaryCtxMenu{
+  #cmDiaryCtxMenu,
+  #cmAppCtxMenu{
     position:fixed; z-index:250; min-width:140px; padding:2px; display:none;
     background:var(--face);
     border-top:1px solid var(--hi); border-left:1px solid var(--hi);
@@ -323,7 +324,7 @@
           </div>
           <button class="btn95" id="resetBgBtn">Default</button>
           <div class="diary-lastswatch raised" id="diaryLastSwatch" title="Last clicked color — click any Venn diagram to pick a color"></div>
-          <button class="btn95" id="diaryAddBtn" title="Add last clicked color to diary">Add to Diary</button>
+          <button class="btn95" id="diaryAddBtn" title="Add last clicked color to diary">Diary+</button>
           <button class="btn95" id="diaryOpenBtn">Diary</button>
         </div>
       </div>
@@ -418,6 +419,9 @@
     <div class="cm-menu-option" id="cmDiaryCopyHex">Copy Hex</div>
     <div class="cm-menu-sep"></div>
     <div class="cm-menu-option" id="cmDiaryDelete">Delete</div>
+  </div>
+  <div id="cmAppCtxMenu">
+    <div class="cm-menu-option" id="cmAppDiaryAdd">Diary+</div>
   </div>
 
 <script>
@@ -1137,6 +1141,7 @@ try { diaryColors = JSON.parse(localStorage.getItem(DIARY_KEY)) || []; } catch(e
 let diaryLastColor = null;
 let diaryCtxIdx = -1;
 let diaryCtxColor = null;
+let appCtxColor = null;
 
 function diarySwatchTextColor(r,g,b){
   return (LUM_R*r + LUM_G*g + LUM_B*b)/255 > LUM_THRESH ? '#000' : '#fff';
@@ -1180,6 +1185,19 @@ function hideDiaryCtxMenu(){
   diaryCtxIdx = -1; diaryCtxColor = null;
 }
 
+function showAppCtxMenu(e, color){
+  appCtxColor = color;
+  const menu = document.getElementById('cmAppCtxMenu');
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.style.display = 'block';
+}
+
+function hideAppCtxMenu(){
+  document.getElementById('cmAppCtxMenu').style.display = 'none';
+  appCtxColor = null;
+}
+
 function openDiary(){
   renderDiary();
   document.getElementById('diaryOverlay').classList.add('show');
@@ -1196,6 +1214,96 @@ function addToDiary(color){
   diaryColors.push({ hex: color.hex, r: color.r, g: color.g, b: color.b });
   saveDiaryColors();
   if(document.getElementById('diaryOverlay').classList.contains('show')) renderDiary();
+}
+
+function parseCssRgbColor(value){
+  const match = value && value.match(/^rgba?\(([^)]+)\)$/i);
+  if(!match) return null;
+  const parts = match[1].split(',').map(part=>part.trim());
+  if(parts.length < 3) return null;
+  const alpha = parts[3] === undefined ? 1 : Number(parts[3]);
+  if(!Number.isFinite(alpha) || alpha <= 0) return null;
+  const rgb = parts.slice(0, 3).map(part=>Math.round(Number(part)));
+  return rgb.every(part=>Number.isFinite(part) && part >= 0 && part <= 255) ? rgb : null;
+}
+
+function normalizeDiaryColor(color){
+  if(!color) return null;
+  const r = Number(color.r), g = Number(color.g), b = Number(color.b);
+  if(!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) return null;
+  const rgb = [r, g, b].map(v=>Math.max(0, Math.min(255, Math.round(v))));
+  return { r: rgb[0], g: rgb[1], b: rgb[2], hex: color.hex || rgbToHex(rgb) };
+}
+
+function textToDiaryColor(text){
+  const value = (text || '').trim();
+  if(!value) return null;
+  if(/^#?[0-9a-f]{6}$/i.test(value)){
+    const hex = value.startsWith('#') ? value : ('#' + value);
+    const [r,g,b] = hexToRgb(hex);
+    return { r, g, b, hex };
+  }
+  const rgbMatch = value.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
+  if(!rgbMatch) return null;
+  const rgb = rgbMatch.slice(1).map(Number);
+  if(rgb.some(v=>v < 0 || v > 255)) return null;
+  return { r: rgb[0], g: rgb[1], b: rgb[2], hex: rgbToHex(rgb) };
+}
+
+function elementToDiaryColor(el, inlineOnly){
+  if(!el) return null;
+  const colorValue = inlineOnly ? (el.style.background || el.style.backgroundColor) : getComputedStyle(el).backgroundColor;
+  const rgb = parseCssRgbColor(colorValue);
+  return rgb ? { r: rgb[0], g: rgb[1], b: rgb[2], hex: rgbToHex(rgb) } : null;
+}
+
+function canvasEventToDiaryColor(canvas, clientX, clientY){
+  const rect = canvas.getBoundingClientRect();
+  if(!rect.width || !rect.height) return null;
+  const pixelX = Math.max(0, Math.min(canvas.width - 1, Math.floor((clientX - rect.left) * canvas.width / rect.width)));
+  const pixelY = Math.max(0, Math.min(canvas.height - 1, Math.floor((clientY - rect.top) * canvas.height / rect.height)));
+  const px = canvas.getContext('2d').getImageData(pixelX, pixelY, 1, 1).data;
+  return { r: px[0], g: px[1], b: px[2], hex: rgbToHex([px[0], px[1], px[2]]) };
+}
+
+function resolveDiaryPlusColor(e){
+  const target = e.target;
+  const vennCanvas = target.closest('.vennc');
+  if(vennCanvas) return canvasEventToDiaryColor(vennCanvas, e.clientX, e.clientY);
+  if(target.id === 'imagePickCanvas' && pickFullCtx) return normalizeDiaryColor(pickPixelAt(e.clientX, e.clientY));
+
+  const liveSwatch = target.closest('.paletteSwatch, .resultswatch');
+  if(liveSwatch){
+    const liveColor = elementToDiaryColor(liveSwatch, false);
+    if(liveColor) return liveColor;
+  }
+
+  const rememberedSwatch = target.closest('#diaryLastSwatch, .miniSwatch');
+  if(rememberedSwatch){
+    const rememberedColor = elementToDiaryColor(rememberedSwatch, true);
+    if(rememberedColor) return rememberedColor;
+  }
+
+  const valueEl = target.closest('.copyval, .val95');
+  if(valueEl){
+    const valueColor = textToDiaryColor(valueEl.value || valueEl.textContent);
+    if(valueColor) return valueColor;
+  }
+
+  const colorInput = target.closest('input[type=color]');
+  if(colorInput){
+    const inputColor = textToDiaryColor(colorInput.value);
+    if(inputColor) return inputColor;
+  }
+
+  const colorBtn = target.closest('#chooseColorBtn, #chooseBgBtn');
+  if(colorBtn){
+    const buttonColor = elementToDiaryColor(colorBtn, true);
+    if(buttonColor) return buttonColor;
+  }
+
+  if(target.closest('#dropZonePreview') && lastPickedColor) return normalizeDiaryColor(lastPickedColor);
+  return normalizeDiaryColor(diaryLastColor) || normalizeDiaryColor(lastPickedColor) || textToDiaryColor(document.getElementById('colorPicker').value);
 }
 
 function setLastClickedColor(r, g, b){
@@ -1271,8 +1379,26 @@ document.getElementById('cmDiaryDelete').addEventListener('click', e=>{
   if(diaryCtxIdx >= 0){ diaryColors.splice(diaryCtxIdx, 1); saveDiaryColors(); renderDiary(); }
   hideDiaryCtxMenu();
 });
+document.getElementById('cmAppDiaryAdd').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(appCtxColor){
+    setLastClickedColor(appCtxColor.r, appCtxColor.g, appCtxColor.b);
+    addToDiary(appCtxColor);
+  }
+  hideAppCtxMenu();
+});
+document.addEventListener('contextmenu', e=>{
+  if(e.target.closest('#cmDiaryCtxMenu, #cmAppCtxMenu')) return;
+  const color = resolveDiaryPlusColor(e);
+  if(!color) return;
+  e.preventDefault();
+  closeFileMenu();
+  hideDiaryCtxMenu();
+  showAppCtxMenu(e, color);
+});
 document.addEventListener('click', e=>{
   if(!document.getElementById('cmDiaryCtxMenu').contains(e.target)) hideDiaryCtxMenu();
+  if(!document.getElementById('cmAppCtxMenu').contains(e.target)) hideAppCtxMenu();
 });
 window.addEventListener('storage', e=>{
   if(e.key === DIARY_KEY){

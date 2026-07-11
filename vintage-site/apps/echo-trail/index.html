@@ -1074,6 +1074,18 @@
     return /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i.test(String(file.name || ''));
   }
 
+  function inferImageMimeType(name){
+    const lower = String(name || '').toLowerCase();
+    if(lower.endsWith('.png')) return 'image/png';
+    if(lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if(lower.endsWith('.gif')) return 'image/gif';
+    if(lower.endsWith('.webp')) return 'image/webp';
+    if(lower.endsWith('.avif')) return 'image/avif';
+    if(lower.endsWith('.bmp')) return 'image/bmp';
+    if(lower.endsWith('.svg')) return 'image/svg+xml';
+    return '';
+  }
+
   function loadImageFile(file){
     if(!isLikelyImageFile(file)) return;
     $('status-main').textContent='Loading image...';
@@ -1119,10 +1131,11 @@
     const res = await fetch(parsedUrl.href);
     if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
     const blob = await res.blob();
-    if(!blob.type.startsWith('image/')) throw new Error('Dropped item is not an image.');
     const rawName = options.name || parsedUrl.pathname.split('/').pop() || 'image';
     const name = sanitizeFileName(decodePathPart(rawName), 'image');
-    loadImageFile(new File([blob], name, { type: blob.type || 'image/png' }));
+    const detectedType = (blob.type && blob.type.startsWith('image/')) ? blob.type : inferImageMimeType(name);
+    if(!detectedType) throw new Error('Dropped item is not an image.');
+    loadImageFile(new File([blob], name, { type: detectedType }));
   }
 
   function getDroppedUrl(dataTransfer){
@@ -1134,7 +1147,7 @@
     }
     const plain = String(dataTransfer.getData('text/plain') || '').trim();
     if(!plain) return '';
-    if(/^(https?:|data:image\/|blob:|\/)/i.test(plain)) return plain;
+    if(/^(https?:|\/)/i.test(plain)) return plain;
     return '';
   }
 
@@ -1531,7 +1544,7 @@
       const droppedUrl = getDroppedUrl(e.dataTransfer);
       if(!droppedUrl) return;
       try{
-        await loadImageFromUrl(droppedUrl, { allowCrossOrigin: true });
+        await loadImageFromUrl(droppedUrl, { allowCrossOrigin: false });
       } catch(err){
         console.warn('Image URL drop failed.', err);
         alert(err && err.message ? err.message : 'Could not load the dropped image.');

@@ -1085,6 +1085,23 @@
     return '';
   }
 
+  async function blobCanDecodeAsImage(blob){
+    if(typeof createImageBitmap === 'function'){
+      try{
+        const bitmap = await createImageBitmap(blob);
+        if(bitmap && typeof bitmap.close === 'function') bitmap.close();
+        return true;
+      } catch(_){}
+    }
+    return await new Promise(resolve=>{
+      const img = new Image();
+      const blobUrl = URL.createObjectURL(blob);
+      img.onload = ()=>{ URL.revokeObjectURL(blobUrl); resolve(true); };
+      img.onerror = ()=>{ URL.revokeObjectURL(blobUrl); resolve(false); };
+      img.src = blobUrl;
+    });
+  }
+
   function loadImageFile(file){
     if(!isLikelyImageFile(file)) return;
     $('status-main').textContent='Loading image...';
@@ -1136,6 +1153,7 @@
     const name = sanitizeFileName(decodePathPart(rawName), 'image');
     const detectedType = (blob.type && blob.type.startsWith('image/')) ? blob.type : inferImageMimeType(name);
     if(!detectedType) throw new Error('Dropped item is not an image.');
+    if(!(await blobCanDecodeAsImage(blob))) throw new Error('Dropped item is not a valid image.');
     loadImageFile(new File([blob], name, { type: detectedType }));
   }
 
@@ -1148,7 +1166,7 @@
     }
     const plain = String(dataTransfer.getData('text/plain') || '').trim();
     if(!plain) return '';
-    if(/^(https?:|\/)/i.test(plain)) return plain;
+    if(/^(https?:|\/(?!\/))/i.test(plain)) return plain;
     return '';
   }
 
@@ -1602,8 +1620,6 @@
       if(!rawUrl) return;
       try{
         const parsedUrl = new URL(rawUrl, window.location.href);
-        const decodedPath = decodePathPart(parsedUrl.pathname);
-        if(decodedPath.split('/').includes('..')) throw new Error('Invalid desktop image path.');
         await loadImageFromUrl(parsedUrl.href, { allowCrossOrigin: false, name: parsedUrl.pathname.split('/').pop() || 'image' });
       } catch(err){
         console.warn('Desktop image drop failed.', err);

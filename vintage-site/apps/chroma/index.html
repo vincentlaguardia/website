@@ -641,8 +641,7 @@
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
-      <div class="menu-item" id="menu-theory-plus" tabindex="0" aria-haspopup="dialog">Theory +</div>
-      <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Techno</div>
+      <div class="menu-item" id="menu-theory-plus" tabindex="0" aria-haspopup="dialog">Techno</div>
       <div class="menu-item" id="menu-sam" tabindex="0" aria-haspopup="dialog">Sam Mode</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
@@ -759,13 +758,10 @@
       <p class="lead">complementary pairs opposite hues for clear contrast.</p>
       <p class="lead">split complementary uses two colors near the opposite hue, keeping contrast while feeling a little softer.</p>
       <p class="lead">triadic spaces three hues evenly around the wheel.</p>
-      <p class="lead">diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
       <p class="lead">tetradic uses four positions, giving the palette more energy and variety.</p>
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
-      <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
-      <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">techno mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name.</p></div>
+      <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -805,7 +801,7 @@
 </div>
 <div id="theory-plus-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Theory +</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="theory-plus-close">X</div></div>
   </div>
   <div class="winbody">
@@ -1251,7 +1247,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory-plus', 'menu-theory', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory-plus', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -1326,7 +1322,6 @@
   helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
   document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
   document.getElementById('menu-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheoryPlus(); });
-  document.getElementById('menu-theory').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheory(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);

@@ -636,30 +636,7 @@
       text-shadow: 3px 3px #a76a19;
     }
 
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 9px;
-      font-size: 11px;
-    }
-
-    .action {
-      padding: 7px 12px;
-      background: var(--win);
-      border: 3px solid;
-      border-color: #fff #404040 #404040 #fff;
-      font: 700 12px "Courier New", monospace;
-      cursor: pointer;
-    }
-
-    .action:active {
-      border-color: #404040 #fff #fff #404040;
-      transform: translate(1px, 1px);
-    }
-
-    .pray-intro {
+    .splash-intro {
       position: absolute;
       z-index: 50;
       inset: 0;
@@ -672,6 +649,10 @@
       letter-spacing: 2px;
       text-shadow: 4px 4px #000;
       animation: prompt 1s steps(2) infinite;
+    }
+
+    .splash-intro.dismissed {
+      display: none;
     }
 
     .water-burst,
@@ -725,11 +706,11 @@
       animation: watersplash 0.42s linear both;
     }
 
-    .praying .priest .arm {
+    .splashing .priest .arm {
       animation: pray 0.14s steps(2) infinite;
     }
 
-    .praying .spark {
+    .splashing .spark {
       animation: spark 0.2s steps(2);
     }
 
@@ -788,10 +769,6 @@
 
     .ceiling-fire .floor {
       filter: brightness(0.65) saturate(1.7);
-    }
-
-    #score {
-      font-size: 22px;
     }
 
     @keyframes pray {
@@ -889,16 +866,6 @@
       }
     }
 
-    @media (max-width: 480px) {
-      .controls {
-        align-items: flex-start;
-        flex-wrap: wrap;
-      }
-
-      #score {
-        font-size: 16px;
-      }
-    }
   </style>
 
   <div class="scene" id="scene">
@@ -940,107 +907,19 @@
     <div class="spark">✦</div>
     <div class="water-burst" id="water-burst" aria-hidden="true"></div>
     <div class="water-splash" id="water-splash" aria-hidden="true"></div>
-    <div class="pray-intro" id="pray-intro">PUSH SPACE TO PRAY</div>
-  </div>
-
-  <div class="controls">
-    <button class="action" id="pray-button">SPRAY (SPACE)</button>
-    <button class="action" id="sound-button" aria-pressed="true">SOUND: ON</button>
-    <span id="score">Holy Squirts: 0 | Record: 0</span>
+    <div class="splash-intro" id="splash-intro">PRESS SPACE TO SPLASH</div>
   </div>
 </main>
-
-<audio id="power-audio" src="powerofchrist.mp3" preload="auto"></audio>
 
 <script>
   (() => {
     const scene = document.getElementById('scene');
-    const girl = document.getElementById('girl');
-    const score = document.getElementById('score');
-    const prayButton = document.getElementById('pray-button');
-    const soundButton = document.getElementById('sound-button');
-    const intro = document.getElementById('pray-intro');
+    const intro = document.getElementById('splash-intro');
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
-    const powerAudio = document.getElementById('power-audio');
-
-    let influence = 4;
-    let prayers = 0;
-    let record = 0;
-    let won = false;
-    let muted = false;
-    let ctx;
-    let powerPlayed = false;
-    let prayerAnimTimer = 0;
+    const waterAnimationDuration = 420;
+    let splashAnimTimer = 0;
     let waterAnimTimer = 0;
-
-    function ensureAudio() {
-      if (muted) return null;
-      ctx ??= new (window.AudioContext || window.webkitAudioContext)();
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-      return ctx;
-    }
-
-    function beep(freq, duration, type = 'square', volume = 0.035, slide = 0) {
-      const audioCtx = ensureAudio();
-      if (!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      osc.frequency.linearRampToValueAtTime(Math.max(30, freq + slide), audioCtx.currentTime + duration);
-      gain.gain.setValueAtTime(volume, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    }
-
-    function holyWaterSound() {
-      const audioCtx = ensureAudio();
-      if (!audioCtx) return;
-
-      const throwLen = Math.floor(audioCtx.sampleRate * 0.16);
-      const throwBuf = audioCtx.createBuffer(1, throwLen, audioCtx.sampleRate);
-      const throwData = throwBuf.getChannelData(0);
-      for (let i = 0; i < throwLen; i += 1) {
-        throwData[i] = (Math.random() * 2 - 1) * (1 - i / throwLen);
-      }
-
-      const throwSrc = audioCtx.createBufferSource();
-      throwSrc.buffer = throwBuf;
-      const throwFilter = audioCtx.createBiquadFilter();
-      throwFilter.type = 'bandpass';
-      throwFilter.frequency.setValueAtTime(1100, audioCtx.currentTime);
-      throwFilter.frequency.exponentialRampToValueAtTime(2200, audioCtx.currentTime + 0.1);
-      throwFilter.Q.value = 1.1;
-      const throwGain = audioCtx.createGain();
-      throwGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      throwGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.16);
-      throwSrc.connect(throwFilter).connect(throwGain).connect(audioCtx.destination);
-      throwSrc.start();
-      throwSrc.stop(audioCtx.currentTime + 0.16);
-
-      const splashLen = Math.floor(audioCtx.sampleRate * 0.12);
-      const splashBuf = audioCtx.createBuffer(1, splashLen, audioCtx.sampleRate);
-      const splashData = splashBuf.getChannelData(0);
-      for (let i = 0; i < splashLen; i += 1) {
-        splashData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / splashLen, 1.7);
-      }
-
-      const splashSrc = audioCtx.createBufferSource();
-      splashSrc.buffer = splashBuf;
-      const splashFilter = audioCtx.createBiquadFilter();
-      splashFilter.type = 'highpass';
-      splashFilter.frequency.setValueAtTime(650, audioCtx.currentTime + 0.11);
-      const splashGain = audioCtx.createGain();
-      splashGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-      splashGain.gain.exponentialRampToValueAtTime(0.11, audioCtx.currentTime + 0.11);
-      splashGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.23);
-      splashSrc.connect(splashFilter).connect(splashGain).connect(audioCtx.destination);
-      splashSrc.start(audioCtx.currentTime + 0.11);
-      splashSrc.stop(audioCtx.currentTime + 0.23);
-    }
 
     function setThrowState(active) {
       waterBurst.classList.toggle('active', active);
@@ -1048,7 +927,7 @@
     }
 
     function animateThrow() {
-      clearTimeout(prayerAnimTimer);
+      clearTimeout(splashAnimTimer);
       clearTimeout(waterAnimTimer);
 
       setThrowState(false);
@@ -1056,88 +935,22 @@
       waterSplash.offsetWidth;
       setThrowState(true);
 
-      scene.classList.add('praying');
-      prayerAnimTimer = window.setTimeout(() => scene.classList.remove('praying'), 180);
-      waterAnimTimer = window.setTimeout(() => setThrowState(false), 420);
+      scene.classList.add('splashing');
+      splashAnimTimer = window.setTimeout(() => scene.classList.remove('splashing'), 180);
+      waterAnimTimer = window.setTimeout(() => setThrowState(false), waterAnimationDuration);
     }
 
-    function draw() {
-      girl.style.bottom = 27 + influence * 0.34 + '%';
-      scene.classList.toggle('possessed', influence > 42);
-      scene.classList.toggle('ceiling-fire', influence >= 100);
-      score.textContent = 'Holy Squirts: ' + prayers + ' | Record: ' + record;
-    }
-
-    function restart() {
-      influence = 4;
-      prayers = 0;
-      won = false;
-      intro.hidden = false;
-      prayButton.textContent = 'SPRAY (SPACE)';
-      beep(360, 0.08, 'square', 0.025, 120);
-      draw();
-    }
-
-    function prayNow() {
-      if (won) {
-        restart();
-        return;
-      }
-
-      intro.hidden = true;
-      prayers += 1;
-      record = Math.max(record, prayers);
-      influence = Math.max(0, influence - 5.4);
-
-      if (!powerPlayed) {
-        powerPlayed = true;
-        powerAudio.play().catch(() => {});
-      }
-
-      holyWaterSound();
+    function splashNow() {
+      intro.classList.add('dismissed');
       animateThrow();
-
-      if (influence <= 0) {
-        won = true;
-        prayButton.textContent = 'REBOOT RITUAL';
-        beep(523, 0.12, 'triangle', 0.05, 260);
-        window.setTimeout(() => beep(784, 0.24, 'triangle', 0.05, 110), 120);
-      }
-
-      draw();
-    }
-
-    function tick() {
-      if (!won) {
-        influence = Math.min(100, influence + 0.12);
-        if (Math.round(influence) % 15 === 0) beep(92, 0.12, 'sawtooth', 0.018, -35);
-        if (influence >= 100) {
-          won = true;
-          prayButton.textContent = 'REBOOT RITUAL';
-          beep(100, 0.55, 'sawtooth', 0.05, -65);
-        }
-        draw();
-      }
-
-      requestAnimationFrame(tick);
     }
 
     document.addEventListener('keydown', (event) => {
       if (event.code !== 'Space') return;
       event.preventDefault();
-      prayNow();
-    });
-
-    prayButton.addEventListener('click', prayNow);
-    soundButton.addEventListener('click', () => {
-      muted = !muted;
-      soundButton.textContent = muted ? 'SOUND: OFF' : 'SOUND: ON';
-      soundButton.setAttribute('aria-pressed', String(!muted));
-      if (!muted) beep(500, 0.06);
+      splashNow();
     });
 
     document.title = 'The Exorcist';
-    draw();
-    tick();
   })();
 </script>

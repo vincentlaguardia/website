@@ -1219,6 +1219,7 @@ const items = {
   readme:       { type: 'text',   name: 'ABOUTME.txt',     iconType: 'document', customIcon: 'notepad', text: 'vincent laguarda is real person from brooklyn new yourk\n\nContact: q7mxf4k2pazn6vtrcdj9hslbeyw3u5g8o0i2n4x@protonmail.com', modified: '2026-05-14' },
 
   miscinfo:     { type: 'folder', name: 'misc info',       iconType: 'folder',   syncFolder: 'content/desktop/miscinfo', children: [], modified: '2026-07-08' },
+  sync__content_desktop_miscinfo_techno_mode_white_paper_txt: { type: 'text', name: 'techno-mode-white-paper.txt', iconType: 'text', filePath: 'content/desktop/miscinfo/techno-mode-white-paper.txt', file: 'content/desktop/miscinfo/techno-mode-white-paper.txt', size: 6388, modified: '2026-07-11' },
   ieshortcut:   { type: 'shortcut', name: 'Internet Explorer', customIcon: 'ieshortcut', action: 'browser', modified: '2026-07-07' },
   solitaireshortcut: { type: 'shortcut', name: 'Solitaire', customIcon: 'solitaireshortcut', action: 'solitaire', modified: '2026-07-07' },
   paintshortcut: { type: 'shortcut', name: 'Paint', customIcon: 'paintshortcut', action: 'paint', modified: '2026-07-07' },
@@ -1485,9 +1486,13 @@ function trashIconMarkup(size, full) {
 let trashItems = [];
 try { trashItems = JSON.parse(localStorage.getItem('site-trash') || '[]'); } catch (e) { trashItems = []; }
 
-// On each login/load, desktoppic starts in the trash.
-trashItems = trashItems.filter(entry => entry && entry.id !== 'desktoppic');
-trashItems.push({ id: 'desktoppic', parentId: 'desktop' });
+const DEFAULT_TRASH_ITEMS = [
+  { id: 'desktoppic', parentId: 'desktop' },
+  { id: 'sync__content_desktop_miscinfo_techno_mode_white_paper_txt', parentId: 'miscinfo' }
+];
+
+trashItems = trashItems.filter(entry => entry && !DEFAULT_TRASH_ITEMS.some(defaultEntry => defaultEntry.id === entry.id));
+trashItems.push(...DEFAULT_TRASH_ITEMS);
 localStorage.setItem('site-trash', JSON.stringify(trashItems));
 
 function saveTrash() {
@@ -3467,6 +3472,11 @@ async function loadSyncChildren(id) {
       }
       childIds.push(cid);
     }
+    const trashedChildIds = new Set(
+      trashItems
+        .filter(entry => entry && entry.parentId === id)
+        .map(entry => entry.id)
+    );
     const overrideEntry = childrenOverrides[id];
     const overrideChildren = Array.isArray(overrideEntry)
       ? overrideEntry
@@ -3480,10 +3490,10 @@ async function loadSyncChildren(id) {
       childIds.forEach(childId => {
         pushUniqueChildId(childId, seen, mergedChildren);
       });
-      item.children = mergedChildren;
+      item.children = mergedChildren.filter(childId => !trashedChildIds.has(childId));
       if (!Array.isArray(overrideEntry) && overrideEntry && overrideEntry.modified) item.modified = overrideEntry.modified;
     } else {
-      item.children = childIds;
+      item.children = childIds.filter(childId => !trashedChildIds.has(childId));
     }
   } catch (e) {
     console.error('Could not load synced folder contents for', id, e);

@@ -711,7 +711,7 @@
       </div>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
-          <button class="ctrl-btn" id="cc-normal-mode" title="Switch to a classic RGB triadic palette">Normal Mode</button>
+          <button class="ctrl-btn" id="cc-normal-mode" title="Switch to a classic RGB triadic palette" aria-label="Reset palette to classic RGB triadic mode">Normal Mode</button>
           <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
@@ -1744,6 +1744,7 @@
     saturation: 100,
     seed: { angle: 0, repeats: 1, phase: 0 }
   };
+  // Resets palette state to a stable, ordinary RGB triadic baseline.
   function activateNormalMode(){
     importedMode = false;
     randomStyle = false;
@@ -1756,8 +1757,8 @@
     weirdSlider.value = String(NORMAL_MODE.strange);
     satSlider.value = String(NORMAL_MODE.saturation);
     styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
-    styleOptions.forEach(o=>o.classList.remove('active'));
-    const triadicOption = [...styleOptions].find(o=>o.dataset.idx === String(NORMAL_MODE.philosophyIdx));
+    styleOptions.forEach(styleOption=>styleOption.classList.remove('active'));
+    const triadicOption = [...styleOptions].find(styleOption=>styleOption.dataset.idx === String(NORMAL_MODE.philosophyIdx));
     if(triadicOption) triadicOption.classList.add('active');
     if(matchSatActive){
       matchSatActive = false;

@@ -1071,7 +1071,7 @@
   function isLikelyImageFile(file){
     if(!file) return false;
     if(file.type && file.type.startsWith('image/')) return true;
-    return /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/i.test(String(file.name || ''));
+    return /\.(avif|bmp|gif|jpe?g|png|webp)$/i.test(String(file.name || ''));
   }
 
   function inferImageMimeType(name){
@@ -1082,7 +1082,6 @@
     if(lower.endsWith('.webp')) return 'image/webp';
     if(lower.endsWith('.avif')) return 'image/avif';
     if(lower.endsWith('.bmp')) return 'image/bmp';
-    if(lower.endsWith('.svg')) return 'image/svg+xml';
     return '';
   }
 
@@ -1128,8 +1127,10 @@
     if(!allowCrossOrigin && parsedUrl.origin !== window.location.origin){
       throw new Error('Cross-origin image drops are not allowed.');
     }
+    const decodedPath = decodePathPart(parsedUrl.pathname);
+    if(decodedPath.split('/').includes('..')) throw new Error('Invalid image path.');
     const res = await fetch(parsedUrl.href);
-    if(!res.ok) throw new Error('Could not load image (HTTP ' + res.status + ').');
+    if(!res.ok) throw new Error('Could not load image from dropped URL (HTTP ' + res.status + ').');
     const blob = await res.blob();
     const rawName = options.name || parsedUrl.pathname.split('/').pop() || 'image';
     const name = sanitizeFileName(decodePathPart(rawName), 'image');

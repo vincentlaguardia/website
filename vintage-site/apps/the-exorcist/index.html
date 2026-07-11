@@ -1105,34 +1105,44 @@
         splashFxContext = new AudioCtx();
       }
 
+      const playBurst = () => {
+        const now = splashFxContext.currentTime;
+        const output = splashFxContext.createGain();
+        output.gain.setValueAtTime(MIN_GAIN_EPSILON, now);
+        output.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
+        output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + 0.18);
+        output.connect(splashFxContext.destination);
+
+        const high = splashFxContext.createOscillator();
+        high.type = 'triangle';
+        high.frequency.setValueAtTime(880, now);
+        high.frequency.exponentialRampToValueAtTime(280, now + 0.18);
+        high.connect(output);
+        high.onended = () => high.disconnect();
+        high.start(now);
+        high.stop(now + 0.18);
+
+        const low = splashFxContext.createOscillator();
+        low.type = 'sine';
+        low.frequency.setValueAtTime(410, now);
+        low.frequency.exponentialRampToValueAtTime(150, now + 0.18);
+        low.connect(output);
+        low.onended = () => {
+          low.disconnect();
+          output.disconnect();
+        };
+        low.start(now);
+        low.stop(now + 0.18);
+      };
+
       if (splashFxContext.state === 'suspended') {
-        splashFxContext.resume().catch((error) => {
+        splashFxContext.resume().then(playBurst).catch((error) => {
           console.warn('exorcist splash effect resume failed', error);
         });
+        return;
       }
 
-      const now = splashFxContext.currentTime;
-      const output = splashFxContext.createGain();
-      output.gain.setValueAtTime(MIN_GAIN_EPSILON, now);
-      output.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
-      output.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-      output.connect(splashFxContext.destination);
-
-      const high = splashFxContext.createOscillator();
-      high.type = 'triangle';
-      high.frequency.setValueAtTime(880, now);
-      high.frequency.exponentialRampToValueAtTime(280, now + 0.18);
-      high.connect(output);
-      high.start(now);
-      high.stop(now + 0.18);
-
-      const low = splashFxContext.createOscillator();
-      low.type = 'sine';
-      low.frequency.setValueAtTime(410, now);
-      low.frequency.exponentialRampToValueAtTime(150, now + 0.18);
-      low.connect(output);
-      low.start(now);
-      low.stop(now + 0.18);
+      playBurst();
     }
 
     function reactToHolyWater() {

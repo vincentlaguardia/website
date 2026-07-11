@@ -666,9 +666,18 @@ function closeApp() {
 
 function populateInfoTable() {
   const tbody = document.getElementById('infoFiberRows');
-  tbody.innerHTML = INFO_FIBER_ORDER.map(({ name, tribo, mr, est }) =>
-    `<tr><td class="l">${name}${est ? '*' : ''}</td><td>${tribo}</td><td>${mr.toFixed(1)}</td></tr>`
-  ).join('');
+  tbody.replaceChildren(...INFO_FIBER_ORDER.map(({ name, tribo, mr, est }) => {
+    const row = document.createElement('tr');
+    const fiberCell = document.createElement('td');
+    fiberCell.className = 'l';
+    fiberCell.textContent = `${name}${est ? '*' : ''}`;
+    const triboCell = document.createElement('td');
+    triboCell.textContent = String(tribo);
+    const regainCell = document.createElement('td');
+    regainCell.textContent = mr.toFixed(1);
+    row.append(fiberCell, triboCell, regainCell);
+    return row;
+  }));
 }
 
 function wireMenus() {

@@ -1099,6 +1099,10 @@
       const done = result => {
         if(settled) return;
         settled = true;
+        if(img){
+          img.onload = null;
+          img.onerror = null;
+        }
         if(blobUrl) URL.revokeObjectURL(blobUrl);
         resolve(result);
       };
@@ -1139,7 +1143,9 @@
 
   function hasPathTraversal(pathname){
     let decoded = String(pathname || '');
-    for(let i=0;i<3;i++){
+    // Decode a few times to catch common nested encodings like %252e%252e.
+    const MAX_DECODE_ITERATIONS = 3;
+    for(let i=0;i<MAX_DECODE_ITERATIONS;i++){
       const next = decodePathPart(decoded);
       if(next === decoded) break;
       decoded = next;
@@ -1198,6 +1204,7 @@
     }
     const plain = String(dataTransfer.getData('text/plain') || '').trim();
     if(!plain) return '';
+    // Allow same-origin absolute paths ("/...") and full http(s) URLs only.
     if(/^(https?:\/\/|\/(?!\/))/i.test(plain)) return plain;
     return '';
   }
@@ -1593,7 +1600,7 @@
       const f = e.dataTransfer.files && e.dataTransfer.files[0];
       if(f && isLikelyImageFile(f)){ loadImageFile(f); return; }
       const droppedUrl = getDroppedUrl(e.dataTransfer);
-      if(!droppedUrl) return;
+      if(!droppedUrl){ $('status-main').textContent='Drop an image file or URL.'; return; }
       try{
         await loadImageFromUrl(droppedUrl, { allowCrossOrigin: false });
       } catch(err){

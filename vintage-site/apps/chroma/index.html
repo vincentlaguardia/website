@@ -641,8 +641,7 @@
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
-      <div class="menu-item" id="menu-theory-plus" tabindex="0" aria-haspopup="dialog">Theory +</div>
-      <div class="menu-item" id="menu-theory" tabindex="0" aria-haspopup="dialog">Techno</div>
+      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Techno</div>
       <div class="menu-item" id="menu-sam" tabindex="0" aria-haspopup="dialog">Sam Mode</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
@@ -759,13 +758,10 @@
       <p class="lead">complementary pairs opposite hues for clear contrast.</p>
       <p class="lead">split complementary uses two colors near the opposite hue, keeping contrast while feeling a little softer.</p>
       <p class="lead">triadic spaces three hues evenly around the wheel.</p>
-      <p class="lead">diary + saves the last sampled color into your color diary. open diary from the menubar to review saved swatches, right-click any swatch to copy or delete it, clear all entries, or export the diary as a jpg.</p>
       <p class="lead">tetradic uses four positions, giving the palette more energy and variety.</p>
       <p class="lead">hue chooses the starting point. strange decides how closely the grid follows the rule.</p>
       <p class="lead">low strange keeps things orderly. high strange lets colors wander.</p>
-      <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random. choose a style, reroll the hue, sample a color, copy its hex or rgb, and see how the same color changes from place to place.</p>
-      <p class="lead">file&gt;import photo distills an image into Chroma's color energy. export unique palette hex values from file&gt;export palette or use the Export Palette button.</p>
-      <p class="lead" style="border-top:1px solid var(--shadow); padding-top:10px; margin-top:14px;">techno mode is something else entirely. it does not follow the normal rules of saturation or lightness. it knows where pastels and neons should never meet, and puts them there anyway. not every hue combination it finds has a name.</p></div>
+      <p class="lead">the grid is arranged in diagonal bands, so colors gather into small neighborhoods instead of scattering at random.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -787,26 +783,10 @@
     </div>
   </div>
 </div>
-<div id="theory-dialog" class="dialog">
+<div id="techno-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
-    <div class="titlebar-btns"><div class="tbtn" id="theory-close">X</div></div>
-  </div>
-  <div class="winbody">
-    <div class="content-panel sunken">
-      <div id="theory-content">
-        <p class="lead">techno mode keeps a fixed 7 × 7 structure and lets color behavior flex inside it. the strange slider increases how far colors can move from the starting harmony and shifts the mix from pastel-heavy toward a more even pastel/neon split, while the same repeating band pattern and layout keep the image organized. in short, it is controlled visual conflict: stable structure plus measurable color variation.</p>
-      </div>
-      <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
-        <button class="win-btn" id="theory-ok">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
-<div id="theory-plus-dialog" class="dialog">
-  <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Theory +</span></div>
-    <div class="titlebar-btns"><div class="tbtn" id="theory-plus-close">X</div></div>
+    <div class="titlebar-btns"><div class="tbtn" id="techno-close">X</div></div>
   </div>
   <div class="winbody">
     <div class="content-panel sunken">
@@ -993,7 +973,7 @@
         </ul>
       </div>
       <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
-        <button class="win-btn" id="theory-plus-ok">OK</button>
+        <button class="win-btn" id="techno-ok">OK</button>
       </div>
     </div>
   </div>
@@ -1048,8 +1028,7 @@
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Theory</div>
-  <div class="sm-item" id="sm-theory-plus">Theory +</div>
-  <div class="sm-item" id="sm-theory">Techno</div>
+  <div class="sm-item" id="sm-techno">Techno</div>
   <div class="sm-item" id="sm-sam">Sam Mode</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
@@ -1251,7 +1230,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-theory-plus', 'menu-theory', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-help', 'menu-techno', 'menu-sam', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -1266,13 +1245,11 @@
   });
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
-  const theoryDialog = document.getElementById('theory-dialog');
-  const theoryPlusDialog = document.getElementById('theory-plus-dialog');
+  const technoDialog = document.getElementById('techno-dialog');
   const samDialog = document.getElementById('sam-dialog');
   function openHelp(){
     closeAbout();
-    closeTheory();
-    closeTheoryPlus();
+    closeTechno();
     helpDialog.classList.add('show');
   }
   function closeHelp(){
@@ -1284,25 +1261,16 @@
   }
   function openAbout(){
     closeHelp();
-    closeTheory();
-    closeTheoryPlus();
+    closeTechno();
     aboutDialog.classList.add('show');
   }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
-  function openTheory(){
+  function openTechno(){
     closeHelp();
     closeAbout();
-    closeTheoryPlus();
-    theoryDialog.classList.add('show');
+    technoDialog.classList.add('show');
   }
-  function closeTheory(){ theoryDialog.classList.remove('show'); }
-  function openTheoryPlus(){
-    closeHelp();
-    closeAbout();
-    closeTheory();
-    theoryPlusDialog.classList.add('show');
-  }
-  function closeTheoryPlus(){ theoryPlusDialog.classList.remove('show'); }
+  function closeTechno(){ technoDialog.classList.remove('show'); }
   function closeSamMode(){ samDialog.classList.remove('show'); }
   const helpContent = document.getElementById('help-content');
   const helpEditBtn = document.getElementById('help-edit');
@@ -1325,23 +1293,19 @@
   helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
   helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
   document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
-  document.getElementById('menu-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheoryPlus(); });
-  document.getElementById('menu-theory').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTheory(); });
+  document.getElementById('menu-techno').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTechno(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
-  document.getElementById('theory-close').addEventListener('click', closeTheory);
-  document.getElementById('theory-ok').addEventListener('click', closeTheory);
-  document.getElementById('theory-plus-close').addEventListener('click', closeTheoryPlus);
-  document.getElementById('theory-plus-ok').addEventListener('click', closeTheoryPlus);
+  document.getElementById('techno-close').addEventListener('click', closeTechno);
+  document.getElementById('techno-ok').addEventListener('click', closeTechno);
   // Capture phase ensures outside clicks close open dialogs even when nested handlers stop propagation.
   document.addEventListener('click', function(e){
     [
       { dialog: aboutDialog, close: closeAbout },
       { dialog: helpDialog, close: closeHelp },
-      { dialog: theoryDialog, close: closeTheory },
-      { dialog: theoryPlusDialog, close: closeTheoryPlus }
+      { dialog: technoDialog, close: closeTechno }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;
       const contentPanel = dialog.querySelector('.content-panel');
@@ -1438,8 +1402,7 @@
   document.getElementById('sm-programs').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#programs'; });
   document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
   document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
-  document.getElementById('sm-theory-plus').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheoryPlus(); });
-  document.getElementById('sm-theory').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheory(); });
+  document.getElementById('sm-techno').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTechno(); });
   document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
   document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   function doShutdown(){ document.getElementById('shutdown-overlay').classList.add('show'); }

@@ -636,7 +636,7 @@
       text-shadow: 3px 3px #a76a19;
     }
 
-    .pray-intro {
+    .splash-intro {
       position: absolute;
       z-index: 50;
       inset: 0;
@@ -651,7 +651,7 @@
       animation: prompt 1s steps(2) infinite;
     }
 
-    .pray-intro.dismissed {
+    .splash-intro.dismissed {
       display: none;
     }
 
@@ -907,16 +907,17 @@
     <div class="spark">✦</div>
     <div class="water-burst" id="water-burst" aria-hidden="true"></div>
     <div class="water-splash" id="water-splash" aria-hidden="true"></div>
-    <div class="pray-intro" id="pray-intro">PRESS SPACE TO SPLASH</div>
+    <div class="splash-intro" id="splash-intro">PRESS SPACE TO SPLASH</div>
   </div>
 </main>
 
 <script>
   (() => {
     const scene = document.getElementById('scene');
-    const intro = document.getElementById('pray-intro');
+    const intro = document.getElementById('splash-intro');
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
+    const WATER_ANIMATION_DURATION = 420;
     let prayerAnimTimer = 0;
     let waterAnimTimer = 0;
 
@@ -936,11 +937,10 @@
 
       scene.classList.add('praying');
       prayerAnimTimer = window.setTimeout(() => scene.classList.remove('praying'), 180);
-      waterAnimTimer = window.setTimeout(() => setThrowState(false), 420);
+      waterAnimTimer = window.setTimeout(() => setThrowState(false), WATER_ANIMATION_DURATION);
     }
 
     function splashNow() {
-      intro.hidden = true;
       intro.classList.add('dismissed');
       animateThrow();
     }

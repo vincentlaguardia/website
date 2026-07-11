@@ -783,22 +783,6 @@
     </div>
   </div>
 </div>
-<div id="theory-dialog" class="dialog">
-  <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
-    <div class="titlebar-btns"><div class="tbtn" id="theory-close">X</div></div>
-  </div>
-  <div class="winbody">
-    <div class="content-panel sunken">
-      <div id="theory-content">
-        <p class="lead">techno mode keeps a fixed 7 × 7 structure and lets color behavior flex inside it. the strange slider increases how far colors can move from the starting harmony and shifts the mix from pastel-heavy toward a more even pastel/neon split, while the same repeating band pattern and layout keep the image organized. in short, it is controlled visual conflict: stable structure plus measurable color variation.</p>
-      </div>
-      <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
-        <button class="win-btn" id="theory-ok">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div id="techno-dialog" class="dialog">
   <div class="titlebar">
     <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
@@ -1261,12 +1245,10 @@
   });
   const helpDialog = document.getElementById('help-dialog');
   const aboutDialog = document.getElementById('about-dialog');
-  const theoryDialog = document.getElementById('theory-dialog');
   const technoDialog = document.getElementById('techno-dialog');
   const samDialog = document.getElementById('sam-dialog');
   function openHelp(){
     closeAbout();
-    closeTheory();
     closeTechno();
     helpDialog.classList.add('show');
   }
@@ -1279,22 +1261,13 @@
   }
   function openAbout(){
     closeHelp();
-    closeTheory();
     closeTechno();
     aboutDialog.classList.add('show');
   }
   function closeAbout(){ aboutDialog.classList.remove('show'); }
-  function openTheory(){
-    closeHelp();
-    closeAbout();
-    closeTechno();
-    theoryDialog.classList.add('show');
-  }
-  function closeTheory(){ theoryDialog.classList.remove('show'); }
   function openTechno(){
     closeHelp();
     closeAbout();
-    closeTheory();
     technoDialog.classList.add('show');
   }
   function closeTechno(){ technoDialog.classList.remove('show'); }
@@ -1325,8 +1298,6 @@
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);
   document.getElementById('about-close').addEventListener('click', closeAbout);
-  document.getElementById('theory-close').addEventListener('click', closeTheory);
-  document.getElementById('theory-ok').addEventListener('click', closeTheory);
   document.getElementById('techno-close').addEventListener('click', closeTechno);
   document.getElementById('techno-ok').addEventListener('click', closeTechno);
   // Capture phase ensures outside clicks close open dialogs even when nested handlers stop propagation.
@@ -1334,7 +1305,6 @@
     [
       { dialog: aboutDialog, close: closeAbout },
       { dialog: helpDialog, close: closeHelp },
-      { dialog: theoryDialog, close: closeTheory },
       { dialog: technoDialog, close: closeTechno }
     ].forEach(({ dialog, close })=>{
       if(!dialog.classList.contains('show')) return;

@@ -1276,21 +1276,7 @@
   const aboutDialog = document.getElementById('about-dialog');
   const theoryDialog = document.getElementById('theory-dialog');
   const theoryPlusDialog = document.getElementById('theory-plus-dialog');
-  const theoryPlusContent = document.getElementById('theory-plus-content');
   const samDialog = document.getElementById('sam-dialog');
-  const THEORY_PLUS_REDACTION_CHAR = '█';
-  const THEORY_PLUS_NUMBER_PATTERN = /[0-9⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]/g;
-  const redactTheoryPlusNumbersInText = text => (text || '').replace(THEORY_PLUS_NUMBER_PATTERN, THEORY_PLUS_REDACTION_CHAR);
-  function redactTheoryPlusNumbers(){
-    if(!theoryPlusContent || theoryPlusContent.dataset.numbersRedacted === 'true') return;
-    const walker = document.createTreeWalker(theoryPlusContent, NodeFilter.SHOW_TEXT);
-    let node;
-    while((node = walker.nextNode())){
-      if (node.parentElement && node.parentElement.closest('strong')) continue;
-      node.nodeValue = redactTheoryPlusNumbersInText(node.nodeValue);
-    }
-    theoryPlusContent.dataset.numbersRedacted = 'true';
-  }
   function openHelp(){
     closeAbout();
     closeTheory();
@@ -1322,7 +1308,6 @@
     closeHelp();
     closeAbout();
     closeTheory();
-    redactTheoryPlusNumbers();
     theoryPlusDialog.classList.add('show');
   }
   function closeTheoryPlus(){ theoryPlusDialog.classList.remove('show'); }

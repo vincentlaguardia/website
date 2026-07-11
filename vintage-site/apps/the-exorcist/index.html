@@ -864,6 +864,36 @@
       filter: brightness(0.65) saturate(1.7);
     }
 
+    .ceiling-fire .girl {
+      bottom: 72%;
+    }
+
+    .ceiling-fire .girl::before {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      left: 6px;
+      right: 6px;
+      bottom: -10px;
+      height: 24px;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 22% 100%, #ffcf54 0 22%, transparent 24%),
+        radial-gradient(ellipse at 50% 64%, #ff8d1f 0 24%, transparent 26%),
+        radial-gradient(ellipse at 76% 100%, #ffd75f 0 22%, transparent 24%),
+        linear-gradient(0deg, #d9290d 0 32%, #ff7413 33% 62%, transparent 63%);
+      filter: drop-shadow(0 -2px 7px rgba(255, 118, 22, 0.9));
+      animation: flicker 0.24s steps(2) infinite;
+    }
+
+    .hit-by-water .girl {
+      filter: brightness(1.22) saturate(1.28);
+    }
+
+    .hit-by-water .demon {
+      opacity: 0.28;
+    }
+
     @keyframes pray {
       50% {
         transform: rotate(-68deg);
@@ -1036,34 +1066,116 @@
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
     const splashCounter = document.getElementById('splash-counter');
-    const splashSound = new Audio('./powerofchrist.mp3');
+    const backgroundSound = new Audio('./powerofchrist.mp3');
     const waterAnimationDuration = 520;
+    const MIN_GAIN_EPSILON = 0.0001;
+    const SPLASH_ATTACK_GAIN = 0.22;
+    const SPLASH_ATTACK_TIME = 0.01;
+    const SPLASH_RELEASE_TIME = 0.18;
+    const SPLASH_DURATION = SPLASH_ATTACK_TIME + SPLASH_RELEASE_TIME;
+    const SPLASH_HIGH_FREQ_START = 880;
+    const SPLASH_HIGH_FREQ_END = 280;
+    const SPLASH_LOW_FREQ_START = 410;
+    const SPLASH_LOW_FREQ_END = 150;
+    const HIT_FLASH_DURATION = 220;
     let splashAnimTimer = 0;
     let waterAnimTimer = 0;
+    let hitTimer = 0;
     let splashCount = 0;
+    let backgroundStarted = false;
+    let splashFxContext = null;
+    let sceneStateReady = false;
+    const defaultSceneClasses = ['possessed', 'ceiling-fire'];
 
-    splashSound.preload = 'auto';
-    splashSound.volume = 0.72;
+    backgroundSound.preload = 'auto';
+    backgroundSound.volume = 0.72;
+    function ensureSceneState() {
+      if (sceneStateReady) return;
+      defaultSceneClasses.forEach((className) => scene.classList.add(className));
+      sceneStateReady = true;
+    }
+
+    function ensureSplashContext(AudioCtx) {
+      if (!splashFxContext) {
+        splashFxContext = new AudioCtx();
+      }
+      return splashFxContext;
+    }
 
     function setThrowState(active) {
       waterBurst.classList.toggle('active', active);
       waterSplash.classList.toggle('active', active);
     }
 
-    function playSplashSound() {
-      try {
-        splashSound.pause();
-        splashSound.currentTime = 0;
-      } catch (error) {
-        console.warn('exorcist sound reset failed', error);
-      }
+    function startBackgroundSound() {
+      if (backgroundStarted) return;
+      backgroundStarted = true;
 
-      const playPromise = splashSound.play();
+      const playPromise = backgroundSound.play();
       if (playPromise && typeof playPromise.catch === 'function') {
         playPromise.catch((error) => {
-          console.warn('exorcist sound playback failed', error);
+          console.warn('exorcist background playback failed', error);
         });
       }
+    }
+
+    function playSplashSound() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      const context = ensureSplashContext(AudioCtx);
+
+      const playBurst = () => {
+        const now = context.currentTime;
+        const output = context.createGain();
+        output.gain.setValueAtTime(MIN_GAIN_EPSILON, now);
+        output.gain.exponentialRampToValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
+        output.gain.setValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
+        output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + SPLASH_DURATION);
+        output.connect(context.destination);
+
+        let endedOscillators = 0;
+        const cleanup = (oscillator) => {
+          oscillator.disconnect();
+          endedOscillators += 1;
+          if (endedOscillators >= 2) {
+            output.disconnect();
+          }
+        };
+
+        const high = context.createOscillator();
+        high.type = 'triangle';
+        high.frequency.setValueAtTime(SPLASH_HIGH_FREQ_START, now);
+        high.frequency.exponentialRampToValueAtTime(SPLASH_HIGH_FREQ_END, now + SPLASH_DURATION);
+        high.connect(output);
+        high.onended = () => cleanup(high);
+        high.start(now);
+        high.stop(now + SPLASH_DURATION);
+
+        const low = context.createOscillator();
+        low.type = 'sine';
+        low.frequency.setValueAtTime(SPLASH_LOW_FREQ_START, now);
+        low.frequency.exponentialRampToValueAtTime(SPLASH_LOW_FREQ_END, now + SPLASH_DURATION);
+        low.connect(output);
+        low.onended = () => cleanup(low);
+        low.start(now);
+        low.stop(now + SPLASH_DURATION);
+      };
+
+      if (context.state === 'suspended') {
+        context.resume().then(playBurst).catch((error) => {
+          console.warn('exorcist splash effect resume failed', error);
+        });
+        return;
+      }
+
+      playBurst();
+    }
+
+    function reactToHolyWater() {
+      clearTimeout(hitTimer);
+      scene.classList.add('hit-by-water');
+      hitTimer = window.setTimeout(() => scene.classList.remove('hit-by-water'), HIT_FLASH_DURATION);
     }
 
     function animateThrow() {
@@ -1082,10 +1194,13 @@
 
     function splashNow() {
       intro.classList.add('dismissed');
+      startBackgroundSound();
+      ensureSceneState();
       splashCount += 1;
       splashCounter.textContent = String(splashCount);
       playSplashSound();
       animateThrow();
+      reactToHolyWater();
     }
 
     document.addEventListener('keydown', (event) => {

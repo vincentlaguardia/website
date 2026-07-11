@@ -1280,16 +1280,16 @@
   const samDialog = document.getElementById('sam-dialog');
   const THEORY_PLUS_REDACTION_CHAR = '█';
   const THEORY_PLUS_NUMBER_PATTERN = /[0-9⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]/g;
-  const redactTheoryPlusDigits = text => text.replace(THEORY_PLUS_NUMBER_PATTERN, THEORY_PLUS_REDACTION_CHAR);
+  const redactTheoryPlusDigits = text => (text || '').replace(THEORY_PLUS_NUMBER_PATTERN, THEORY_PLUS_REDACTION_CHAR);
   function redactTheoryPlusNumbers(){
-    if(!theoryPlusContent || theoryPlusContent.dataset.numbersRedacted === '1') return;
+    if(!theoryPlusContent || theoryPlusContent.dataset.numbersRedacted === 'true') return;
     const walker = document.createTreeWalker(theoryPlusContent, NodeFilter.SHOW_TEXT);
     let node = walker.nextNode();
     while(node){
       node.nodeValue = redactTheoryPlusDigits(node.nodeValue);
       node = walker.nextNode();
     }
-    theoryPlusContent.dataset.numbersRedacted = '1';
+    theoryPlusContent.dataset.numbersRedacted = 'true';
   }
   function openHelp(){
     closeAbout();

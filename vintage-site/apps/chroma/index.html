@@ -1744,6 +1744,7 @@
     saturation: 100,
     seed: { angle: 0, repeats: 1, phase: 0 }
   };
+  const triadicStyleOption = [...styleOptions].find(styleOption => styleOption.dataset.idx === String(NORMAL_MODE.philosophyIdx));
   // Resets palette state to a stable, ordinary RGB triadic baseline.
   function activateNormalMode(){
     importedMode = false;
@@ -1758,8 +1759,7 @@
     satSlider.value = String(NORMAL_MODE.saturation);
     styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
     styleOptions.forEach(styleOption => styleOption.classList.remove('active'));
-    const triadicOption = [...styleOptions].find(styleOption => styleOption.dataset.idx === String(NORMAL_MODE.philosophyIdx));
-    if(triadicOption) triadicOption.classList.add('active');
+    if(triadicStyleOption) triadicStyleOption.classList.add('active');
     if(matchSatActive){
       matchSatActive = false;
       matchSatValue = null;
@@ -1773,7 +1773,7 @@
       focusActive = false;
       syncFocusButtonState();
     }
-    pastramiMode = false;
+    if(pastramiMode) pastramiMode = false;
     syncPastramiButtonState();
     applyPastramiDropdown();
     drawScene();

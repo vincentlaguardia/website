@@ -1045,7 +1045,6 @@
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Theory</div>
   <div class="sm-item" id="sm-techno">Techno</div>
-  <div class="sm-item" id="sm-theory">Techno</div>
   <div class="sm-item" id="sm-sam">Sam Mode</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
@@ -1434,7 +1433,6 @@
   document.getElementById('sm-folder').addEventListener('click', e=>{ e.stopPropagation(); window.location.href = '../index.html#apps-folder'; });
   document.getElementById('sm-help').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openHelp(); });
   document.getElementById('sm-techno').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTechno(); });
-  document.getElementById('sm-theory').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openTheory(); });
   document.getElementById('sm-about').addEventListener('click', e=>{ e.stopPropagation(); closeStartMenu(); openAbout(); });
   document.getElementById('sm-shutdown').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   function doShutdown(){ document.getElementById('shutdown-overlay').classList.add('show'); }

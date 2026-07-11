@@ -210,6 +210,7 @@
       <button class="btn95" id="btn-fried">Fucked</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
+      <button class="btn95" id="btn-save">Save</button>
       <div class="zoom-control">
         <span>Zoom</span>
         <input type="range" id="zoom-slider" min="25" max="300" step="5" value="115">
@@ -221,7 +222,7 @@
     <div class="main-area">
       <div class="canvas-panel sunken" id="canvas-panel">
         <canvas id="preview-canvas"></canvas>
-        <div class="drop-hint" id="drop-hint">Drop an image here<br>or use Load Image</div>
+        <div class="drop-hint" id="drop-hint">Drop image here</div>
       </div>
 
       <div class="controls-panel">
@@ -1267,32 +1268,6 @@
     img.src = entry.dataURL;
   }
 
-  function generateDemoImage(){
-    const c = document.createElement('canvas');
-    c.width=640; c.height=480;
-    const ctx = c.getContext('2d');
-    const grad = ctx.createLinearGradient(0,0,640,480);
-    grad.addColorStop(0,'#ff6ec7');
-    grad.addColorStop(0.5,'#6ec7ff');
-    grad.addColorStop(1,'#ffd76e');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,640,480);
-    for(let i=0;i<6;i++){
-      ctx.beginPath();
-      ctx.fillStyle = 'hsl('+(i*60)+',70%,60%)';
-      ctx.globalAlpha = 0.45;
-      ctx.arc(100+i*90, 240+((i%2)?60:-60), 70, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.globalAlpha=1;
-    ctx.fillStyle='#ffffff';
-    ctx.font='bold 76px Georgia, serif';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText('GRAIN', 320, 244);
-    return c;
-  }
-
   // ---------- UI wiring ----------
   function updateAllSpans(){
     ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale'].forEach(id=>{
@@ -1560,7 +1535,6 @@
       document.body.classList.add('embedded', 'maximized');
     }
     updateAllSpans();
-    setImage(generateDemoImage());
     setZoom(parseInt($('zoom-slider').value,10));
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
@@ -1587,6 +1561,7 @@
     $('btn-fried').addEventListener('click', friedMode);
     $('btn-reset').addEventListener('click', resetAll);
     $('btn-off').addEventListener('click', turnAllOff);
+    $('btn-save').addEventListener('click', savePNGToDisk);
     $('file-input').addEventListener('change', e=>{
       if(e.target.files[0]) loadImageFile(e.target.files[0]);
       e.target.value='';

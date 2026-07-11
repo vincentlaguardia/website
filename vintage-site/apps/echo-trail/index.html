@@ -193,6 +193,8 @@
           <div class="dropdown-header" id="recent-header" style="display:none;">Open Recent</div>
           <div id="recent-list"></div>
           <div class="dropdown-sep" id="recent-sep" style="display:none;"></div>
+          <div class="dropdown-item" id="mi-load">Load Image</div>
+          <div class="dropdown-sep"></div>
           <div class="dropdown-item" id="mi-save">Save</div>
           <div class="dropdown-item" id="mi-export">Export to Desktop</div>
           <div class="dropdown-sep"></div>
@@ -205,12 +207,11 @@
     </div>
 
     <div class="toolbar">
-      <button class="btn95" id="btn-load">Load Image</button>
+      <button class="btn95" id="btn-save">Save</button>
       <button class="btn95" id="btn-randomize">Randomize</button>
       <button class="btn95" id="btn-fried">Fucked</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
-      <button class="btn95" id="btn-save">Save</button>
       <div class="zoom-control">
         <span>Zoom</span>
         <input type="range" id="zoom-slider" min="25" max="300" step="5" value="115">
@@ -372,13 +373,8 @@
 
   <div class="modal-overlay" id="about-overlay">
     <div class="window modal">
-      <div class="title-bar">
-        <div class="title-bar-text">About Echo Trail</div>
-        <div class="title-bar-controls"><button id="about-close">&times;</button></div>
-      </div>
       <div class="modal-body">
         <div class="modal-text">
-          <h3>Echo Trail</h3>
           <p>created by dr vincent j laguardia</p>
         </div>
       </div>
@@ -1556,7 +1552,6 @@
     syncRowClasses();
 
     // Toolbar
-    $('btn-load').addEventListener('click', ()=>$('file-input').click());
     $('btn-randomize').addEventListener('click', randomize);
     $('btn-fried').addEventListener('click', friedMode);
     $('btn-reset').addEventListener('click', resetAll);
@@ -1604,6 +1599,7 @@
       $('about-overlay').classList.add('show');
     });
 
+    $('mi-load').addEventListener('click', ()=>{ closeMenus(); $('file-input').click(); });
     $('mi-save').addEventListener('click', ()=>{ closeMenus(); savePNGToDisk(); });
     $('mi-export').addEventListener('click', ()=>{ closeMenus(); exportToVirtualDesktop(); });
     $('mi-reset').addEventListener('click', ()=>{ closeMenus(); resetAll(); });
@@ -1617,7 +1613,7 @@
     renderRecentMenu();
 
     // Modals
-    [['about-overlay','about-close'],['about-overlay','about-ok'],['exit-overlay','exit-cancel']].forEach(([overlayId, buttonId])=>{
+    [['about-overlay','about-ok'],['exit-overlay','exit-cancel']].forEach(([overlayId, buttonId])=>{
       $(buttonId).addEventListener('click', ()=>$(overlayId).classList.remove('show'));
     });
     $('exit-reset').addEventListener('click', ()=>{ resetAll(); $('exit-overlay').classList.remove('show'); });

@@ -706,11 +706,11 @@
       animation: watersplash 0.42s linear both;
     }
 
-    .praying .priest .arm {
+    .splashing .priest .arm {
       animation: pray 0.14s steps(2) infinite;
     }
 
-    .praying .spark {
+    .splashing .spark {
       animation: spark 0.2s steps(2);
     }
 
@@ -918,7 +918,7 @@
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
     const WATER_ANIMATION_DURATION = 420;
-    let prayerAnimTimer = 0;
+    let splashAnimTimer = 0;
     let waterAnimTimer = 0;
 
     function setThrowState(active) {
@@ -927,7 +927,7 @@
     }
 
     function animateThrow() {
-      clearTimeout(prayerAnimTimer);
+      clearTimeout(splashAnimTimer);
       clearTimeout(waterAnimTimer);
 
       setThrowState(false);
@@ -935,8 +935,8 @@
       waterSplash.offsetWidth;
       setThrowState(true);
 
-      scene.classList.add('praying');
-      prayerAnimTimer = window.setTimeout(() => scene.classList.remove('praying'), 180);
+      scene.classList.add('splashing');
+      splashAnimTimer = window.setTimeout(() => scene.classList.remove('splashing'), 180);
       waterAnimTimer = window.setTimeout(() => setThrowState(false), WATER_ANIMATION_DURATION);
     }
 

@@ -1534,6 +1534,22 @@ document.addEventListener('keydown', e => {
   performUndo();
 });
 
+// Snapshot the current DOM position of every desktop icon that doesn't already
+// have a manually-saved position into localStorage.  Call this before any
+// operation that removes or adds an icon from the desktop so that the remaining
+// icons don't jump around when buildDesktopIcons() recomputes default slots.
+function snapshotDesktopPositions() {
+  document.querySelectorAll('#desktop-icons .desktop-icon-item[data-item-id]').forEach(el => {
+    const itemId = el.dataset.itemId;
+    const key = 'desktop-icon-pos-' + itemId;
+    if (!localStorage.getItem(key)) {
+      const left = parseFloat(el.style.left) || 0;
+      const top = parseFloat(el.style.top) || 0;
+      localStorage.setItem(key, JSON.stringify({ left, top }));
+    }
+  });
+}
+
 function deleteItem(id, parentId, skipUndo) {
   const parent = items[parentId];
   if (!parent || !parent.children) return;
@@ -1544,7 +1560,7 @@ function deleteItem(id, parentId, skipUndo) {
   saveTrash();
   persistFolderChildren(parentId);
   refreshFolderView(parentId);
-  if (parentId === 'desktop') buildDesktopIcons();
+  if (parentId === 'desktop') { snapshotDesktopPositions(); buildDesktopIcons(); }
   refreshTrashView();
   updateTrashIconEl();
   if (!skipUndo) pushUndo(() => restoreItem(id, true));
@@ -1560,7 +1576,7 @@ function restoreItem(id, skipUndo) {
   saveTrash();
   persistFolderChildren(entry.parentId);
   refreshFolderView(entry.parentId);
-  if (entry.parentId === 'desktop') buildDesktopIcons();
+  if (entry.parentId === 'desktop') { snapshotDesktopPositions(); buildDesktopIcons(); }
   refreshTrashView();
   updateTrashIconEl();
   if (!skipUndo) pushUndo(() => deleteItem(id, entry.parentId, true));

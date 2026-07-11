@@ -917,7 +917,7 @@
     const intro = document.getElementById('splash-intro');
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
-    const WATER_ANIMATION_DURATION = 420;
+    const waterAnimationDuration = 420;
     let splashAnimTimer = 0;
     let waterAnimTimer = 0;
 
@@ -937,7 +937,7 @@
 
       scene.classList.add('splashing');
       splashAnimTimer = window.setTimeout(() => scene.classList.remove('splashing'), 180);
-      waterAnimTimer = window.setTimeout(() => setThrowState(false), WATER_ANIMATION_DURATION);
+      waterAnimTimer = window.setTimeout(() => setThrowState(false), waterAnimationDuration);
     }
 
     function splashNow() {

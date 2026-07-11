@@ -250,7 +250,7 @@
       <button class="btn95" id="btn-fried">Fucked</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
-      <div class="diary-lastswatch sunken" id="diary-last-swatch" title="Last clicked color"></div>
+      <div class="diary-lastswatch sunken" id="diary-last-swatch" title="Last clicked color" role="img" aria-label="Last clicked color swatch"></div>
       <button class="btn95" id="diary-add-btn" title="Add last clicked color to diary">Add to Diary</button>
       <button class="btn95" id="diary-open-btn">Diary</button>
       <div class="zoom-control">
@@ -481,7 +481,8 @@
   const DIARY_JPEG_QUALITY = 0.92;
   const LUM_R = 0.299, LUM_G = 0.587, LUM_B = 0.114, LUM_THRESH = 0.55;
   let diaryColors;
-  try { diaryColors = JSON.parse(localStorage.getItem(DIARY_KEY)) || []; } catch(e) { diaryColors = []; }
+  try { diaryColors = JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }
+  catch(e) { console.warn('echo-trail: failed to load diary from localStorage', e); diaryColors = []; }
   let diaryLastColor = null;
   let diaryCtxIdx = -1;
   let diaryCtxColor = null;
@@ -567,7 +568,7 @@
 
   function addToDiary(color){
     if(!color) return;
-    if(diaryColors.length >= DIARY_MAX){ alert('Diary is full (' + DIARY_MAX + ' colors max). Delete some to add more.'); return; }
+    if(diaryColors.length >= DIARY_MAX){ alert(`Diary is full (${DIARY_MAX} colors max). Delete some to add more.`); return; }
     diaryColors.push({ hex: color.hex, r: color.r, g: color.g, b: color.b });
     saveDiaryColors();
     if($('diary-overlay').classList.contains('show')) renderDiary();
@@ -596,7 +597,8 @@
     ta.style.left = '-9999px';
     document.body.appendChild(ta);
     ta.focus(); ta.select();
-    try{ document.execCommand('copy'); }catch(_){}
+    try{ document.execCommand('copy'); }
+    catch(err){ console.warn('echo-trail: fallback copy failed', err); }
     document.body.removeChild(ta);
   }
 
@@ -1773,10 +1775,10 @@
       if(color) setLastClickedColor(color.r, color.g, color.b);
     });
     previewCanvas.addEventListener('contextmenu', e=>{
+      e.preventDefault();
       if(!previewCanvas.width || !previewCanvas.height) return;
       const color = samplePreviewColor(e.clientX, e.clientY);
       if(!color) return;
-      e.preventDefault();
       setLastClickedColor(color.r, color.g, color.b);
       closeMenus();
       hideDiaryCtxMenu();
@@ -1854,7 +1856,7 @@
       const ctx = c.getContext('2d');
       ctx.fillStyle = '#c0c0c0'; ctx.fillRect(0, 0, cw, ch);
       ctx.fillStyle = '#000'; ctx.font = 'bold 13px Tahoma,Arial,sans-serif';
-      ctx.textAlign = 'left'; ctx.fillText('echo-trail — Color Diary', DIARY_PAD, DIARY_PAD + 14);
+      ctx.textAlign = 'left'; ctx.fillText('Echo Trail — Color Diary', DIARY_PAD, DIARY_PAD + 14);
       diaryColors.forEach((color, i)=>{
         const col = i % DIARY_EXPORT_COLS, row = Math.floor(i / DIARY_EXPORT_COLS);
         const x = DIARY_PAD + col * (DIARY_SW + DIARY_GAP);
@@ -1915,7 +1917,11 @@
     });
     window.addEventListener('storage', e=>{
       if(e.key === DIARY_KEY){
-        try{ diaryColors = JSON.parse(e.newValue) || []; }catch(_){ diaryColors = []; }
+        if(e.newValue === null){ diaryColors = []; }
+        else {
+          try{ diaryColors = JSON.parse(e.newValue) || []; }
+          catch(err){ console.warn('echo-trail: failed to sync diary from localStorage', err); diaryColors = []; }
+        }
         if($('diary-overlay').classList.contains('show')) renderDiary();
       }
     });

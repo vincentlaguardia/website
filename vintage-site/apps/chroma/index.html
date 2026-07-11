@@ -711,6 +711,7 @@
       </div>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
+          <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
@@ -2384,6 +2385,7 @@
     }
     hideDiaryCtxMenu();
   });
+  document.getElementById('cc-diary-open').addEventListener('click', ()=>{ openDiary(); });
   document.getElementById('cc-diary-add').addEventListener('click', ()=>{
     if(!lastColor) return;
     addToDiary(lastColor);

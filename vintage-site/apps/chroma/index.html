@@ -718,7 +718,6 @@
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-          <button class="ctrl-btn" id="cc-stylize-btn" type="button" title="Toggle stylization of the normal palette" aria-label="Toggle Stylize" aria-pressed="false">Stylize</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
@@ -1482,7 +1481,7 @@
     let hueRange = w * 40;
     const wildcardChance = w * 0.65;
     if(outlierRoll < wildcardChance){ hueRange = 50 + w*280; }
-    const satRange = stylizeEnabled ? 30 : 0, lightRange = stylizeEnabled ? 28 : 0;
+    const satRange = 30, lightRange = 28;
     const hue = applySkewToHue((hues[role] + (jitterC-0.5)*hueRange + 360) % 360);
     const sat = BASE_SAT + (jitterA-0.5)*satRange;
     const light = BASE_LIGHT + lightOffset + (jitterB-0.5)*lightRange;
@@ -1591,7 +1590,6 @@
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
   function randomPastramiPhiloIdx(){ return PASTRAMI_PHILOS[Math.floor(Math.random()*PASTRAMI_PHILOS.length)]; }
   let pastramiMode = false;
-  let stylizeEnabled = false;
   let randomStyle = true;
   let philoIdx = randomPhiloIdx();
   let seed = randomSeed();
@@ -1739,17 +1737,6 @@
       }
     });
   }
-  const stylizeBtn = document.getElementById('cc-stylize-btn');
-  function syncStylizeButtonState(){
-    stylizeBtn.classList.toggle('is-active', stylizeEnabled);
-    stylizeBtn.setAttribute('aria-pressed', String(stylizeEnabled));
-  }
-  syncStylizeButtonState();
-  stylizeBtn.addEventListener('click', ()=>{
-    stylizeEnabled = !stylizeEnabled;
-    syncStylizeButtonState();
-    drawScene();
-  });
   const pastramiBtn = document.getElementById('pastrami-btn');
   const MAX_PASTRAMI_GRADIENT_COLORS = 5;
   const PASTRAMI_BUTTON_GRADIENT_ANGLE = '105deg';

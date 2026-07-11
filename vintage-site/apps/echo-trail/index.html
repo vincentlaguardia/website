@@ -1094,11 +1094,26 @@
       } catch(_){}
     }
     return await new Promise(resolve=>{
-      const img = new Image();
-      const blobUrl = URL.createObjectURL(blob);
-      img.onload = ()=>{ URL.revokeObjectURL(blobUrl); resolve(true); };
-      img.onerror = ()=>{ URL.revokeObjectURL(blobUrl); resolve(false); };
-      img.src = blobUrl;
+      let settled = false;
+      let blobUrl = '';
+      const done = result => {
+        if(settled) return;
+        settled = true;
+        if(blobUrl) URL.revokeObjectURL(blobUrl);
+        resolve(result);
+      };
+      let img;
+      try{
+        img = new Image();
+        blobUrl = URL.createObjectURL(blob);
+      } catch(_){
+        done(false);
+        return;
+      }
+      const timer = setTimeout(()=>done(false), 10000);
+      img.onload = ()=>{ clearTimeout(timer); done(true); };
+      img.onerror = ()=>{ clearTimeout(timer); done(false); };
+      try{ img.src = blobUrl; } catch(_){ clearTimeout(timer); done(false); }
     });
   }
 
@@ -1122,6 +1137,16 @@
     catch(err){ return value; }
   }
 
+  function hasPathTraversal(pathname){
+    let decoded = String(pathname || '');
+    for(let i=0;i<3;i++){
+      const next = decodePathPart(decoded);
+      if(next === decoded) break;
+      decoded = next;
+    }
+    return decoded.replace(/\\/g, '/').split('/').includes('..');
+  }
+
   function sanitizeFileName(value, fallback){
     const cleaned = String(value || '')
       .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_')
@@ -1141,17 +1166,24 @@
     } catch(_){
       throw new Error('Could not load the dropped image.');
     }
+    if(!/^https?:$/i.test(parsedUrl.protocol)){
+      throw new Error('Only HTTP(S) image URLs are supported.');
+    }
     if(!allowCrossOrigin && parsedUrl.origin !== window.location.origin){
       throw new Error('Cross-origin image drops are not allowed.');
     }
-    const decodedPath = decodePathPart(parsedUrl.pathname);
-    if(decodedPath.split('/').includes('..')) throw new Error('Invalid image path.');
+    if(hasPathTraversal(parsedUrl.pathname)) throw new Error('Invalid image path.');
     const res = await fetch(parsedUrl.href);
     if(!res.ok) throw new Error('Could not load image from dropped URL (HTTP ' + res.status + ').');
     const blob = await res.blob();
     const rawName = options.name || parsedUrl.pathname.split('/').pop() || 'image';
     const name = sanitizeFileName(decodePathPart(rawName), 'image');
-    const detectedType = (blob.type && blob.type.startsWith('image/')) ? blob.type : inferImageMimeType(name);
+    const inferredType = inferImageMimeType(name);
+    const blobType = (blob.type && blob.type.startsWith('image/')) ? blob.type : '';
+    if(inferredType && blobType && inferredType !== blobType){
+      throw new Error('Dropped image type does not match file extension.');
+    }
+    const detectedType = inferredType || blobType;
     if(!detectedType) throw new Error('Dropped item is not an image.');
     if(!(await blobCanDecodeAsImage(blob))) throw new Error('Dropped item is not a valid image.');
     loadImageFile(new File([blob], name, { type: detectedType }));
@@ -1166,7 +1198,7 @@
     }
     const plain = String(dataTransfer.getData('text/plain') || '').trim();
     if(!plain) return '';
-    if(/^(https?:|\/(?!\/))/i.test(plain)) return plain;
+    if(/^(https?:\/\/|\/(?!\/))/i.test(plain)) return plain;
     return '';
   }
 

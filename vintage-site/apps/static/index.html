@@ -55,9 +55,79 @@
   legend { font-weight: bold; padding: 0 6px; background: #c0c0c0; }
   .hint { font-size: 11px; margin-bottom: 6px; color: #202020; }
   .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .humidity-row { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; align-items: center; margin: 8px 0 10px; }
-  .humidity-row input[type="range"] { width: 100%; }
+  .humidity-control { margin: 8px 0 10px; }
+  .humidity-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .humidity-label { font-weight: bold; font-size: 12px; }
   .humidity-readout { font-family: "Courier New", monospace; font-size: 11px; min-width: 88px; text-align: right; }
+  .humidity-slider-shell { position: relative; height: 28px; }
+  .humidity-slider-meter {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 5px;
+    height: 18px;
+    background: linear-gradient(90deg,#d1ac62 0%,#f3dd97 22%,#badc98 48%,#7fd2d6 74%,#4d8fc6 100%);
+    border: 1px solid #404040;
+    box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #808080;
+    pointer-events: none;
+  }
+  .humidity-slider-marker {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    width: 4px;
+    height: 24px;
+    background: #000;
+    transform: translateX(-2px);
+  }
+  .humidity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+  }
+  .humidity-slider:focus { outline: none; }
+  .humidity-slider-shell:focus-within .humidity-slider-meter { outline: 1px dotted #000; outline-offset: 2px; }
+  .humidity-slider::-webkit-slider-runnable-track {
+    height: 18px;
+    background: transparent;
+    border: 1px solid transparent;
+  }
+  .humidity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 28px;
+    margin-top: -5px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .humidity-slider::-moz-range-track {
+    height: 18px;
+    background: transparent;
+    border: 1px solid transparent;
+  }
+  .humidity-slider::-moz-range-progress {
+    height: 18px;
+    background: transparent;
+    border: 1px solid transparent;
+  }
+  .humidity-slider::-moz-range-thumb {
+    width: 14px;
+    height: 28px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .humidity-endpoints { display: flex; justify-content: space-between; font-size: 10px; margin-top: 2px; }
   select { font-family: inherit; font-size: 12px; border: 2px solid #808080; border-top-color: #404040; border-left-color: #404040; background: #fff; padding: 2px 4px; }
   button { font-family: inherit; font-size: 12px; background: #c0c0c0; border: 2px solid #fff; border-right-color: #000; border-bottom-color: #000; padding: 4px 12px; cursor: pointer; }
   button:active { border-color: #000 #fff #fff #000; }
@@ -177,9 +247,18 @@
         governed by <b>moisture regain</b>. Adsorbed water raises surface conductivity, lowering the charge decay
         time constant. R = 1/(1 + β·regain·RH/65). Move the humidity slider to see how ambient RH changes R and the final SC value.
       </div>
-      <div class="humidity-row">
-        <input type="range" id="rhSlider" min="0" max="100" step="1" value="40" aria-label="Ambient relative humidity">
-        <div class="humidity-readout" id="rhReadout">RH: 40%</div>
+      <div class="humidity-control">
+        <div class="humidity-header">
+          <label class="humidity-label" for="rhSlider">Ambient Humidity (RH)</label>
+          <div class="humidity-readout" id="rhReadout" aria-live="polite">RH: 40%</div>
+        </div>
+        <div class="humidity-slider-shell">
+          <div class="humidity-slider-meter" aria-hidden="true">
+            <div class="humidity-slider-marker" id="rhMarker"></div>
+          </div>
+          <input class="humidity-slider" type="range" id="rhSlider" min="0" max="100" step="1" value="40" aria-describedby="rhReadout">
+        </div>
+        <div class="humidity-endpoints" aria-hidden="true"><span>0% Dry</span><span>100% Humid</span></div>
       </div>
       <div class="coef-readout">
         <div>
@@ -486,10 +565,13 @@ function recompute() {
 function wireHumidity() {
   const slider = document.getElementById('rhSlider');
   const readout = document.getElementById('rhReadout');
-  if (!slider || !readout) return;
+  const marker = document.getElementById('rhMarker');
+  if (!slider || !readout || !marker) return;
   const sync = () => {
     ambientRH = Number(slider.value);
     readout.textContent = `RH: ${ambientRH}%`;
+    slider.setAttribute('aria-valuetext', `${ambientRH}% relative humidity`);
+    marker.style.left = ambientRH + '%';
     recompute();
   };
   slider.addEventListener('input', sync);

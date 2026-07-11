@@ -1,2 +1,0 @@
-contact q7mxf4k2pazn6vtrcdj9hslbeyw3u5g8o0i2n4x@protonmail.com
-for digital design work

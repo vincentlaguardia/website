@@ -332,7 +332,8 @@
 <body>
 <script>
   (function(){
-    const storageKey = 'chroma.ui.invert';
+    window.chromaUiInvertStorageKey = 'chroma.ui.invert';
+    const storageKey = window.chromaUiInvertStorageKey;
     let invertEnabled = false;
     try {
       invertEnabled = window.localStorage.getItem(storageKey) === 'true';
@@ -341,7 +342,7 @@
       document.documentElement.classList.add('ui-inverted');
       document.body.classList.add('ui-inverted');
     }
-    window.__chromaUiInvert = { storageKey, enabled: invertEnabled };
+    window.chromaUiInvertState = { enabled: invertEnabled };
   })();
 </script>
 <script>if (window.self !== window.top) { document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
@@ -356,10 +357,10 @@
 (function(){
   const invertBtn = document.getElementById('invert-btn');
   const INVERT_CLASS = 'ui-inverted';
-  const invertState = window.__chromaUiInvert || { storageKey: 'chroma.ui.invert', enabled: false };
+  const invertState = window.chromaUiInvertState || { enabled: false };
   function persistInvertState(enabled){
     try {
-      window.localStorage.setItem(invertState.storageKey, enabled ? 'true' : 'false');
+      window.localStorage.setItem(window.chromaUiInvertStorageKey, enabled ? 'true' : 'false');
     } catch (e) {}
   }
   function setInvertState(enabled, persist = true){

@@ -1286,7 +1286,7 @@
     const walker = document.createTreeWalker(theoryPlusContent, NodeFilter.SHOW_TEXT);
     let node;
     while((node = walker.nextNode())){
-      if(node.parentElement && node.parentElement.closest('strong')) continue;
+      if (node.parentElement && node.parentElement.closest('strong')) continue;
       node.nodeValue = redactTheoryPlusNumbersInText(node.nodeValue);
     }
     theoryPlusContent.dataset.numbersRedacted = 'true';

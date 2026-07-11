@@ -320,7 +320,7 @@
       <p id="aboutTitle" style="margin:0 0 8px;font-weight:bold;font-size:14px;">About Static Coefficient Calculator</p>
       <p style="margin:0 0 8px;">This tool estimates garment static behavior from fabric composition and ambient humidity.</p>
       <p style="margin:0 0 8px;">Adjust the blend shares, lock materials when needed, and move the RH slider to see how dry or humid air changes the final score.</p>
-      <p style="margin:0;">Embedded mode posts a <code>static-close</code> message back to the vintage desktop host when File &gt; Close is used.</p>
+      <p style="margin:0;">Embedded mode posts a <code>static-close</code> message back to the vintage desktop host when File > Close is used.</p>
     </div>
     <div class="dialog-footer"><button type="button" data-close-modal="aboutModal">OK</button></div>
   </div>
@@ -667,7 +667,8 @@ function closeApp() {
 
 function populateInfoTable() {
   const tbody = document.getElementById('infoFiberRows');
-  tbody.replaceChildren(...INFO_FIBER_ORDER.map(({ name, tribo, mr, est }) => {
+  tbody.textContent = '';
+  INFO_FIBER_ORDER.forEach(({ name, tribo, mr, est }) => {
     const row = document.createElement('tr');
     const fiberCell = document.createElement('td');
     fiberCell.className = 'l';
@@ -677,8 +678,8 @@ function populateInfoTable() {
     const regainCell = document.createElement('td');
     regainCell.textContent = mr.toFixed(1);
     row.append(fiberCell, triboCell, regainCell);
-    return row;
-  }));
+    tbody.appendChild(row);
+  });
 }
 
 function wireMenus() {

@@ -8670,7 +8670,7 @@ function buildDesktopIcons() {
       if (!r) {
         r = document.createElement('div');
         r.id = 'desktop-rubber-rect';
-        r.style.cssText = 'position:fixed;border:1px dotted #000080;background:rgba(0,0,128,0.08);pointer-events:none;z-index:2;display:none;';
+        r.style.cssText = 'position:fixed;border:1px dotted var(--acc-dark);background:var(--acc-mid);opacity:0.18;pointer-events:none;z-index:2;display:none;';
         desktopEl.appendChild(r);
       }
       return r;

@@ -1072,6 +1072,7 @@
     const SPLASH_ATTACK_GAIN = 0.22;
     const SPLASH_ATTACK_TIME = 0.01;
     const SPLASH_RELEASE_TIME = 0.18;
+    const SPLASH_DURATION = SPLASH_ATTACK_TIME + SPLASH_RELEASE_TIME;
     const SPLASH_HIGH_FREQ_START = 880;
     const SPLASH_HIGH_FREQ_END = 280;
     const SPLASH_LOW_FREQ_START = 410;
@@ -1082,10 +1083,11 @@
     let splashCount = 0;
     let backgroundStarted = false;
     let splashFxContext = null;
+    const defaultSceneClasses = ['possessed', 'ceiling-fire'];
 
     backgroundSound.preload = 'auto';
     backgroundSound.volume = 0.72;
-    scene.classList.add('possessed', 'ceiling-fire');
+    defaultSceneClasses.forEach((className) => scene.classList.add(className));
 
     function setThrowState(active) {
       waterBurst.classList.toggle('active', active);
@@ -1117,29 +1119,36 @@
         const output = splashFxContext.createGain();
         output.gain.setValueAtTime(MIN_GAIN_EPSILON, now);
         output.gain.exponentialRampToValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
-        output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + SPLASH_RELEASE_TIME);
+        output.gain.setValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
+        output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + SPLASH_DURATION);
         output.connect(splashFxContext.destination);
+
+        let endedOscillators = 0;
+        const cleanup = (oscillator) => {
+          oscillator.disconnect();
+          endedOscillators += 1;
+          if (endedOscillators >= 2) {
+            output.disconnect();
+          }
+        };
 
         const high = splashFxContext.createOscillator();
         high.type = 'triangle';
         high.frequency.setValueAtTime(SPLASH_HIGH_FREQ_START, now);
-        high.frequency.exponentialRampToValueAtTime(SPLASH_HIGH_FREQ_END, now + SPLASH_RELEASE_TIME);
+        high.frequency.exponentialRampToValueAtTime(SPLASH_HIGH_FREQ_END, now + SPLASH_DURATION);
         high.connect(output);
-        high.onended = () => high.disconnect();
+        high.onended = () => cleanup(high);
         high.start(now);
-        high.stop(now + SPLASH_RELEASE_TIME);
+        high.stop(now + SPLASH_DURATION);
 
         const low = splashFxContext.createOscillator();
         low.type = 'sine';
         low.frequency.setValueAtTime(SPLASH_LOW_FREQ_START, now);
-        low.frequency.exponentialRampToValueAtTime(SPLASH_LOW_FREQ_END, now + SPLASH_RELEASE_TIME);
+        low.frequency.exponentialRampToValueAtTime(SPLASH_LOW_FREQ_END, now + SPLASH_DURATION);
         low.connect(output);
-        low.onended = () => {
-          low.disconnect();
-          output.disconnect();
-        };
+        low.onended = () => cleanup(low);
         low.start(now);
-        low.stop(now + SPLASH_RELEASE_TIME);
+        low.stop(now + SPLASH_DURATION);
       };
 
       if (splashFxContext.state === 'suspended') {

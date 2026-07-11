@@ -1076,7 +1076,6 @@
     let splashFxContext = null;
 
     backgroundSound.preload = 'auto';
-    backgroundSound.loop = false;
     backgroundSound.volume = 0.72;
 
     function setThrowState(active) {
@@ -1105,7 +1104,9 @@
       }
 
       if (splashFxContext.state === 'suspended') {
-        splashFxContext.resume().catch(() => {});
+        splashFxContext.resume().catch((error) => {
+          console.warn('exorcist splash effect resume failed', error);
+        });
       }
 
       const now = splashFxContext.currentTime;

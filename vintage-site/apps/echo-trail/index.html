@@ -1824,7 +1824,7 @@
         if(!wasOpen) item.classList.add('open');
       });
     });
-    document.addEventListener('pointerdown', e=>{
+    document.addEventListener('pointerdown', e => {
       if(!e.target.closest('.menu-bar')) closeMenus();
     });
     $('menu-about').addEventListener('click', e=>{

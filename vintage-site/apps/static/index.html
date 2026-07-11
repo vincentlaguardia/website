@@ -74,7 +74,7 @@
   .humidity-slider-marker {
     position: absolute;
     top: -3px;
-    left: 40%;
+    left: 0;
     width: 4px;
     height: 24px;
     background: #000;
@@ -566,13 +566,12 @@ function wireHumidity() {
   const slider = document.getElementById('rhSlider');
   const readout = document.getElementById('rhReadout');
   const marker = document.getElementById('rhMarker');
-  if (!slider || !readout) return;
+  if (!slider || !readout || !marker) return;
   const sync = () => {
     ambientRH = Number(slider.value);
-    const pct = Math.max(0, Math.min(100, ambientRH));
     readout.textContent = `RH: ${ambientRH}%`;
     slider.setAttribute('aria-valuetext', `${ambientRH}% relative humidity`);
-    if (marker) marker.style.left = pct + '%';
+    marker.style.left = ambientRH + '%';
     recompute();
   };
   slider.addEventListener('input', sync);

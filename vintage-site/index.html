@@ -1873,6 +1873,7 @@ function promptRenameFolderLabel(id, onDone) {
 function startInlineRename(labelEl, id, onDone) {
   if (!labelEl || !labelEl.parentNode) { if (onDone) onDone(); return; }
   const original = items[id] ? items[id].name : '';
+  const ownerEl = labelEl.closest('.desktop-icon-item, .grid-item, .details-row');
   const input = document.createElement('input');
   input.type = 'text';
   input.value = original;
@@ -1881,20 +1882,47 @@ function startInlineRename(labelEl, id, onDone) {
   input.focus();
   input.select();
   let committed = false;
+  let pendingFinishTimer = null;
+  function cleanup() {
+    document.removeEventListener('mousedown', onDocumentMouseDown, true);
+    window.removeEventListener('blur', onWindowBlur);
+    if (pendingFinishTimer !== null) {
+      clearTimeout(pendingFinishTimer);
+      pendingFinishTimer = null;
+    }
+  }
   function finish(shouldRename) {
     if (committed) return;
     committed = true;
+    cleanup();
+    if (ownerEl) ownerEl.classList.remove('selected');
     if (shouldRename) renameItem(id, input.value || original);
     if (onDone) onDone();
   }
+  function queueFinish(shouldRename) {
+    if (committed || pendingFinishTimer !== null) return;
+    pendingFinishTimer = window.setTimeout(() => {
+      pendingFinishTimer = null;
+      finish(shouldRename);
+    }, 0);
+  }
+  function onDocumentMouseDown(e) {
+    if (e.target === input || input.contains(e.target)) return;
+    queueFinish(true);
+  }
+  function onWindowBlur() {
+    queueFinish(true);
+  }
   input.addEventListener('blur', () => finish(true));
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
     else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
   });
   input.addEventListener('click', e => e.stopPropagation());
   input.addEventListener('mousedown', e => e.stopPropagation());
   input.addEventListener('dblclick', e => e.stopPropagation());
+  document.addEventListener('mousedown', onDocumentMouseDown, true);
+  window.addEventListener('blur', onWindowBlur);
 }
 
 function refreshFolderView(id) {
@@ -3830,7 +3858,7 @@ function renderFolderContent(id) {
     const iconPos = resolveFolderIconPosition(savedPos, defaultPos);
     el.style.left = iconPos.left + 'px';
     el.style.top = iconPos.top + 'px';
-    makeFolderIconFreeformDraggable(el, id, childId, () => openChildItem(childId, child, id), null, grid);
+    makeFolderIconFreeformDraggable(el, id, childId, () => openChildItem(childId, child, id), () => deleteItem(childId, id), grid);
     grid.appendChild(el);
   });
   // right-click on blank grid space (not on an item, which already
@@ -8575,7 +8603,7 @@ function buildDesktopIcons() {
     const defaultPos = defaultLayout.byId[itemId] || desktopDefaultPosition(itemId, item, index + 1);
     el.style.left = (savedPos ? savedPos.left : defaultPos.left) + 'px';
     el.style.top = (savedPos ? savedPos.top : defaultPos.top) + 'px';
-    makeDesktopIconDraggable(el, 'desktop-icon-pos-' + itemId, () => openChildItem(itemId, item, 'desktop'), null, itemId, 'desktop');
+    makeDesktopIconDraggable(el, 'desktop-icon-pos-' + itemId, () => openChildItem(itemId, item, 'desktop'), () => deleteItem(itemId, 'desktop'), itemId, 'desktop');
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();

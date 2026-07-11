@@ -709,6 +709,8 @@
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
+          <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
+          <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
@@ -1010,6 +1012,20 @@
     try{ document.execCommand('copy'); }catch(e){}
     document.body.removeChild(ta);
   }
+  function promptForPhotoImport(){
+    document.getElementById('cc-photo-import').click();
+  }
+  function saveCanvasAsPng(canvasEl){
+    try{
+      const link = document.createElement('a');
+      link.download = 'chroma-camouflage.png';
+      link.href = canvasEl.toDataURL('image/png');
+      link.click();
+    } catch(err){
+      console.warn('chroma: save failed', err);
+      alert('Save failed. Please try again.');
+    }
+  }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
   const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };
   function closeAllMenus(){
@@ -1126,7 +1142,7 @@
   document.querySelector('[data-action="import-photo"]').addEventListener('click', e=>{
     e.stopPropagation();
     closeAllMenus();
-    document.getElementById('cc-photo-import').click();
+    promptForPhotoImport();
   });
   document.querySelector('[data-action="export-palette"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -1142,10 +1158,7 @@
   document.querySelector('[data-action="save"]').addEventListener('click', e=>{
     e.stopPropagation();
     closeAllMenus();
-    const link = document.createElement('a');
-    link.download = 'chroma-camouflage.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    saveCanvasAsPng(canvas);
   });
   document.querySelector('[data-action="save-as"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -1252,6 +1265,8 @@
   const hexBoxEl = document.getElementById('cc-hexbox');
   const rgbBoxEl = document.getElementById('cc-rgbbox');
   const exportPaletteBtn = document.getElementById('cc-export-palette');
+  const loadImageBtn = document.getElementById('cc-load-image');
+  const saveImageBtn = document.getElementById('cc-save-image');
   const importInput = document.getElementById('cc-photo-import');
   const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
@@ -1733,6 +1748,8 @@
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);
+  loadImageBtn.addEventListener('click', promptForPhotoImport);
+  saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));
   async function processImportedPhotoFile(file){
     if(!file || !file.type.startsWith('image/')) return;
     const img = await readImageFile(file);

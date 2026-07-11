@@ -172,6 +172,44 @@
   .modal-text h3{ margin:0 0 6px 0; font-size:14px; }
   .modal-text p{ margin:4px 0; font-size:11px; line-height:1.5; }
   .modal-actions{ display:flex; gap:8px; justify-content:flex-end; padding:0 16px 14px; }
+
+  .diary-lastswatch{
+    width:26px; height:26px; flex-shrink:0;
+    background:var(--face);
+    cursor:default;
+  }
+  #diary-overlay .window.modal{ width:440px; max-width:92vw; }
+  .diary-winbody{
+    display:flex; flex-direction:column; padding:6px; flex:1; min-height:0; overflow:hidden;
+  }
+  .diary-grid{
+    display:grid; grid-template-columns:repeat(6,1fr);
+    gap:4px; padding:4px; overflow-y:auto; align-content:start;
+    max-height:360px; min-height:60px;
+  }
+  .diary-swatch{
+    position:relative; aspect-ratio:1; cursor:default;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    overflow:hidden; border:1px solid rgba(0,0,0,0.25);
+    padding:0 3px 4px; user-select:none;
+  }
+  .diary-swatch.empty{
+    background:var(--face) !important; border:1px dashed var(--shadow) !important; opacity:0.35;
+  }
+  .dsw-hex{ font-size:9px; font-weight:bold; text-align:center; line-height:1.3; word-break:break-all; }
+  .dsw-rgb{ font-size:8px; text-align:center; line-height:1.3; word-break:break-all; }
+  .diary-footer{
+    display:flex; align-items:center; gap:8px; padding:4px 4px 2px; flex:0 0 auto;
+  }
+  #diary-ctx-menu,
+  #app-ctx-menu{
+    position:fixed; z-index:250; min-width:140px; padding:2px; display:none;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+  }
+  .ctx-menu-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; }
+  .ctx-menu-option:hover{ background:#000080; color:#fff; }
+  .ctx-menu-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 #fff; margin:3px 2px; }
 </style>
 </head>
 <body>
@@ -212,6 +250,9 @@
       <button class="btn95" id="btn-fried">Fucked</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
+      <div class="diary-lastswatch sunken" id="diary-last-swatch" title="Last clicked color"></div>
+      <button class="btn95" id="diary-add-btn" title="Add last clicked color to diary">Add to Diary</button>
+      <button class="btn95" id="diary-open-btn">Diary</button>
       <div class="zoom-control">
         <span>Zoom</span>
         <input type="range" id="zoom-slider" min="25" max="300" step="5" value="115">
@@ -401,13 +442,177 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="diary-overlay">
+    <div class="window modal">
+      <div class="title-bar">
+        <div class="title-bar-text">Color Diary</div>
+        <div class="title-bar-controls">
+          <button id="diary-close-btn" title="Close">&times;</button>
+        </div>
+      </div>
+      <div class="diary-winbody">
+        <div id="diary-grid" class="diary-grid"></div>
+        <div class="diary-footer">
+          <span id="diary-count" style="font-size:11px;">0 / 36</span>
+          <button class="btn95" id="diary-clear-btn" style="margin-left:auto;">Clear All</button>
+          <button class="btn95" id="diary-export-btn">Export JPG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="diary-ctx-menu">
+    <div class="ctx-menu-option" id="diary-copy-hex-btn">Copy Hex</div>
+    <div class="ctx-menu-sep"></div>
+    <div class="ctx-menu-option" id="diary-delete-btn">Delete</div>
+  </div>
+  <div id="app-ctx-menu">
+    <div class="ctx-menu-option" id="app-add-diary-btn">Add to Diary</div>
+  </div>
+
 <script>
 (function(){
   "use strict";
   const $ = id => document.getElementById(id);
   const embeddedMode = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
+  const DIARY_KEY = 'chroma.diary';
+  const DIARY_MAX = 36;
+  const DIARY_EXPORT_COLS = 6;
+  const DIARY_SW = 110, DIARY_SH = 110, DIARY_GAP = 6, DIARY_PAD = 16, DIARY_HEADER = 36;
+  const DIARY_JPEG_QUALITY = 0.92;
+  const LUM_R = 0.299, LUM_G = 0.587, LUM_B = 0.114, LUM_THRESH = 0.55;
+  let diaryColors;
+  try { diaryColors = JSON.parse(localStorage.getItem(DIARY_KEY)) || []; } catch(e) { diaryColors = []; }
+  let diaryLastColor = null;
+  let diaryCtxIdx = -1;
+  let diaryCtxColor = null;
+  let appCtxColor = null;
+
+  function rgbToHex(rgb){
+    return '#' + rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
+  }
 
   function clamp(v,min,max){ return v<min?min:(v>max?max:v); }
+
+  function diarySwatchTextColor(r,g,b){
+    return (LUM_R*r + LUM_G*g + LUM_B*b)/255 > LUM_THRESH ? '#000' : '#fff';
+  }
+
+  function saveDiaryColors(){
+    localStorage.setItem(DIARY_KEY, JSON.stringify(diaryColors));
+  }
+
+  function renderDiary(){
+    const grid = $('diary-grid');
+    $('diary-count').textContent = diaryColors.length + ' / ' + DIARY_MAX;
+    grid.innerHTML = '';
+    diaryColors.forEach((c, idx)=>{
+      const tc = diarySwatchTextColor(c.r, c.g, c.b);
+      const div = document.createElement('div');
+      div.className = 'diary-swatch';
+      div.style.background = c.hex;
+      div.title = c.hex + ' — right-click to delete';
+      const hexSpan = document.createElement('span');
+      hexSpan.className = 'dsw-hex';
+      hexSpan.style.color = tc;
+      hexSpan.textContent = c.hex;
+      const rgbSpan = document.createElement('span');
+      rgbSpan.className = 'dsw-rgb';
+      rgbSpan.style.color = tc;
+      rgbSpan.textContent = c.r + ',' + c.g + ',' + c.b;
+      div.appendChild(hexSpan);
+      div.appendChild(rgbSpan);
+      div.addEventListener('contextmenu', e=>{
+        e.preventDefault(); e.stopPropagation();
+        diaryCtxIdx = idx; diaryCtxColor = c;
+        const menu = $('diary-ctx-menu');
+        menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px';
+        menu.style.display = 'block';
+      });
+      grid.appendChild(div);
+    });
+    for(let i=diaryColors.length; i<DIARY_MAX; i++){
+      const div = document.createElement('div');
+      div.className = 'diary-swatch empty';
+      grid.appendChild(div);
+    }
+  }
+
+  function hideDiaryCtxMenu(){
+    $('diary-ctx-menu').style.display = 'none';
+    diaryCtxIdx = -1; diaryCtxColor = null;
+  }
+
+  function showAppCtxMenu(e, color){
+    appCtxColor = color;
+    const menu = $('app-ctx-menu');
+    menu.style.left = e.clientX + 'px';
+    menu.style.top = e.clientY + 'px';
+    menu.style.display = 'block';
+  }
+
+  function hideAppCtxMenu(){
+    $('app-ctx-menu').style.display = 'none';
+    appCtxColor = null;
+  }
+
+  function openDiary(){
+    renderDiary();
+    $('diary-overlay').classList.add('show');
+  }
+
+  function closeDiary(){
+    $('diary-overlay').classList.remove('show');
+    hideDiaryCtxMenu();
+  }
+
+  function addToDiary(color){
+    if(!color) return;
+    if(diaryColors.length >= DIARY_MAX){ alert('Diary is full (' + DIARY_MAX + ' colors max). Delete some to add more.'); return; }
+    diaryColors.push({ hex: color.hex, r: color.r, g: color.g, b: color.b });
+    saveDiaryColors();
+    if($('diary-overlay').classList.contains('show')) renderDiary();
+  }
+
+  function setLastClickedColor(r, g, b){
+    const hex = rgbToHex([r, g, b]);
+    diaryLastColor = { r, g, b, hex };
+    $('diary-last-swatch').style.background = hex;
+  }
+
+  function samplePreviewColor(clientX, clientY){
+    if(!previewCanvas.width || !previewCanvas.height) return null;
+    const rect = previewCanvas.getBoundingClientRect();
+    if(!rect.width || !rect.height) return null;
+    const pixelX = Math.max(0, Math.min(previewCanvas.width - 1, Math.floor((clientX - rect.left) * previewCanvas.width / rect.width)));
+    const pixelY = Math.max(0, Math.min(previewCanvas.height - 1, Math.floor((clientY - rect.top) * previewCanvas.height / rect.height)));
+    const px = previewCanvas.getContext('2d').getImageData(pixelX, pixelY, 1, 1).data;
+    return { r: px[0], g: px[1], b: px[2], hex: rgbToHex([px[0], px[1], px[2]]) };
+  }
+
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try{ document.execCommand('copy'); }catch(_){}
+    document.body.removeChild(ta);
+  }
+
+  function copyToClipboard(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function diaryTimestampTag(){
+    const n = new Date();
+    return n.getFullYear() + String(n.getMonth()+1).padStart(2,'0') + String(n.getDate()).padStart(2,'0') + '-' +
+           String(n.getHours()).padStart(2,'0') + String(n.getMinutes()).padStart(2,'0') + String(n.getSeconds()).padStart(2,'0');
+  }
 
   // ---------- Bayer matrix ----------
   function generateBayer(n){
@@ -1557,9 +1762,25 @@
     $('btn-reset').addEventListener('click', resetAll);
     $('btn-off').addEventListener('click', turnAllOff);
     $('btn-save').addEventListener('click', savePNGToDisk);
+    $('diary-add-btn').addEventListener('click', ()=> addToDiary(diaryLastColor));
+    $('diary-open-btn').addEventListener('click', openDiary);
     $('file-input').addEventListener('change', e=>{
       if(e.target.files[0]) loadImageFile(e.target.files[0]);
       e.target.value='';
+    });
+    previewCanvas.addEventListener('click', e=>{
+      const color = samplePreviewColor(e.clientX, e.clientY);
+      if(color) setLastClickedColor(color.r, color.g, color.b);
+    });
+    previewCanvas.addEventListener('contextmenu', e=>{
+      if(!previewCanvas.width || !previewCanvas.height) return;
+      const color = samplePreviewColor(e.clientX, e.clientY);
+      if(!color) return;
+      e.preventDefault();
+      setLastClickedColor(color.r, color.g, color.b);
+      closeMenus();
+      hideDiaryCtxMenu();
+      showAppCtxMenu(e, color);
     });
 
     // Drag and drop - works anywhere on the window, not just the canvas
@@ -1617,6 +1838,57 @@
       $(buttonId).addEventListener('click', ()=>$(overlayId).classList.remove('show'));
     });
     $('exit-reset').addEventListener('click', ()=>{ resetAll(); $('exit-overlay').classList.remove('show'); });
+    $('diary-close-btn').addEventListener('click', closeDiary);
+    $('diary-overlay').addEventListener('click', e=>{ if(e.target.id === 'diary-overlay') closeDiary(); });
+    $('diary-clear-btn').addEventListener('click', ()=>{
+      if(!diaryColors.length) return;
+      if(!confirm('Clear all diary colors?')) return;
+      diaryColors = []; saveDiaryColors(); renderDiary();
+    });
+    $('diary-export-btn').addEventListener('click', ()=>{
+      if(!diaryColors.length){ alert('Diary is empty.'); return; }
+      const rows = Math.ceil(diaryColors.length / DIARY_EXPORT_COLS);
+      const cw = DIARY_EXPORT_COLS * DIARY_SW + (DIARY_EXPORT_COLS - 1) * DIARY_GAP + DIARY_PAD * 2;
+      const ch = rows * DIARY_SH + (rows - 1) * DIARY_GAP + DIARY_PAD * 2 + DIARY_HEADER;
+      const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#c0c0c0'; ctx.fillRect(0, 0, cw, ch);
+      ctx.fillStyle = '#000'; ctx.font = 'bold 13px Tahoma,Arial,sans-serif';
+      ctx.textAlign = 'left'; ctx.fillText('echo-trail — Color Diary', DIARY_PAD, DIARY_PAD + 14);
+      diaryColors.forEach((color, i)=>{
+        const col = i % DIARY_EXPORT_COLS, row = Math.floor(i / DIARY_EXPORT_COLS);
+        const x = DIARY_PAD + col * (DIARY_SW + DIARY_GAP);
+        const y = DIARY_PAD + DIARY_HEADER + row * (DIARY_SH + DIARY_GAP);
+        ctx.fillStyle = color.hex; ctx.fillRect(x, y, DIARY_SW, DIARY_SH);
+        ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, DIARY_SW-1, DIARY_SH-1);
+        const tc = diarySwatchTextColor(color.r, color.g, color.b);
+        ctx.fillStyle = tc; ctx.font = 'bold 10px Tahoma,Arial,sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(color.hex, x + DIARY_SW/2, y + DIARY_SH/2 - 6);
+        ctx.font = '9px Tahoma,Arial,sans-serif'; ctx.fillText(color.r+','+color.g+','+color.b, x + DIARY_SW/2, y + DIARY_SH/2 + 8);
+      });
+      const link = document.createElement('a');
+      link.download = 'echo-trail-diary-' + diaryTimestampTag() + '.jpg';
+      link.href = c.toDataURL('image/jpeg', DIARY_JPEG_QUALITY);
+      link.click();
+    });
+    $('diary-copy-hex-btn').addEventListener('click', e=>{
+      e.stopPropagation();
+      if(diaryCtxColor) copyToClipboard(diaryCtxColor.hex);
+      hideDiaryCtxMenu();
+    });
+    $('diary-delete-btn').addEventListener('click', e=>{
+      e.stopPropagation();
+      if(diaryCtxIdx >= 0){ diaryColors.splice(diaryCtxIdx, 1); saveDiaryColors(); renderDiary(); }
+      hideDiaryCtxMenu();
+    });
+    $('app-add-diary-btn').addEventListener('click', e=>{
+      e.stopPropagation();
+      if(appCtxColor){
+        setLastClickedColor(appCtxColor.r, appCtxColor.g, appCtxColor.b);
+        addToDiary(appCtxColor);
+      }
+      hideAppCtxMenu();
+    });
     document.addEventListener('click', e=>{
       ['about-overlay','exit-overlay'].forEach(id=>{
         const overlay = $(id);
@@ -1624,6 +1896,8 @@
         const dialog = overlay.querySelector('.window.modal');
         if(dialog && !dialog.contains(e.target)) overlay.classList.remove('show');
       });
+      if(!$('diary-ctx-menu').contains(e.target)) hideDiaryCtxMenu();
+      if(!$('app-ctx-menu').contains(e.target)) hideAppCtxMenu();
     });
 
     window.addEventListener('message', async e=>{
@@ -1637,6 +1911,12 @@
       } catch(err){
         console.warn('Desktop image drop failed.', err);
         alert(err && err.message ? err.message : 'Could not load the dropped desktop image.');
+      }
+    });
+    window.addEventListener('storage', e=>{
+      if(e.key === DIARY_KEY){
+        try{ diaryColors = JSON.parse(e.newValue) || []; }catch(_){ diaryColors = []; }
+        if($('diary-overlay').classList.contains('show')) renderDiary();
       }
     });
 

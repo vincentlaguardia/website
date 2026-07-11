@@ -671,6 +671,18 @@
   #menu-programs:hover #programs-submenu { display: block; }
   #programs-submenu .menu-item:hover { background: var(--acc-dark); color: #fff; }
   #programs-submenu .menu-item { position: static; }
+  #start-menu .menu-item.active { background: var(--acc-dark); color: #fff; }
+
+  body.desktop-ui-inverted #desktop,
+  body.desktop-ui-inverted #taskbar,
+  body.desktop-ui-inverted #start-menu,
+  body.desktop-ui-inverted #vol-popup,
+  body.desktop-ui-inverted #spotlight-overlay {
+    filter: invert(1) hue-rotate(180deg);
+  }
+  body.desktop-ui-inverted .chroma-window {
+    filter: invert(1) hue-rotate(180deg);
+  }
 
   /* ---- solitaire ---- */
   #solitaire-board {
@@ -1104,6 +1116,7 @@
     </div>
     <div class="menu-item" id="menu-documents">Documents</div>
     <div class="menu-item" id="menu-settings">Settings</div>
+    <div class="menu-item" id="menu-invert">Invert</div>
     <div class="menu-item" id="menu-shutdown">Shut Down...</div>
   </div>
 
@@ -8725,6 +8738,33 @@ function updateClock() {
 }
 
 /* ---------- start menu ---------- */
+const DESKTOP_INVERT_STORAGE_KEY = 'desktop.ui.invert';
+const DESKTOP_INVERT_CLASS = 'desktop-ui-inverted';
+function persistDesktopInvertState(enabled) {
+  try {
+    window.localStorage.setItem(DESKTOP_INVERT_STORAGE_KEY, enabled ? 'true' : 'false');
+  } catch (e) {
+    // Intentionally ignore storage failures to avoid console noise in restricted contexts.
+  }
+}
+function setDesktopInvertState(enabled, persist = true) {
+  document.body.classList.toggle(DESKTOP_INVERT_CLASS, enabled);
+  const invertMenuItem = document.getElementById('menu-invert');
+  if (invertMenuItem) {
+    invertMenuItem.classList.toggle('active', enabled);
+    invertMenuItem.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    invertMenuItem.textContent = enabled ? 'Invert: On' : 'Invert';
+  }
+  if (persist) persistDesktopInvertState(enabled);
+}
+let initialDesktopInvertEnabled = false;
+try {
+  initialDesktopInvertEnabled = window.localStorage.getItem(DESKTOP_INVERT_STORAGE_KEY) === 'true';
+} catch (e) {
+  // Intentionally ignore storage failures to avoid console noise in restricted contexts.
+}
+setDesktopInvertState(initialDesktopInvertEnabled, false);
+
 document.getElementById('start-button').addEventListener('click', () => {
   const menu = document.getElementById('start-menu');
   const btn = document.getElementById('start-button');
@@ -8760,6 +8800,12 @@ document.getElementById('menu-settings').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';
   document.getElementById('start-button').classList.remove('pressed');
   openSettingsWindow();
+});
+document.getElementById('menu-invert').addEventListener('click', () => {
+  document.getElementById('start-menu').style.display = 'none';
+  document.getElementById('start-button').classList.remove('pressed');
+  const next = !document.body.classList.contains(DESKTOP_INVERT_CLASS);
+  setDesktopInvertState(next);
 });
 document.getElementById('menu-mediaplayer').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';

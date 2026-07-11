@@ -25,10 +25,6 @@
     color:#000;
     -webkit-font-smoothing:none;
   }
-  html.ui-inverted body,
-  body.ui-inverted{
-    filter: invert(1) hue-rotate(180deg);
-  }
   .raised{
     background:var(--face);
     box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
@@ -305,21 +301,6 @@
     box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
-  #invert-btn{
-    flex:0 0 auto;
-    font-size:12px;
-    padding:3px 10px;
-    background:var(--face);
-    border:none;
-    cursor:pointer;
-    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
-                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
-  }
-  #invert-btn:active,
-  #invert-btn.active{
-    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
-                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
-  }
   .tray{
     margin-left:auto;
     font-size:11px;
@@ -330,66 +311,12 @@
 </style>
 </head>
 <body>
-<script>
-  (function(){
-    const invertState = {
-      storageKey: 'chroma.ui.invert'
-    };
-    let invertEnabled = false;
-    try {
-      invertEnabled = window.localStorage.getItem(invertState.storageKey) === 'true';
-    } catch (e) {
-      // Intentionally ignore storage failures to avoid console noise in restricted contexts.
-    }
-    if(invertEnabled){
-      document.documentElement.classList.add('ui-inverted');
-      document.body.classList.add('ui-inverted');
-    }
-    invertState.enabled = invertEnabled;
-    window.chromaUiInvertState = invertState;
-  })();
-</script>
 <script>if (window.self !== window.top) { document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
 <div id="desktop"></div>
 <div id="taskbar">
   <div id="start-btn"><span class="flag"></span>Start</div>
   <div class="task-item raised"><span class="task-icon"></span>chroma.exe</div>
-  <button id="invert-btn" type="button" aria-pressed="false">Invert</button>
   <div class="tray" id="tray-clock">--:-- --</div>
 </div>
-<script>
-(function(){
-  const invertBtn = document.getElementById('invert-btn');
-  const INVERT_CLASS = 'ui-inverted';
-  const invertState = window.chromaUiInvertState;
-  function persistInvertState(enabled){
-    try {
-      window.localStorage.setItem(invertState.storageKey, enabled ? 'true' : 'false');
-    } catch (e) {
-      // Intentionally ignore storage failures to avoid console noise in restricted contexts.
-    }
-  }
-  function setInvertState(enabled, persist = true){
-    document.documentElement.classList.toggle(INVERT_CLASS, enabled);
-    document.body.classList.toggle(INVERT_CLASS, enabled);
-    invertState.enabled = enabled;
-    if(invertBtn){
-      invertBtn.classList.toggle('active', enabled);
-      invertBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-      invertBtn.textContent = enabled ? 'Invert: On' : 'Invert';
-    }
-    if(persist){
-      persistInvertState(enabled);
-    }
-  }
-  setInvertState(Boolean(invertState.enabled), false);
-  if(invertBtn){
-    invertBtn.addEventListener('click', ()=>{
-      const next = !document.body.classList.contains(INVERT_CLASS);
-      setInvertState(next);
-    });
-  }
-})();
-</script>
 </body>
 </html>

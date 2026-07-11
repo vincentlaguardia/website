@@ -1772,14 +1772,9 @@
       focusActive = false;
       syncFocusButtonState();
     }
-    if(pastramiMode){
-      pastramiMode = false;
-      syncPastramiButtonState();
-      applyPastramiDropdown();
-    } else {
-      syncPastramiButtonState();
-      applyPastramiDropdown();
-    }
+    pastramiMode = false;
+    syncPastramiButtonState();
+    applyPastramiDropdown();
     drawScene();
   }
   const pastramiBtn = document.getElementById('pastrami-btn');

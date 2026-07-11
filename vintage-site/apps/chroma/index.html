@@ -328,24 +328,26 @@
                 inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--white);
   }
 </style>
-<script>
-  const CHROMA_UI_INVERT_STORAGE_KEY = 'chroma.ui.invert';
-</script>
 </head>
 <body>
 <script>
   (function(){
+    const invertState = {
+      storageKey: 'chroma.ui.invert',
+      enabled: false
+    };
     let invertEnabled = false;
     try {
-      invertEnabled = window.localStorage.getItem(CHROMA_UI_INVERT_STORAGE_KEY) === 'true';
+      invertEnabled = window.localStorage.getItem(invertState.storageKey) === 'true';
     } catch (e) {
-      // Ignore storage failures so the UI still renders without console noise.
+      // Intentionally ignore storage failures to avoid console noise in restricted contexts.
     }
     if(invertEnabled){
       document.documentElement.classList.add('ui-inverted');
       document.body.classList.add('ui-inverted');
     }
-    window.chromaUiInvertState = { enabled: invertEnabled };
+    invertState.enabled = invertEnabled;
+    window.chromaUiInvertState = invertState;
   })();
 </script>
 <script>if (window.self !== window.top) { document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
@@ -360,12 +362,12 @@
 (function(){
   const invertBtn = document.getElementById('invert-btn');
   const INVERT_CLASS = 'ui-inverted';
-  const invertState = window.chromaUiInvertState || { enabled: false };
+  const invertState = window.chromaUiInvertState;
   function persistInvertState(enabled){
     try {
-      window.localStorage.setItem(CHROMA_UI_INVERT_STORAGE_KEY, enabled ? 'true' : 'false');
+      window.localStorage.setItem(invertState.storageKey, enabled ? 'true' : 'false');
     } catch (e) {
-      // Ignore storage failures so the toggle still works for the current session.
+      // Intentionally ignore storage failures to avoid console noise in restricted contexts.
     }
   }
   function setInvertState(enabled, persist = true){

@@ -326,8 +326,8 @@
   </div>
 </div>
 
-<div class="shutdown" id="shutdownScreen" aria-hidden="true">
-  <h2>Static Coefficient Calculator has shut down.</h2>
+<div class="shutdown" id="shutdownScreen" role="alertdialog" aria-modal="true" aria-labelledby="shutdownTitle" aria-hidden="true">
+  <h2 id="shutdownTitle">Static Coefficient Calculator has shut down.</h2>
   <p>It is now safe to close this window.</p>
 </div>
 
@@ -648,7 +648,8 @@ function closeModal(id) {
 }
 
 function closeTopModal() {
-  const modal = Array.from(document.querySelectorAll('.modal-backdrop.show')).pop();
+  const modals = document.querySelectorAll('.modal-backdrop.show');
+  const modal = modals[modals.length - 1];
   if (modal) closeModal(modal.id);
 }
 

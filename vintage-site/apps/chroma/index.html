@@ -1550,7 +1550,7 @@
       : pastramiMode
         ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
         : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
-    return hslToHex(sourceColor.h, clamp(sourceColor.s * globalSatMul, 0, 100), sourceColor.l).toUpperCase();
+    return hslToHex(sourceColor.h, clamp(matchSatActive && matchSatValue !== null ? matchSatValue : sourceColor.s * globalSatMul, 0, 100), sourceColor.l).toUpperCase();
   }
   function exportPaletteText(){
     const unique = [];
@@ -1611,6 +1611,7 @@
   let matchSatActive = false;
   let matchSatSource = 'circle'; // 'circle' | 'skew' | 'focus' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
+  let matchSatValue = null; // raw HSL saturation (0–100) of the source color when active
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
@@ -1627,12 +1628,8 @@
   }
   function applyMatchSat(){
     const rgb = getMatchSatSourceRgb();
-    if(!rgb) return;
-    const sourceSat = rgbToHsl(rgb.r, rgb.g, rgb.b).s;
-    const satMin = +satSlider.min, satMax = +satSlider.max;
-    const pct = Math.max(satMin, Math.min(satMax, Math.round((sourceSat/BASE_SAT)*100)));
-    satSlider.value = pct;
-    globalSatMul = pct/100;
+    if(!rgb){ matchSatValue = null; return; }
+    matchSatValue = rgbToHsl(rgb.r, rgb.g, rgb.b).s;
   }
   function syncMatchSatUI(){
     const rgb = getMatchSatSourceRgb();
@@ -1865,7 +1862,7 @@
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
   matchSatBtn.addEventListener('click', ()=>{
     matchSatActive = !matchSatActive;
-    if(matchSatActive){ applyMatchSat(); }
+    if(matchSatActive){ applyMatchSat(); } else { matchSatValue = null; }
     syncMatchSatUI();
     drawScene();
   });

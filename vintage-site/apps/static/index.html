@@ -285,8 +285,57 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="infoModal" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="dialog-body">
+      <div class="paper">
+        <h1 id="infoTitle">Static Coefficient Model</h1>
+        <div class="subtitle">A blend-level estimate of garment static behavior</div>
+        <div class="byline">Static Coefficient Calculator</div>
+        <div class="affil">Triboelectric position weighted by moisture-dependent charge retention</div>
+        <div class="abstract">
+          This calculator estimates a garment's tendency to build and keep electrostatic charge. The score is the product of
+          a <b>generation</b> term from triboelectric displacement and a <b>retention</b> term from moisture regain under ambient humidity.
+        </div>
+        <h2>Equation</h2>
+        <div class="eq">SC = 100 × G × R, where G = |tribo - 66| / 40 and R = 1 / (1 + 0.5 × regain × RH / 65)</div>
+        <h2>Interpretation</h2>
+        <p>The blend triboelectric value is the weighted average of the selected fibers. Materials far from the neutral point generate larger
+        contact potentials, so the model assigns them a higher generation score. Moisture lowers surface resistivity, so higher regain and
+        higher humidity reduce retention and pull the final static coefficient downward.</p>
+        <h2>Reference Fiber Data</h2>
+        <table>
+          <thead><tr><th class="l" scope="col">Fiber</th><th scope="col">Tribo</th><th scope="col">Regain %</th></tr></thead>
+          <tbody id="infoFiberRows"></tbody>
+        </table>
+        <p><i>* Estimated reference value.</i></p>
+      </div>
+    </div>
+    <div class="dialog-footer"><button type="button" data-close-modal="infoModal">OK</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="aboutModal" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="dialog-body">
+      <p id="aboutTitle" style="margin:0 0 8px;font-weight:bold;font-size:14px;">About Static Coefficient Calculator</p>
+      <p style="margin:0 0 8px;">This tool estimates garment static behavior from fabric composition and ambient humidity.</p>
+      <p style="margin:0 0 8px;">Adjust the blend shares, lock materials when needed, and move the RH slider to see how dry or humid air changes the final score.</p>
+      <p style="margin:0;">Embedded mode posts a <code>static-close</code> message back to the vintage desktop host when File > Close is used.</p>
+    </div>
+    <div class="dialog-footer"><button type="button" data-close-modal="aboutModal">OK</button></div>
+  </div>
+</div>
+
+<div class="shutdown" id="shutdownScreen" role="alertdialog" aria-modal="true" aria-labelledby="shutdownTitle" aria-hidden="true">
+  <h2 id="shutdownTitle">Static Coefficient Calculator has shut down.</h2>
+  <p>It is now safe to close this window.</p>
+</div>
+
 <script>
-const EMBEDDED = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
+const SEARCH_PARAMS = new URLSearchParams(window.location.search);
+const EMBEDDED = SEARCH_PARAMS.get('embedded') === '1' || window.self !== window.top;
+const PARENT_ORIGIN = SEARCH_PARAMS.get('parentOrigin') || window.location.origin;
 if (EMBEDDED) {
   document.documentElement.classList.add('embedded');
   document.body.classList.add('embedded');
@@ -315,6 +364,9 @@ const DEFAULT_RH = 40;
 const STD_RH = 65;
 const BETA = 0.5;
 const MIN_SEG = 2;
+const INFO_FIBER_ORDER = Object.entries(FIBER)
+  .sort((a, b) => b[1].tribo - a[1].tribo)
+  .map(([name, props]) => ({ name, ...props }));
 
 function generationPotential(tribo) { return Math.min(1, Math.abs(tribo - NEUTRAL) / GEN_SPAN); }
 function effectiveMoisture(mr, rh)  { return mr * (rh / STD_RH); }
@@ -578,7 +630,113 @@ function wireHumidity() {
   sync();
 }
 
-function init() { normalizePcts(); renderComposition(); wireHumidity(); recompute(); }
+function closeMenus() {
+  document.getElementById('menuFile').classList.remove('open');
+  document.getElementById('fileDropdown').classList.remove('show');
+}
+
+function openModal(id) {
+  closeMenus();
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function closeTopModal() {
+  const modals = document.querySelectorAll('.modal-backdrop.show');
+  const modal = modals[modals.length - 1];
+  if (modal) closeModal(modal.id);
+}
+
+function closeApp() {
+  closeMenus();
+  closeTopModal();
+  if (EMBEDDED && window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'static-close' }, PARENT_ORIGIN);
+    return;
+  }
+  const shutdown = document.getElementById('shutdownScreen');
+  shutdown.style.display = 'flex';
+  shutdown.setAttribute('aria-hidden', 'false');
+}
+
+function populateInfoTable() {
+  const tbody = document.getElementById('infoFiberRows');
+  tbody.textContent = '';
+  INFO_FIBER_ORDER.forEach(({ name, tribo, mr, est }) => {
+    const row = document.createElement('tr');
+    const fiberCell = document.createElement('td');
+    fiberCell.className = 'l';
+    fiberCell.textContent = `${name}${est ? '*' : ''}`;
+    const triboCell = document.createElement('td');
+    triboCell.textContent = String(tribo);
+    const regainCell = document.createElement('td');
+    regainCell.textContent = mr.toFixed(1);
+    row.append(fiberCell, triboCell, regainCell);
+    tbody.appendChild(row);
+  });
+}
+
+function wireMenus() {
+  const menuFile = document.getElementById('menuFile');
+  const fileDropdown = document.getElementById('fileDropdown');
+  menuFile.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = menuFile.classList.contains('open');
+    closeMenus();
+    if (!isOpen) {
+      menuFile.classList.add('open');
+      fileDropdown.classList.add('show');
+    }
+  });
+  document.getElementById('optClose').addEventListener('click', (event) => {
+    event.stopPropagation();
+    closeApp();
+  });
+  document.getElementById('menuInfo').addEventListener('click', (event) => {
+    event.stopPropagation();
+    openModal('infoModal');
+  });
+  document.getElementById('menuAbout').addEventListener('click', (event) => {
+    event.stopPropagation();
+    openModal('aboutModal');
+  });
+  document.addEventListener('click', closeMenus);
+  document.querySelectorAll('[data-close-modal]').forEach((button) => {
+    button.addEventListener('click', () => closeModal(button.getAttribute('data-close-modal')));
+  });
+  document.querySelectorAll('.modal-backdrop').forEach((modal) => {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) closeModal(modal.id);
+    });
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      if (document.querySelector('.modal-backdrop.show')) {
+        closeTopModal();
+      } else {
+        closeMenus();
+      }
+    }
+  });
+}
+
+function init() {
+  populateInfoTable();
+  wireMenus();
+  normalizePcts();
+  renderComposition();
+  wireHumidity();
+  recompute();
+}
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

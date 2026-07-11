@@ -328,6 +328,8 @@
                 inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--white);
   }
 </style>
+</head>
+<body>
 <script>
   (function(){
     const storageKey = 'chroma.ui.invert';
@@ -337,12 +339,11 @@
     } catch (e) {}
     if(invertEnabled){
       document.documentElement.classList.add('ui-inverted');
+      document.body.classList.add('ui-inverted');
     }
     window.__chromaUiInvert = { storageKey, enabled: invertEnabled };
   })();
 </script>
-</head>
-<body>
 <script>if (window.self !== window.top) { document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
 <div id="desktop"></div>
 <div id="taskbar">
@@ -374,7 +375,7 @@
       persistInvertState(enabled);
     }
   }
-  setInvertState(Boolean(invertState.enabled || document.documentElement.classList.contains(INVERT_CLASS)), false);
+  setInvertState(Boolean(invertState.enabled), false);
   if(invertBtn){
     invertBtn.addEventListener('click', ()=>{
       const next = !document.body.classList.contains(INVERT_CLASS);

@@ -655,6 +655,36 @@
       display: none;
     }
 
+    .splash-hud {
+      position: absolute;
+      z-index: 52;
+      top: 12px;
+      right: 12px;
+      min-width: 132px;
+      padding: 7px 10px 8px;
+      border: 3px solid;
+      border-color: #fff #404040 #404040 #fff;
+      background: rgba(12, 15, 29, 0.88);
+      color: #fff;
+      text-align: right;
+      box-shadow: 3px 3px rgba(0, 0, 0, 0.45);
+    }
+
+    .splash-hud-label {
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      color: #b9ebff;
+    }
+
+    .splash-hud-count {
+      margin-top: 2px;
+      font-size: clamp(19px, 4vw, 28px);
+      font-weight: bold;
+      line-height: 1;
+      text-shadow: 2px 2px #001420;
+    }
+
     .water-burst,
     .water-splash {
       position: absolute;
@@ -664,46 +694,109 @@
 
     .water-burst {
       z-index: 16;
-      left: 24%;
-      bottom: 35%;
-      width: clamp(78px, 10vw, 112px);
-      height: 16px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, #e7fbff 25%, #9edfff 70%, rgba(158, 223, 255, 0) 100%);
+      left: 24.5%;
+      bottom: 34.5%;
+      width: clamp(102px, 13vw, 150px);
+      height: 22px;
+      border-radius: 18px 999px 999px 18px;
+      background:
+        radial-gradient(circle at 16% 46%, rgba(255, 255, 255, 0.95) 0 12%, transparent 13%),
+        radial-gradient(circle at 34% 54%, rgba(223, 248, 255, 0.92) 0 11%, transparent 12%),
+        radial-gradient(circle at 56% 38%, rgba(190, 237, 255, 0.92) 0 12%, transparent 13%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(233, 251, 255, 0.94) 14%, rgba(166, 226, 255, 0.98) 54%, rgba(124, 202, 255, 0.94) 78%, rgba(124, 202, 255, 0) 100%);
       box-shadow:
-        16px -8px 0 2px #d6f7ff,
-        36px 5px 0 1px #8dd8ff,
-        52px -5px 0 2px #b9e9ff,
-        72px 7px 0 1px #dff8ff,
-        92px -3px 0 2px #9cdfff;
-      filter: drop-shadow(0 0 8px rgba(190, 239, 255, 0.95));
+        18px -8px 0 1px rgba(222, 247, 255, 0.95),
+        40px 4px 0 2px rgba(168, 227, 255, 0.92),
+        70px -6px 0 1px rgba(233, 251, 255, 0.95),
+        95px 3px 0 1px rgba(146, 218, 255, 0.94),
+        122px -5px 0 0 rgba(216, 246, 255, 0.9);
+      filter: drop-shadow(0 0 10px rgba(190, 239, 255, 0.95));
       transform-origin: left center;
     }
 
+    .water-burst::before,
+    .water-burst::after,
+    .water-splash::before,
+    .water-splash::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      background-repeat: no-repeat;
+    }
+
+    .water-burst::before {
+      inset: -4px 12px -4px 18px;
+      border-radius: inherit;
+      opacity: 0.7;
+      background:
+        radial-gradient(circle at 18% 50%, rgba(255, 255, 255, 0.95) 0 9%, transparent 10%),
+        radial-gradient(circle at 48% 40%, rgba(216, 246, 255, 0.95) 0 10%, transparent 11%),
+        radial-gradient(circle at 72% 60%, rgba(255, 255, 255, 0.75) 0 8%, transparent 9%);
+    }
+
+    .water-burst::after {
+      right: 8px;
+      bottom: 2px;
+      width: 42px;
+      height: 22px;
+      opacity: 0.9;
+      background:
+        radial-gradient(circle at 10px 14px, rgba(234, 251, 255, 0.95) 0 5px, transparent 6px),
+        radial-gradient(circle at 25px 9px, rgba(171, 228, 255, 0.9) 0 4px, transparent 5px),
+        radial-gradient(circle at 34px 16px, rgba(255, 255, 255, 0.88) 0 3px, transparent 4px);
+    }
+
     .water-burst.active {
-      animation: holywater 0.42s linear both;
+      animation: holywater 0.52s cubic-bezier(0.16, 0.72, 0.32, 1) both;
     }
 
     .water-splash {
       z-index: 17;
-      right: 19%;
-      bottom: 46%;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #ffffff 0 18%, #dff7ff 19% 44%, rgba(159, 221, 255, 0.85) 45% 66%, rgba(159, 221, 255, 0) 67%);
+      right: 17.5%;
+      bottom: 44.5%;
+      width: 44px;
+      height: 32px;
+      border-radius: 48% 52% 58% 42% / 38% 44% 56% 62%;
+      background:
+        radial-gradient(circle at 28% 42%, rgba(255, 255, 255, 0.98) 0 12%, transparent 13%),
+        radial-gradient(circle at 42% 52%, rgba(223, 247, 255, 0.96) 0 22%, transparent 23%),
+        radial-gradient(circle at 66% 46%, rgba(160, 221, 255, 0.94) 0 20%, transparent 21%),
+        radial-gradient(circle at 50% 68%, rgba(118, 197, 255, 0.92) 0 24%, rgba(118, 197, 255, 0) 25%);
       box-shadow:
-        -18px 2px 0 -2px rgba(226, 248, 255, 0.95),
-        17px -2px 0 -2px rgba(180, 232, 255, 0.95),
-        0 -16px 0 -3px rgba(235, 252, 255, 0.95),
-        -10px -14px 0 -4px rgba(175, 227, 255, 0.95),
-        13px -12px 0 -4px rgba(175, 227, 255, 0.95);
-      filter: drop-shadow(0 0 8px rgba(189, 239, 255, 0.9));
+        -20px 10px 0 -9px rgba(214, 245, 255, 0.96),
+        22px 6px 0 -10px rgba(181, 232, 255, 0.95),
+        -7px -18px 0 -11px rgba(240, 252, 255, 0.96),
+        14px -15px 0 -11px rgba(182, 233, 255, 0.94),
+        2px -24px 0 -13px rgba(222, 248, 255, 0.92);
+      filter: drop-shadow(0 0 10px rgba(189, 239, 255, 0.9));
       transform-origin: center bottom;
     }
 
+    .water-splash::before {
+      left: -6px;
+      right: -6px;
+      top: -18px;
+      bottom: -4px;
+      background:
+        radial-gradient(circle at 16% 74%, rgba(232, 250, 255, 0.95) 0 5px, transparent 6px),
+        radial-gradient(circle at 34% 42%, rgba(178, 231, 255, 0.92) 0 4px, transparent 5px),
+        radial-gradient(circle at 52% 18%, rgba(255, 255, 255, 0.9) 0 4px, transparent 5px),
+        radial-gradient(circle at 72% 36%, rgba(180, 232, 255, 0.92) 0 5px, transparent 6px),
+        radial-gradient(circle at 86% 68%, rgba(221, 246, 255, 0.93) 0 4px, transparent 5px);
+    }
+
+    .water-splash::after {
+      left: 11px;
+      bottom: -4px;
+      width: 22px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(184, 235, 255, 0.72);
+      filter: blur(2px);
+    }
+
     .water-splash.active {
-      animation: watersplash 0.42s linear both;
+      animation: watersplash 0.52s cubic-bezier(0.18, 0.78, 0.36, 1) both;
     }
 
     .splashing .priest .arm {
@@ -787,39 +880,60 @@
     @keyframes holywater {
       0% {
         opacity: 0;
-        transform: translate(0, 0) scaleX(0.45) scaleY(0.7);
+        transform: translate(0, 0) rotate(-12deg) scaleX(0.32) scaleY(0.82);
       }
 
-      10% {
+      8% {
         opacity: 1;
+        transform: translate(8px, -3px) rotate(-10deg) scaleX(0.7) scaleY(0.9);
       }
 
-      68% {
+      28% {
         opacity: 1;
-        transform: translate(clamp(160px, 31vw, 360px), clamp(-82px, -12vw, -44px)) scaleX(2.8) scaleY(1.05);
+        transform: translate(clamp(54px, 10vw, 110px), clamp(-18px, -4vw, -10px)) rotate(-7deg) scaleX(1.3) scaleY(1.08);
+      }
+
+      52% {
+        opacity: 1;
+        transform: translate(clamp(120px, 22vw, 240px), clamp(-66px, -9vw, -34px)) rotate(-4deg) scaleX(2.05) scaleY(0.84);
+      }
+
+      74% {
+        opacity: 1;
+        transform: translate(clamp(182px, 33vw, 384px), clamp(-96px, -13vw, -48px)) rotate(1deg) scaleX(2.55) scaleY(1.14);
+      }
+
+      88% {
+        opacity: 0.92;
+        transform: translate(clamp(220px, 39vw, 452px), clamp(-90px, -12vw, -42px)) rotate(6deg) scaleX(1.2) scaleY(0.88);
       }
 
       100% {
         opacity: 0;
-        transform: translate(clamp(205px, 39vw, 455px), clamp(-74px, -11vw, -38px)) scaleX(0.55) scaleY(0.9);
+        transform: translate(clamp(244px, 44vw, 510px), clamp(-76px, -10vw, -36px)) rotate(11deg) scaleX(0.42) scaleY(0.76);
       }
     }
 
     @keyframes watersplash {
       0%,
-      66% {
+      60% {
         opacity: 0;
-        transform: scale(0.2);
+        transform: translate(0, 0) scale(0.14, 0.18);
       }
 
-      78% {
+      74% {
         opacity: 1;
-        transform: scale(1.18);
+        transform: translate(-2px, -2px) scale(0.9, 1.08);
+      }
+
+      86% {
+        opacity: 1;
+        transform: translate(0, -7px) scale(1.22, 0.84);
       }
 
       100% {
         opacity: 0;
-        transform: scale(1.8) translateY(-10px);
+        transform: translate(0, -14px) scale(1.72, 0.52);
       }
     }
 
@@ -907,6 +1021,10 @@
     <div class="spark">✦</div>
     <div class="water-burst" id="water-burst" aria-hidden="true"></div>
     <div class="water-splash" id="water-splash" aria-hidden="true"></div>
+    <div class="splash-hud" aria-label="Holy squirt counter">
+      <div class="splash-hud-label">HOLY SQUIRTS</div>
+      <div class="splash-hud-count" id="splash-counter">0</div>
+    </div>
     <div class="splash-intro" id="splash-intro">PRESS SPACE TO SPLASH</div>
   </div>
 </main>
@@ -917,13 +1035,35 @@
     const intro = document.getElementById('splash-intro');
     const waterBurst = document.getElementById('water-burst');
     const waterSplash = document.getElementById('water-splash');
-    const waterAnimationDuration = 420;
+    const splashCounter = document.getElementById('splash-counter');
+    const splashSound = new Audio('./powerofchrist.mp3');
+    const waterAnimationDuration = 520;
     let splashAnimTimer = 0;
     let waterAnimTimer = 0;
+    let splashCount = 0;
+
+    splashSound.preload = 'auto';
+    splashSound.volume = 0.72;
 
     function setThrowState(active) {
       waterBurst.classList.toggle('active', active);
       waterSplash.classList.toggle('active', active);
+    }
+
+    function playSplashSound() {
+      try {
+        splashSound.pause();
+        splashSound.currentTime = 0;
+      } catch (error) {
+        console.warn('exorcist sound reset failed', error);
+      }
+
+      const playPromise = splashSound.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((error) => {
+          console.warn('exorcist sound playback failed', error);
+        });
+      }
     }
 
     function animateThrow() {
@@ -942,6 +1082,9 @@
 
     function splashNow() {
       intro.classList.add('dismissed');
+      splashCount += 1;
+      splashCounter.textContent = String(splashCount);
+      playSplashSound();
       animateThrow();
     }
 

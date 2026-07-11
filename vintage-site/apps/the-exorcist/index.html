@@ -1069,6 +1069,13 @@
     const backgroundSound = new Audio('./powerofchrist.mp3');
     const waterAnimationDuration = 520;
     const MIN_GAIN_EPSILON = 0.0001;
+    const SPLASH_ATTACK_GAIN = 0.22;
+    const SPLASH_ATTACK_TIME = 0.01;
+    const SPLASH_RELEASE_TIME = 0.18;
+    const SPLASH_HIGH_FREQ_START = 880;
+    const SPLASH_HIGH_FREQ_END = 280;
+    const SPLASH_LOW_FREQ_START = 410;
+    const SPLASH_LOW_FREQ_END = 150;
     let splashAnimTimer = 0;
     let waterAnimTimer = 0;
     let hitTimer = 0;
@@ -1109,30 +1116,30 @@
         const now = splashFxContext.currentTime;
         const output = splashFxContext.createGain();
         output.gain.setValueAtTime(MIN_GAIN_EPSILON, now);
-        output.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
-        output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + 0.18);
+        output.gain.exponentialRampToValueAtTime(SPLASH_ATTACK_GAIN, now + SPLASH_ATTACK_TIME);
+        output.gain.exponentialRampToValueAtTime(MIN_GAIN_EPSILON, now + SPLASH_RELEASE_TIME);
         output.connect(splashFxContext.destination);
 
         const high = splashFxContext.createOscillator();
         high.type = 'triangle';
-        high.frequency.setValueAtTime(880, now);
-        high.frequency.exponentialRampToValueAtTime(280, now + 0.18);
+        high.frequency.setValueAtTime(SPLASH_HIGH_FREQ_START, now);
+        high.frequency.exponentialRampToValueAtTime(SPLASH_HIGH_FREQ_END, now + SPLASH_RELEASE_TIME);
         high.connect(output);
         high.onended = () => high.disconnect();
         high.start(now);
-        high.stop(now + 0.18);
+        high.stop(now + SPLASH_RELEASE_TIME);
 
         const low = splashFxContext.createOscillator();
         low.type = 'sine';
-        low.frequency.setValueAtTime(410, now);
-        low.frequency.exponentialRampToValueAtTime(150, now + 0.18);
+        low.frequency.setValueAtTime(SPLASH_LOW_FREQ_START, now);
+        low.frequency.exponentialRampToValueAtTime(SPLASH_LOW_FREQ_END, now + SPLASH_RELEASE_TIME);
         low.connect(output);
         low.onended = () => {
           low.disconnect();
           output.disconnect();
         };
         low.start(now);
-        low.stop(now + 0.18);
+        low.stop(now + SPLASH_RELEASE_TIME);
       };
 
       if (splashFxContext.state === 'suspended') {

@@ -305,7 +305,7 @@
         higher humidity reduce retention and pull the final static coefficient downward.</p>
         <h2>Reference Fiber Data</h2>
         <table>
-          <thead><tr><th class="l">Fiber</th><th>Tribo</th><th>Regain %</th></tr></thead>
+          <thead><tr><th class="l" scope="col">Fiber</th><th scope="col">Tribo</th><th scope="col">Regain %</th></tr></thead>
           <tbody id="infoFiberRows"></tbody>
         </table>
       </div>
@@ -332,7 +332,9 @@
 </div>
 
 <script>
-const EMBEDDED = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
+const SEARCH_PARAMS = new URLSearchParams(window.location.search);
+const EMBEDDED = SEARCH_PARAMS.get('embedded') === '1' || window.self !== window.top;
+const PARENT_ORIGIN = SEARCH_PARAMS.get('parentOrigin') || window.location.origin;
 if (EMBEDDED) {
   document.documentElement.classList.add('embedded');
   document.body.classList.add('embedded');
@@ -657,7 +659,7 @@ function closeApp() {
   closeMenus();
   closeTopModal();
   if (EMBEDDED && window.parent && window.parent !== window) {
-    window.parent.postMessage({ type: 'static-close' }, window.location.origin);
+    window.parent.postMessage({ type: 'static-close' }, PARENT_ORIGIN);
     return;
   }
   const shutdown = document.getElementById('shutdownScreen');

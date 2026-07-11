@@ -711,7 +711,7 @@
       </div>
       <div class="field">Last color clicked
         <div class="cc-lastcolor">
-          <button class="ctrl-btn" id="cc-normal-mode" title="Reset palette to classic RGB triadic mode" aria-label="Reset palette to classic RGB triadic mode">Normal Mode</button>
+          <button class="ctrl-btn" id="cc-normal-mode" type="button" title="Toggle Normal Mode (restores baseline colors without locking controls)" aria-label="Toggle Normal Mode" aria-pressed="false">Normal Mode</button>
           <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
@@ -1744,11 +1744,21 @@
     saturation: 100,
     seed: { angle: 0, repeats: 1, phase: 0 }
   };
+  let normalModeActive = false;
+  function syncNormalModeButtonState(){
+    normalModeBtn.classList.toggle('is-active', normalModeActive);
+    normalModeBtn.setAttribute('aria-pressed', String(normalModeActive));
+  }
   /**
    * Resets chroma.exe to a stable RGB triadic baseline.
    * Disables imported/techno/focus/skew/match-sat modes and restores ordinary triadic controls.
    */
   function activateNormalMode() {
+    if(normalModeActive){
+      normalModeActive = false;
+      syncNormalModeButtonState();
+      return;
+    }
     importedMode = false;
     randomStyle = false;
     philoIdx = NORMAL_MODE.philosophyIdx;
@@ -1784,6 +1794,8 @@
       syncPastramiButtonState();
       applyPastramiDropdown();
     }
+    normalModeActive = true;
+    syncNormalModeButtonState();
     drawScene();
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
@@ -1876,6 +1888,10 @@
   }
   pastramiBtn.addEventListener('click', ()=>{
     pastramiMode = !pastramiMode;
+    if(pastramiMode){
+      normalModeActive = false;
+      syncNormalModeButtonState();
+    }
     syncPastramiButtonState();
     applyPastramiDropdown();
     // If current philosophy is not allowed in Techno mode, switch it
@@ -1967,6 +1983,8 @@
     if(!palette.length) return;
     importedPalette = palette;
     importedMode = true;
+    normalModeActive = false;
+    syncNormalModeButtonState();
     randomStyle = false;
     styleBtn.innerHTML = 'Photo Palette &#9662;';
     styleOptions.forEach(o=>o.classList.remove('active'));

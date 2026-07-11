@@ -87,7 +87,7 @@
     height: 28px;
     margin: 0;
     background: transparent;
-    cursor: ew-resize;
+    cursor: pointer;
     position: relative;
     z-index: 1;
   }
@@ -250,7 +250,7 @@
       <div class="humidity-control">
         <div class="humidity-header">
           <label class="humidity-label" for="rhSlider">Ambient Humidity (RH)</label>
-          <div class="humidity-readout" id="rhReadout">RH: 40%</div>
+          <div class="humidity-readout" id="rhReadout" aria-live="polite">RH: 40%</div>
         </div>
         <div class="humidity-slider-shell">
           <div class="humidity-slider-meter" aria-hidden="true">

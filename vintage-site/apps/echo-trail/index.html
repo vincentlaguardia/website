@@ -1682,7 +1682,7 @@
     textLayers.forEach(layer => {
       const isPrimary = layer.id === selectedTextLayerId;
       const isMulti = !isPrimary && selectedTextLayerIds.has(layer.id);
-      const layerButtonText = (layer.content || '').replace(/\s+/g, ' ').trim() || layer.label;
+      const buttonDisplayText = (layer.content || '').replace(/\s+/g, ' ').trim() || layer.label;
       const row = document.createElement('div');
       row.className = 'control-row text-layer-row' + (layer.enabled ? ' row-active' : '');
       row.style.setProperty('--row-color', '#d8c8f0');
@@ -1740,7 +1740,7 @@
       const textSelectBtn = document.createElement('button');
       textSelectBtn.type = 'button';
       textSelectBtn.className = 'btn95 text-layer-text-btn' + (isPrimary ? ' active' : '');
-      textSelectBtn.textContent = layerButtonText;
+      textSelectBtn.textContent = buttonDisplayText;
       textSelectBtn.title = 'Edit ' + layer.label;
       textSelectBtn.setAttribute('aria-label', textSelectBtn.title);
       textSelectBtn.addEventListener('click', () => {
@@ -3082,7 +3082,10 @@
       // If the popup is wider than the available panel space, anchor it to the
       // panel's left padding so it stays inside as much as possible instead of
       // spilling farther out to the right.
-      const left = maxLeft < minLeft ? minLeft : Math.min(Math.max(preferredLeft, minLeft), maxLeft);
+      let left = minLeft;
+      if (maxLeft >= minLeft) {
+        left = Math.min(Math.max(preferredLeft, minLeft), maxLeft);
+      }
       const minTop = appRect.top + pad;
       const maxTop = Math.max(minTop, appRect.bottom - popupRect.height - pad);
       const preferredTop = rect.bottom + 2;

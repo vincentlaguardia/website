@@ -1669,18 +1669,16 @@
       fontBtn.textContent = 'Font';
       fontBtn.title = `${layer.label} font: ${layer.fontFamily}`;
       fontBtn.setAttribute('aria-label', fontBtn.title);
-      const buttonFontFamily = (typeof escapeFontFamily === 'function' && layer.fontFamily)
-        ? `"${escapeFontFamily(layer.fontFamily)}", Impact, sans-serif`
-        : 'Impact, sans-serif';
-      fontBtn.style.fontFamily = buttonFontFamily;
+      fontBtn.style.fontFamily = getTextLayerButtonFontStack(layer.fontFamily);
       fontBtn.addEventListener('click', () => {
+        const fontSelect = $('text-font');
         if (selectedTextLayerId !== layer.id) {
           selectedTextLayerId = layer.id;
           renderTextLayerList();
           syncTextControlsFromSelectedLayer();
           scheduleRender();
         }
-        if ($('text-font')) $('text-font').focus();
+        if (fontSelect) fontSelect.focus();
       });
 
       const hideBtn = document.createElement('button');
@@ -1917,6 +1915,12 @@
   // safely interpolated as: `"${escapeFontFamily(name)}"`.
   function escapeFontFamily(name) {
     return String(name || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  }
+
+  function getTextLayerButtonFontStack(name) {
+    const normalized = String(name || '').trim();
+    if (!normalized || !/^[\w\s\-&,.'()]+$/.test(normalized)) return 'Impact, sans-serif';
+    return `"${escapeFontFamily(normalized)}", Impact, sans-serif`;
   }
 
   // Draw the text overlay onto the given canvas 2D context.

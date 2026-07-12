@@ -244,6 +244,20 @@
     background:#fff; border:none;
     box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
   }
+  .text-layer-stack{ display:flex; flex-direction:column; gap:5px; width:100%; }
+  .text-layer-row{ margin:0; }
+  .text-layer-select{
+    width:22px; height:22px; flex:0 0 22px; padding:0;
+    font-family:inherit; font-size:11px; line-height:1; cursor:pointer;
+    background:var(--face); border:none;
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+  }
+  .text-layer-select.active{
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+  }
+  .text-layer-toggle{ flex:1; width:auto; }
+  .text-layer-add-row{ margin-top:2px; }
+  .text-layer-add-btn{ width:22px; min-width:22px; padding:3px 0; font-weight:bold; }
   input[type=color] {
     flex:1; height:22px; padding:1px 2px; border:none; cursor:pointer;
     background:#fff;
@@ -457,7 +471,13 @@
         <div class="controls-col">
           <div class="ctrl-section-label">— Text Overlay —</div>
           <div class="control-row">
-            <button type="button" class="item-toggle" id="text-enable-btn">Text</button>
+            <div id="text-layer-list" class="text-layer-stack"></div>
+          </div>
+          <div class="control-row text-layer-add-row">
+            <button type="button" class="btn95 text-layer-add-btn" id="text-layer-add-btn" title="Add text layer">+</button>
+          </div>
+          <div class="control-row">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Content</label>
             <input type="text" id="text-content" class="text-input-95" placeholder="Enter text…" maxlength="200" value="ECHO TRAIL">
           </div>
           <div class="control-row" style="--row-color:#B0D890;">
@@ -1451,34 +1471,188 @@
   }
 
   // ---------- Text overlay ----------
+  const TEXT_DISTORT_IDS = ['fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity'];
+  const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity' };
+  const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100 };
+  const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true };
+  const TEXT_LAYER_DEFAULTS = {
+    enabled: false,
+    content: 'ECHO TRAIL',
+    fontFamily: 'Impact',
+    fontSize: 48,
+    color: '#ffffff',
+    x: 50,
+    y: 50,
+    rotation: 0,
+    opacity: 100,
+    blendMode: 'normal'
+  };
   // Dedicated offscreen canvas for text metrics; default 300x150 dimensions are
   // sufficient because measureText depends on the active font, not bitmap size.
   const textMeasureCanvas = document.createElement('canvas');
   const textMeasureCtx = textMeasureCanvas.getContext('2d');
-  const textDragState = { active: false, pointerId: null, offsetX: 0, offsetY: 0, moved: false };
+  const textDragState = { active: false, pointerId: null, layerId: null, offsetX: 0, offsetY: 0, moved: false };
   const clickSuppressDelayMillis = 250;
   let suppressPreviewClickUntil = 0;
-  let cachedPreviewTextLayout = null;
-  let cachedPreviewTextLayoutKey = '';
+  let cachedPreviewTextLayouts = [];
+  let cachedPreviewTextLayoutsKey = '';
+  let textLayers = [];
+  let selectedTextLayerId = null;
+  let nextTextLayerNumber = 1;
 
-  // Read all text settings directly from the DOM controls.
-  function getTextState() {
-    const btn = $('text-enable-btn');
+  function setControlValue(id, value) {
+    const el = $(id);
+    if (!el) return;
+    el.value = String(value);
+    const span = $(id + '-val');
+    if (span) span.textContent = String(value);
+  }
+
+  function createTextLayer(options = {}) {
+    const cloneFrom = options.cloneFrom || null;
+    const number = nextTextLayerNumber++;
     return {
-      enabled:    btn ? btn.classList.contains('active') : false,
-      content:    ($('text-content')  ? $('text-content').value  : '') || '',
-      fontFamily: $('text-font')     ? $('text-font').value     : 'Impact',
-      fontSize:   $('text-size')     ? parseInt($('text-size').value,     10) : 48,
-      color:      $('text-color')    ? $('text-color').value    : '#ffffff',
-      x:          $('text-x')        ? parseInt($('text-x').value,        10) : 50,
-      y:          $('text-y')        ? parseInt($('text-y').value,        10) : 50,
-      rotation:   $('text-rotation') ? parseInt($('text-rotation').value, 10) : 0,
-      opacity:    $('text-opacity')  ? parseInt($('text-opacity').value,  10) : 100,
-      blendMode:  $('text-blend')    ? $('text-blend').value    : 'normal'
+      id: 'text-layer-' + number,
+      label: 'Text ' + number,
+      enabled: options.enabled ?? (cloneFrom ? cloneFrom.enabled : TEXT_LAYER_DEFAULTS.enabled),
+      content: options.content ?? (cloneFrom ? cloneFrom.content : TEXT_LAYER_DEFAULTS.content),
+      fontFamily: options.fontFamily ?? (cloneFrom ? cloneFrom.fontFamily : TEXT_LAYER_DEFAULTS.fontFamily),
+      fontSize: options.fontSize ?? (cloneFrom ? cloneFrom.fontSize : TEXT_LAYER_DEFAULTS.fontSize),
+      color: options.color ?? (cloneFrom ? cloneFrom.color : TEXT_LAYER_DEFAULTS.color),
+      x: options.x ?? (cloneFrom ? cloneFrom.x : TEXT_LAYER_DEFAULTS.x),
+      y: options.y ?? (cloneFrom ? cloneFrom.y : TEXT_LAYER_DEFAULTS.y),
+      rotation: options.rotation ?? (cloneFrom ? cloneFrom.rotation : TEXT_LAYER_DEFAULTS.rotation),
+      opacity: options.opacity ?? (cloneFrom ? cloneFrom.opacity : TEXT_LAYER_DEFAULTS.opacity),
+      blendMode: options.blendMode ?? (cloneFrom ? cloneFrom.blendMode : TEXT_LAYER_DEFAULTS.blendMode),
+      distort: {
+        ...TEXT_DISTORT_DEFAULTS,
+        ...(cloneFrom ? cloneFrom.distort : {}),
+        ...(options.distort || {})
+      },
+      effectActive: {
+        ...TEXT_DISTORT_ACTIVE_DEFAULTS,
+        ...(cloneFrom ? cloneFrom.effectActive : {}),
+        ...(options.effectActive || {})
+      }
     };
   }
 
-  function getTextLayoutBox(ts, w, h) {
+  function resetTextLayers() {
+    nextTextLayerNumber = 1;
+    textLayers = [createTextLayer()];
+    selectedTextLayerId = textLayers[0].id;
+    renderTextLayerList();
+    syncTextControlsFromSelectedLayer();
+  }
+
+  function getSelectedTextLayer() {
+    if (!textLayers.length) resetTextLayers();
+    const selected = textLayers.find(layer => layer.id === selectedTextLayerId);
+    if (selected) return selected;
+    selectedTextLayerId = textLayers[0].id;
+    return textLayers[0];
+  }
+
+  function getTextLayerById(layerId) {
+    return textLayers.find(layer => layer.id === layerId) || null;
+  }
+
+  function syncSelectedTextLayerFromControls() {
+    const layer = getSelectedTextLayer();
+    if (!layer) return null;
+    layer.content = ($('text-content') ? $('text-content').value : '') || '';
+    layer.fontFamily = $('text-font') ? $('text-font').value : TEXT_LAYER_DEFAULTS.fontFamily;
+    layer.fontSize = $('text-size') ? parseInt($('text-size').value, 10) : TEXT_LAYER_DEFAULTS.fontSize;
+    layer.color = $('text-color') ? $('text-color').value : TEXT_LAYER_DEFAULTS.color;
+    layer.x = $('text-x') ? parseInt($('text-x').value, 10) : TEXT_LAYER_DEFAULTS.x;
+    layer.y = $('text-y') ? parseInt($('text-y').value, 10) : TEXT_LAYER_DEFAULTS.y;
+    layer.rotation = $('text-rotation') ? parseInt($('text-rotation').value, 10) : TEXT_LAYER_DEFAULTS.rotation;
+    layer.opacity = $('text-opacity') ? parseInt($('text-opacity').value, 10) : TEXT_LAYER_DEFAULTS.opacity;
+    layer.blendMode = $('text-blend') ? $('text-blend').value : TEXT_LAYER_DEFAULTS.blendMode;
+    TEXT_DISTORT_IDS.forEach(id => {
+      const key = TEXT_DISTORT_KEYS[id];
+      if ($(id)) layer.distort[key] = parseInt($(id).value, 10);
+      const btn = document.querySelector('.item-toggle[data-target="' + id + '"]');
+      layer.effectActive[key] = btn ? btn.classList.contains('active') : TEXT_DISTORT_ACTIVE_DEFAULTS[key];
+    });
+    return layer;
+  }
+
+  function syncTextControlsFromSelectedLayer() {
+    const layer = getSelectedTextLayer();
+    if (!layer) return;
+    if ($('text-content')) $('text-content').value = layer.content;
+    if ($('text-font')) $('text-font').value = layer.fontFamily;
+    setControlValue('text-size', layer.fontSize);
+    if ($('text-color')) $('text-color').value = layer.color;
+    setControlValue('text-x', layer.x);
+    setControlValue('text-y', layer.y);
+    setControlValue('text-rotation', layer.rotation);
+    setControlValue('text-opacity', layer.opacity);
+    if ($('text-blend')) $('text-blend').value = layer.blendMode;
+    TEXT_DISTORT_IDS.forEach(id => {
+      const key = TEXT_DISTORT_KEYS[id];
+      setControlValue(id, layer.distort[key]);
+      setRowActive(id, !!layer.effectActive[key]);
+    });
+  }
+
+  function renderTextLayerList() {
+    const container = $('text-layer-list');
+    if (!container) return;
+    container.innerHTML = '';
+    textLayers.forEach(layer => {
+      const row = document.createElement('div');
+      row.className = 'control-row text-layer-row' + (layer.enabled ? ' row-active' : '');
+      row.style.setProperty('--row-color', '#d8c8f0');
+
+      const selectBtn = document.createElement('button');
+      selectBtn.type = 'button';
+      selectBtn.className = 'text-layer-select' + (layer.id === selectedTextLayerId ? ' active' : '');
+      selectBtn.textContent = layer.id === selectedTextLayerId ? '●' : '○';
+      selectBtn.title = 'Select ' + layer.label;
+      selectBtn.setAttribute('aria-label', 'Select ' + layer.label);
+      selectBtn.addEventListener('click', () => {
+        if (selectedTextLayerId === layer.id) return;
+        selectedTextLayerId = layer.id;
+        renderTextLayerList();
+        syncTextControlsFromSelectedLayer();
+        scheduleRender();
+      });
+
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = 'item-toggle text-layer-toggle' + (layer.enabled ? ' active' : '');
+      toggleBtn.textContent = layer.label;
+      toggleBtn.title = 'Toggle ' + layer.label;
+      toggleBtn.addEventListener('click', () => {
+        layer.enabled = !layer.enabled;
+        renderTextLayerList();
+        scheduleRender();
+      });
+
+      row.appendChild(selectBtn);
+      row.appendChild(toggleBtn);
+      container.appendChild(row);
+    });
+  }
+
+  function addTextLayer() {
+    const source = getSelectedTextLayer();
+    const layer = createTextLayer({
+      cloneFrom: source,
+      enabled: true,
+      x: source ? clamp(source.x + 6, 0, 100) : TEXT_LAYER_DEFAULTS.x,
+      y: source ? clamp(source.y + 6, 0, 100) : TEXT_LAYER_DEFAULTS.y
+    });
+    textLayers.push(layer);
+    selectedTextLayerId = layer.id;
+    renderTextLayerList();
+    syncTextControlsFromSelectedLayer();
+    scheduleRender();
+  }
+
+  function getTextLayerLayoutBox(ts, w, h) {
     if (!ts || !ts.enabled || !String(ts.content || '').trim() || w <= 0 || h <= 0) return null;
     if (!textMeasureCtx) return null;
     const scaleFactor = workingCanvas.height > 0 ? h / workingCanvas.height : 1;
@@ -1527,48 +1701,56 @@
     return { x, y };
   }
 
-  function setTextPositionFromCanvas(px, py) {
-    const xPct = clamp(Math.round((px / Math.max(1, previewCanvas.width)) * 100), 0, 100);
-    const yPct = clamp(Math.round((py / Math.max(1, previewCanvas.height)) * 100), 0, 100);
-    if ($('text-x')) {
-      $('text-x').value = xPct;
-      const spanX = $('text-x-val');
-      if (spanX) spanX.textContent = String(xPct);
-    }
-    if ($('text-y')) {
-      $('text-y').value = yPct;
-      const spanY = $('text-y-val');
-      if (spanY) spanY.textContent = String(yPct);
+  function setTextPositionFromCanvas(layerId, px, py) {
+    const layer = getTextLayerById(layerId);
+    if (!layer) return;
+    layer.x = clamp(Math.round((px / Math.max(1, previewCanvas.width)) * 100), 0, 100);
+    layer.y = clamp(Math.round((py / Math.max(1, previewCanvas.height)) * 100), 0, 100);
+    if (layer.id === selectedTextLayerId) {
+      setControlValue('text-x', layer.x);
+      setControlValue('text-y', layer.y);
     }
     scheduleRender();
+  }
+
+  function getCachedPreviewTextLayouts() {
+    const key = [
+      previewCanvas.width,
+      previewCanvas.height,
+      textLayers.map(layer => [layer.id, layer.enabled, layer.content, layer.fontFamily, layer.fontSize, layer.x, layer.y, layer.rotation].join('~')).join('|')
+    ].join('|');
+    if (key !== cachedPreviewTextLayoutsKey) {
+      cachedPreviewTextLayoutsKey = key;
+      cachedPreviewTextLayouts = textLayers
+        .map(layer => ({ layerId: layer.id, layout: getTextLayerLayoutBox(layer, previewCanvas.width, previewCanvas.height) }))
+        .filter(entry => !!entry.layout);
+    }
+    return cachedPreviewTextLayouts;
+  }
+
+  function getTextLayoutHit(x, y) {
+    const layouts = getCachedPreviewTextLayouts();
+    for (let i = layouts.length - 1; i >= 0; i--) {
+      if (isPointInTextLayout(layouts[i].layout, x, y)) return layouts[i];
+    }
+    return null;
+  }
+
+  function getActiveTextDistort(layer) {
+    return {
+      stretch: layer.effectActive.stretch ? layer.distort.stretch : 0,
+      warp: layer.effectActive.warp ? layer.distort.warp : 0,
+      vtear: layer.effectActive.vtear ? layer.distort.vtear : 0,
+      htear: layer.effectActive.htear ? layer.distort.htear : 0,
+      opacity: layer.effectActive.opacity ? layer.distort.opacity : 100
+    };
   }
 
   function updateTextDragCursor(clientX, clientY) {
     if (textDragState.active) return;
     const point = clientToPreviewCoords(clientX, clientY);
-    const layout = getCachedPreviewTextLayout();
-    const hovering = !!point && isPointInTextLayout(layout, point.x, point.y);
-    previewCanvas.classList.toggle('text-drag-ready', hovering);
-  }
-
-  function getCachedPreviewTextLayout() {
-    const ts = getTextState();
-    const key = [
-      previewCanvas.width,
-      previewCanvas.height,
-      ts.enabled,
-      ts.content,
-      ts.fontFamily,
-      ts.fontSize,
-      ts.x,
-      ts.y,
-      ts.rotation
-    ].join('|');
-    if (key !== cachedPreviewTextLayoutKey) {
-      cachedPreviewTextLayoutKey = key;
-      cachedPreviewTextLayout = getTextLayoutBox(ts, previewCanvas.width, previewCanvas.height);
-    }
-    return cachedPreviewTextLayout;
+    const hit = point ? getTextLayoutHit(point.x, point.y) : null;
+    previewCanvas.classList.toggle('text-drag-ready', !!hit);
   }
 
   function buildTextOverlayCanvas(w, h, ts, distort) {
@@ -1819,8 +2001,10 @@
     // Moire runs last, like a print/scan texture over the finished composite
     applyMoire(data,w,h,opts.moire.amount,opts.moire.scale);
     dctx.putImageData(imgData,0,0);
-    // Text overlay uses canvas 2D API, with distortion controls applied only to the text layer
-    drawTextOverlay(dctx, w, h, getTextState(), opts.distort);
+    // Text overlays render after the image stack so each layer can keep its own settings.
+    textLayers.forEach(layer => {
+      drawTextOverlay(dctx, w, h, layer, getActiveTextDistort(layer));
+    });
   }
 
   let renderPending=false;
@@ -2311,6 +2495,7 @@
     $('fx-htear').value = Math.floor(Math.random()*70)+15;
     setRowActive('fx-opacity', true);
     $('fx-opacity').value = Math.random()>0.5 ? 100 : Math.floor(Math.random()*40)+60;
+    syncSelectedTextLayerFromControls();
 
     updateAllSpans();
     updateRandomizeButtonGradient();
@@ -2351,11 +2536,17 @@
   }
 
   function turnAllOff(){
-    document.querySelectorAll('.item-toggle').forEach(btn=>{
+    document.querySelectorAll('.item-toggle[data-target]').forEach(btn=>{
       btn.classList.remove('active');
       const row = btn.closest('.control-row');
       if(row) row.classList.remove('row-active');
     });
+    textLayers.forEach(layer=>{
+      layer.enabled = false;
+      Object.keys(layer.effectActive).forEach(key=>{ layer.effectActive[key] = false; });
+    });
+    renderTextLayerList();
+    syncTextControlsFromSelectedLayer();
     scheduleRender();
   }
 
@@ -2398,22 +2589,7 @@
     $('fx-htear').value=50;                   setRowActive('fx-htear', false);
     $('fx-opacity').value=100;                setRowActive('fx-opacity', true);
 
-    // Reset text overlay (disable, restore defaults)
-    const textBtn = $('text-enable-btn');
-    if(textBtn){
-      textBtn.classList.remove('active');
-      const textRow = textBtn.closest('.control-row');
-      if(textRow) textRow.classList.remove('row-active');
-    }
-    if($('text-content'))  $('text-content').value  = 'ECHO TRAIL';
-    if($('text-font'))     $('text-font').value      = 'Impact';
-    if($('text-size'))     $('text-size').value      = 48;
-    if($('text-color'))    $('text-color').value     = '#ffffff';
-    if($('text-x'))        $('text-x').value         = 50;
-    if($('text-y'))        $('text-y').value         = 50;
-    if($('text-rotation')) $('text-rotation').value  = 0;
-    if($('text-opacity'))  $('text-opacity').value   = 100;
-    if($('text-blend'))    $('text-blend').value     = 'normal';
+    resetTextLayers();
 
     $('zoom-slider').value=115;               setZoom(115);
 
@@ -2501,7 +2677,7 @@
   }
 
   function syncRowClasses(){
-    document.querySelectorAll('.item-toggle').forEach(btn=>{
+    document.querySelectorAll('.item-toggle[data-target]').forEach(btn=>{
       const row = btn.closest('.control-row');
       if(row) row.classList.toggle('row-active', btn.classList.contains('active'));
     });
@@ -2511,6 +2687,7 @@
     if(embeddedMode){
       document.body.classList.add('embedded', 'maximized');
     }
+    resetTextLayers();
     updateAllSpans();
     setZoom(parseInt($('zoom-slider').value,10));
 
@@ -2521,12 +2698,17 @@
     $('topo-palette').addEventListener('change', scheduleRender);
 
     // Each control row's name doubles as its own on/off switch
-    document.querySelectorAll('.item-toggle').forEach(btn=>{
+    document.querySelectorAll('.item-toggle[data-target]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const isActive = !btn.classList.contains('active');
         btn.classList.toggle('active', isActive);
         const row = btn.closest('.control-row');
         if(row) row.classList.toggle('row-active', isActive);
+        const targetId = btn.dataset.target;
+        if(TEXT_DISTORT_KEYS[targetId]){
+          const layer = getSelectedTextLayer();
+          if(layer) layer.effectActive[TEXT_DISTORT_KEYS[targetId]] = isActive;
+        }
         scheduleRender();
       });
     });
@@ -2547,10 +2729,14 @@
     });
 
     // Text overlay controls
-    $('text-content').addEventListener('input',  scheduleRender);
-    $('text-font').addEventListener('change',    scheduleRender);
-    $('text-color').addEventListener('input',    scheduleRender);
-    $('text-blend').addEventListener('change',   scheduleRender);
+    $('text-layer-add-btn').addEventListener('click', addTextLayer);
+    $('text-content').addEventListener('input',  ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
+    $('text-font').addEventListener('change',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
+    $('text-color').addEventListener('input',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
+    $('text-blend').addEventListener('change',   ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
+    ['text-size','text-x','text-y','text-rotation','text-opacity',...TEXT_DISTORT_IDS].forEach(id=>{
+      $(id).addEventListener('input', ()=>{ syncSelectedTextLayerFromControls(); });
+    });
 
     // Font upload
     $('text-font-upload-btn').addEventListener('click', ()=>{ $('font-upload-input').click(); });
@@ -2569,6 +2755,11 @@
         clearOnboardingState();
         return;
       }
+      const point = clientToPreviewCoords(e.clientX, e.clientY);
+      if(point){
+        const hit = getTextLayoutHit(point.x, point.y);
+        if(hit) return;
+      }
       const color = samplePreviewColor(e.clientX, e.clientY);
       if(color) setLastClickedColor(color.r, color.g, color.b);
     });
@@ -2576,12 +2767,18 @@
       if(e.button !== 0 || onboardingActive) return;
       const point = clientToPreviewCoords(e.clientX, e.clientY);
       if(!point) return;
-      const layout = getCachedPreviewTextLayout();
-      if(!isPointInTextLayout(layout, point.x, point.y)) return;
+      const hit = getTextLayoutHit(point.x, point.y);
+      if(!hit) return;
+      if(selectedTextLayerId !== hit.layerId){
+        selectedTextLayerId = hit.layerId;
+        renderTextLayerList();
+        syncTextControlsFromSelectedLayer();
+      }
       textDragState.active = true;
       textDragState.pointerId = e.pointerId;
-      textDragState.offsetX = layout.px - point.x;
-      textDragState.offsetY = layout.py - point.y;
+      textDragState.layerId = hit.layerId;
+      textDragState.offsetX = hit.layout.px - point.x;
+      textDragState.offsetY = hit.layout.py - point.y;
       textDragState.moved = false;
       previewCanvas.classList.remove('text-drag-ready');
       previewCanvas.classList.add('text-dragging');
@@ -2594,14 +2791,12 @@
       if(textDragState.active && e.pointerId === textDragState.pointerId){
         const point = clientToPreviewCoords(e.clientX, e.clientY);
         if(!point) return;
-        const textXEl = $('text-x');
-        const textYEl = $('text-y');
-        const prevX = parseInt(textXEl ? textXEl.value : '50', 10);
-        const prevY = parseInt(textYEl ? textYEl.value : '50', 10);
-        setTextPositionFromCanvas(point.x + textDragState.offsetX, point.y + textDragState.offsetY);
-        const nowX = parseInt(textXEl ? textXEl.value : '50', 10);
-        const nowY = parseInt(textYEl ? textYEl.value : '50', 10);
-        if(nowX !== prevX || nowY !== prevY) textDragState.moved = true;
+        const layer = getTextLayerById(textDragState.layerId);
+        const prevX = layer ? layer.x : 50;
+        const prevY = layer ? layer.y : 50;
+        setTextPositionFromCanvas(textDragState.layerId, point.x + textDragState.offsetX, point.y + textDragState.offsetY);
+        const movedLayer = getTextLayerById(textDragState.layerId);
+        if(movedLayer && (movedLayer.x !== prevX || movedLayer.y !== prevY)) textDragState.moved = true;
         e.preventDefault();
         return;
       }
@@ -2615,6 +2810,7 @@
       if(textDragState.moved) suppressPreviewClickUntil = performance.now() + clickSuppressDelayMillis;
       textDragState.active = false;
       textDragState.pointerId = null;
+      textDragState.layerId = null;
       textDragState.offsetX = 0;
       textDragState.offsetY = 0;
       textDragState.moved = false;

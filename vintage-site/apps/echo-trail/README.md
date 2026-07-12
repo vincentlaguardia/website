@@ -32,7 +32,9 @@ Add editable text on top of the processed image with full compositing controls a
 
 | Control | Range | Description |
 |---------|-------|-------------|
-| Text | (text input) | Content to render |
+| Layers | select / toggle | Choose which text layer the controls target, and toggle each layer on or off |
+| + | button | Adds another text layer using the current layer as a starting point |
+| Content | (text input) | Content to render on the selected layer |
 | Stretch | 0–100 | Repeats text pixels in horizontal bands for a smear effect |
 | Warp | 0–100 | Applies smooth noise-based displacement to the text layer |
 | V-Tear | 0–100 | Adds a vertical rip to the text layer |
@@ -49,7 +51,7 @@ Add editable text on top of the processed image with full compositing controls a
 | Blend | dropdown | How text is composited onto the image (see below) |
 | Drag on canvas | (mouse drag) | Reposition the text by clicking and dragging directly on the preview |
 
-**Toggle the "Text" button** to enable/disable the overlay. The text is re-editable and repositionable at any time before export, and the Stretch / Warp / V-Tear / H-Tear / Img Opacity controls now affect only the text layer.
+Each text layer has its own on/off toggle, position, styling, blend mode, and text-only distortion settings. The selection button to the left of a layer chooses which layer the text controls will edit.
 
 ## Font Upload
 
@@ -73,7 +75,7 @@ Click **↑ Font** to pick a font file. The font is loaded via the `FontFace` AP
 
 - **Warp** and **pixel-blend text** (Subtractive / Division) iterate every pixel and can be slow on images near the 2400 px cap. All other effects are fast.
 - Custom uploaded fonts are not persisted across page reloads.
-- Text is always rendered as a single flat layer; the text input is single-line only.
+- Each text layer is rendered as a single flat layer; the text input is still single-line only.
 
 ## Credit
 

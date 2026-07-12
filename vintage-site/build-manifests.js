@@ -197,6 +197,8 @@ function buildFontsManifest() {
     if (entry.name === 'manifest.json') return;
     const ext = path.extname(entry.name).toLowerCase();
     if (!FONT_EXTS.has(ext)) return;
+    // The runtime loader consumes `{ file, name }` objects so the menu can use
+    // a human-readable label while still resolving the exact uploaded filename.
     fonts.push({
       name: path.basename(entry.name, ext),
       file: entry.name

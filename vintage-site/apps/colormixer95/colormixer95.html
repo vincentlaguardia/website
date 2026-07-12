@@ -578,7 +578,9 @@ function drawVenn(canvas, layerColors, background, blendFn){
 }
 
 /* each slider's track fades from "no channel" to "full channel" so the
-   track color hints at what the handle is actually selecting. */
+   track color hints at what the handle is actually selecting.
+   Division's track starts at white because white (1) is its neutral/
+   identity value (divideBlend(a,1) = a), matching the mode's white base. */
 const TRACK_GRADIENTS = {
   additive:    { R:['#000000','#ff0000'], G:['#000000','#00ff00'], B:['#000000','#0000ff'] },
   subtractive: { C:['#ffffff','#00ffff'], M:['#ffffff','#ff00ff'], Y:['#ffffff','#ffff00'] },

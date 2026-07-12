@@ -259,6 +259,15 @@
     flex:1;
     min-width:0;
   }
+  .text-layer-font-btn{
+    flex:0 0 54px;
+    min-width:54px;
+    padding:0 6px;
+    font-size:11px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
   .text-layer-icon-btn{
     width:22px;
     min-width:22px;
@@ -1654,6 +1663,23 @@
         scheduleRender();
       });
 
+      const fontBtn = document.createElement('button');
+      fontBtn.type = 'button';
+      fontBtn.className = 'btn95 text-layer-font-btn';
+      fontBtn.textContent = 'Font';
+      fontBtn.title = layer.label + ' font: ' + layer.fontFamily;
+      fontBtn.setAttribute('aria-label', fontBtn.title);
+      fontBtn.style.fontFamily = '"' + escapeFontFamily(layer.fontFamily) + '", Impact, sans-serif';
+      fontBtn.addEventListener('click', () => {
+        if (selectedTextLayerId !== layer.id) {
+          selectedTextLayerId = layer.id;
+          renderTextLayerList();
+          syncTextControlsFromSelectedLayer();
+          scheduleRender();
+        }
+        if ($('text-font')) $('text-font').focus();
+      });
+
       const hideBtn = document.createElement('button');
       hideBtn.type = 'button';
       hideBtn.className = 'btn95 text-layer-icon-btn';
@@ -1691,6 +1717,7 @@
 
       row.appendChild(selectBtn);
       row.appendChild(textInput);
+      row.appendChild(fontBtn);
       row.appendChild(hideBtn);
       row.appendChild(deleteBtn);
       container.appendChild(row);

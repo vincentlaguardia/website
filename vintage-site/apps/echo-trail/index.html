@@ -1276,7 +1276,7 @@
   }
   function doRender(){
     renderToCanvas(workingCanvas, previewCanvas, getOpts());
-    updateFriedButtonGradient();
+    updatePastramiButtonGradient();
   }
 
   function clearOnboardingState(){
@@ -1570,7 +1570,7 @@
   // These normalized points sample separate frame regions (upper-left, mid-right, lower-mid)
   // so the Pastrami gradient tracks the rendered image without flickering on every render.
   const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
-  let friedGradientReadWarningShown = false;
+  let pastramiGradientReadWarningShown = false;
 
   function clearFriedButtonGradient(){
     const btnFried = $('btn-fried');
@@ -1579,6 +1579,8 @@
     btnFried.style.removeProperty('--frd-color');
   }
 
+  // Converts sampled preview RGB to HSL, boosts saturation/lightness with the fluorescent
+  // tuning constants above, then converts back to RGB for the Dr. Pastrami button gradient.
   function boostFluorescentColor({r,g,b}){
     const normalizedR = r/255, normalizedG = g/255, normalizedB = b/255;
     const max = Math.max(normalizedR, normalizedG, normalizedB);
@@ -1620,7 +1622,7 @@
     return {r:Math.round(outputR*255), g:Math.round(outputG*255), b:Math.round(outputB*255)};
   }
 
-  function updateFriedButtonGradient(){
+  function updatePastramiButtonGradient(){
     const btnFried = $('btn-fried');
     if(!originalCanvas.width || !originalCanvas.height || !previewCanvas.width || !previewCanvas.height){
       clearFriedButtonGradient();
@@ -1645,8 +1647,8 @@
       btnFried.style.setProperty('--frd-color', averageLuminance > LUMINANCE_TEXT_SWITCH ? '#000' : '#fff');
     } catch(err) {
       clearFriedButtonGradient();
-      if(!friedGradientReadWarningShown){
-        friedGradientReadWarningShown = true;
+      if(!pastramiGradientReadWarningShown){
+        pastramiGradientReadWarningShown = true;
         console.warn('Echo Trail: unable to sample preview canvas for Dr. Pastrami button colors (possible cross-origin canvas taint).', err);
       }
     }

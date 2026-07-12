@@ -1260,7 +1260,8 @@ const items = {
 
   eyes:         { type: 'folder', name: 'pics/vids',       iconType: 'folder',   syncFolder: 'content/desktop/eyes', children: [], modified: '2026-07-08' },
   thoughts:     { type: 'folder', name: 'thoughts',        iconType: 'document', syncFolder: 'content/desktop/thoughts', children: [], modified: '2026-07-08' },
-  interface:    { type: 'folder', name: 'I.N.T.E.R.F.A.C.E.', iconType: 'folder', syncFolder: 'content/desktop/interface', children: [], modified: '2026-07-08' }
+  interface:    { type: 'folder', name: 'I.N.T.E.R.F.A.C.E.', iconType: 'folder', syncFolder: 'content/desktop/interface', children: [], modified: '2026-07-08' },
+  'ui-web-design': { type: 'folder', name: 'ui / web design', iconType: 'folder', syncFolder: 'content/desktop/ui-web-design', children: [], modified: '2026-07-12' }
 };
 
 /* ---------- user-created / copied items + reorganized folder contents ----------
@@ -3373,7 +3374,7 @@ function slugifyPath(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
-const DESKTOP_SYNC_ROOT_NAMES = ['catscans', 'collage', 'easy', 'eyes', 'interface', 'miscbooks', 'miscinfo', 'pics-unsorted', 'purplestuff', 'thoughts', 'watchthisbabyyyyyyyy'];
+const DESKTOP_SYNC_ROOT_NAMES = ['catscans', 'collage', 'easy', 'eyes', 'interface', 'miscbooks', 'miscinfo', 'pics-unsorted', 'purplestuff', 'thoughts', 'ui-web-design', 'watchthisbabyyyyyyyy'];
 function migrateDesktopSyncIdToDesktopPath(id) {
   if (typeof id !== 'string' || !id.startsWith('sync__')) return id;
   for (const root of DESKTOP_SYNC_ROOT_NAMES) {

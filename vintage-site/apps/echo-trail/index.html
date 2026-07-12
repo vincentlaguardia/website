@@ -1502,6 +1502,7 @@
   const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity' };
   const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100 };
   const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true };
+  const TEXT_LAYER_BUTTON_FONT_STACK_FALLBACK = 'Impact, sans-serif';
   const TEXT_LAYER_DEFAULTS = {
     enabled: false,
     content: 'ECHO TRAIL',
@@ -1543,7 +1544,7 @@
       label: 'Text ' + number,
       enabled: options.enabled ?? (cloneFrom ? cloneFrom.enabled : TEXT_LAYER_DEFAULTS.enabled),
       content: options.content ?? (cloneFrom ? cloneFrom.content : TEXT_LAYER_DEFAULTS.content),
-      fontFamily: options.fontFamily ?? (cloneFrom ? cloneFrom.fontFamily : TEXT_LAYER_DEFAULTS.fontFamily),
+      fontFamily: normalizeTextLayerFontFamily(options.fontFamily ?? (cloneFrom ? cloneFrom.fontFamily : TEXT_LAYER_DEFAULTS.fontFamily)),
       fontSize: options.fontSize ?? (cloneFrom ? cloneFrom.fontSize : TEXT_LAYER_DEFAULTS.fontSize),
       color: options.color ?? (cloneFrom ? cloneFrom.color : TEXT_LAYER_DEFAULTS.color),
       x: options.x ?? (cloneFrom ? cloneFrom.x : TEXT_LAYER_DEFAULTS.x),
@@ -1587,7 +1588,7 @@
   function syncSelectedTextLayerFromControls() {
     const layer = getSelectedTextLayer();
     if (!layer) return null;
-    layer.fontFamily = $('text-font') ? $('text-font').value : TEXT_LAYER_DEFAULTS.fontFamily;
+    layer.fontFamily = normalizeTextLayerFontFamily($('text-font') ? $('text-font').value : TEXT_LAYER_DEFAULTS.fontFamily);
     layer.fontSize = $('text-size') ? parseInt($('text-size').value, 10) : TEXT_LAYER_DEFAULTS.fontSize;
     layer.color = $('text-color') ? $('text-color').value : TEXT_LAYER_DEFAULTS.color;
     layer.x = $('text-x') ? parseInt($('text-x').value, 10) : TEXT_LAYER_DEFAULTS.x;
@@ -1669,7 +1670,9 @@
       fontBtn.type = 'button';
       fontBtn.className = 'btn95 text-layer-font-btn';
       fontBtn.textContent = 'Font';
-      fontBtn.title = `${layer.label} font: ${layer.fontFamily}`;
+      const safeLayerLabel = sanitizeTextLayerMetadata(layer.label);
+      const safeFontFamily = sanitizeTextLayerMetadata(layer.fontFamily);
+      fontBtn.title = `${safeLayerLabel} font: ${safeFontFamily}`;
       fontBtn.setAttribute('aria-label', fontBtn.title);
       fontBtn.style.fontFamily = getTextLayerButtonFontStack(layer.fontFamily);
       fontBtn.addEventListener('click', () => {
@@ -1919,11 +1922,20 @@
     return String(name || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
-  function getTextLayerButtonFontStack(name) {
+  function normalizeTextLayerFontFamily(name) {
     const normalized = String(name || '').trim();
+    return /^[A-Za-z0-9 _-]+$/.test(normalized) ? normalized : TEXT_LAYER_DEFAULTS.fontFamily;
+  }
+
+  function sanitizeTextLayerMetadata(value) {
+    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+  }
+
+  function getTextLayerButtonFontStack(name) {
+    const normalized = normalizeTextLayerFontFamily(name);
     // Button previews only mirror simple family names; anything else falls back.
-    if (!normalized || !/^[A-Za-z0-9 _-]+$/.test(normalized)) return 'Impact, sans-serif';
-    return `"${escapeFontFamily(normalized)}", Impact, sans-serif`;
+    if (!normalized) return TEXT_LAYER_BUTTON_FONT_STACK_FALLBACK;
+    return `"${escapeFontFamily(normalized)}", ${TEXT_LAYER_BUTTON_FONT_STACK_FALLBACK}`;
   }
 
   // Draw the text overlay onto the given canvas 2D context.

@@ -676,7 +676,7 @@
           </div>
         </div>
       </div>
-      <button class="ctrl-btn" id="cc-toggle-dots">Dots Off</button>
+      <button class="ctrl-btn is-active" id="cc-toggle-dots">Dots Off</button>
       <div class="picker-with-hex">
         <input type="color" id="cc-target-color" value="#a8a8a8">
       </div>
@@ -1846,7 +1846,7 @@
   toggleDotsBtn.addEventListener('click', ()=>{
     showDots = !showDots;
     toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
-    toggleDotsBtn.classList.toggle('is-active', !showDots);
+    toggleDotsBtn.classList.toggle('is-active', showDots);
     drawScene();
   });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });

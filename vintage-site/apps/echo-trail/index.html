@@ -1638,7 +1638,7 @@
       option.textContent = selectedValue;
       selectEl.appendChild(option);
     }
-    selectEl.value = selectedValue || selectEl.options[0]?.value || '';
+    selectEl.value = selectedValue ?? selectEl.options[0]?.value ?? '';
   }
 
   function setTemplateSelectValue(id, value) {
@@ -1651,6 +1651,10 @@
       selectEl.appendChild(option);
     }
     selectEl.value = value;
+  }
+
+  function ensureSingleTextLayerSelectedAndSynced(layerId) {
+    if (!selectSingleTextLayer(layerId)) syncTextControlsFromSelectedLayer();
   }
 
   function syncSelectedTextLayerFromControls() {
@@ -1748,7 +1752,7 @@
           return;
         }
         layer.fontFamily = fontSelect.value;
-        if (!selectSingleTextLayer(layer.id)) syncTextControlsFromSelectedLayer();
+        ensureSingleTextLayerSelectedAndSynced(layer.id);
         scheduleRender();
       });
 
@@ -1775,7 +1779,7 @@
       syncSelectOptionsFromTemplate(blendSelect, 'text-blend', layer.blendMode);
       blendSelect.addEventListener('change', () => {
         layer.blendMode = blendSelect.value;
-        if (!selectSingleTextLayer(layer.id)) syncTextControlsFromSelectedLayer();
+        ensureSingleTextLayerSelectedAndSynced(layer.id);
         scheduleRender();
       });
 

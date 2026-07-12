@@ -1682,6 +1682,7 @@
     textLayers.forEach(layer => {
       const isPrimary = layer.id === selectedTextLayerId;
       const isMulti = !isPrimary && selectedTextLayerIds.has(layer.id);
+      const layerButtonText = (layer.content || '').replace(/\s+/g, ' ').trim() || layer.label;
       const row = document.createElement('div');
       row.className = 'control-row text-layer-row' + (layer.enabled ? ' row-active' : '');
       row.style.setProperty('--row-color', '#d8c8f0');
@@ -1739,7 +1740,7 @@
       const textSelectBtn = document.createElement('button');
       textSelectBtn.type = 'button';
       textSelectBtn.className = 'btn95 text-layer-text-btn' + (isPrimary ? ' active' : '');
-      textSelectBtn.textContent = (layer.content || '').trim() || layer.label;
+      textSelectBtn.textContent = layerButtonText;
       textSelectBtn.title = 'Edit ' + layer.label;
       textSelectBtn.setAttribute('aria-label', textSelectBtn.title);
       textSelectBtn.addEventListener('click', () => {
@@ -3072,11 +3073,13 @@
       const rect = e.currentTarget.getBoundingClientRect();
       tcdPopup.classList.add('show');
       const popupRect = tcdPopup.getBoundingClientRect();
-      const appRect = $('app-window').getBoundingClientRect();
+      const appWindow = $('app-window');
+      const appRect = appWindow ? appWindow.getBoundingClientRect() : document.body.getBoundingClientRect();
       const pad = 6;
-      const maxLeft = Math.max(appRect.left + pad, appRect.right - popupRect.width - pad);
+      const minLeft = appRect.left + pad;
+      const maxLeft = appRect.right - popupRect.width - pad;
       const preferredLeft = rect.right - popupRect.width;
-      const left = Math.min(Math.max(preferredLeft, appRect.left + pad), maxLeft);
+      const left = maxLeft < minLeft ? minLeft : Math.min(Math.max(preferredLeft, minLeft), maxLeft);
       const maxTop = Math.max(appRect.top + pad, appRect.bottom - popupRect.height - pad);
       const preferredTop = rect.bottom + 2;
       const fallbackTop = rect.top - popupRect.height - 2;

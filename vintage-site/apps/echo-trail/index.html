@@ -1612,7 +1612,7 @@
     return textLayers.find(layer => layer.id === layerId) || null;
   }
 
-  function selectSingleTextLayer(layerId) {
+  function selectAndSyncTextLayer(layerId) {
     if (selectedTextLayerId === layerId && selectedTextLayerIds.size === 1) return false;
     selectedTextLayerId = layerId;
     selectedTextLayerIds = new Set([layerId]);
@@ -1627,6 +1627,8 @@
   }
 
   function formatSelectOptionLabel(value, fallback = 'Custom') {
+    // These labels are assigned via textContent, so the browser handles HTML
+    // escaping; we only normalize non-printable characters for readability.
     const safeValue = String(value ?? '').replace(/[\u0000-\u001F\u007F<>]/g, ' ').trim();
     return safeValue || fallback;
   }
@@ -1658,7 +1660,10 @@
   }
 
   function ensureSingleTextLayerSelectedAndSynced(layerId) {
-    if (!selectSingleTextLayer(layerId)) syncTextControlsFromSelectedLayer();
+    // Re-rendering only happens when the active layer changes; if the same layer
+    // stays selected, we still need to mirror its inline font/blend changes back
+    // into the shared slider/color controls.
+    if (!selectAndSyncTextLayer(layerId)) syncTextControlsFromSelectedLayer();
   }
 
   function syncSelectedTextLayerFromControls() {
@@ -1739,7 +1744,7 @@
           }
           renderTextLayerList();
         } else {
-          if (selectSingleTextLayer(layer.id)) scheduleRender();
+          if (selectAndSyncTextLayer(layer.id)) scheduleRender();
         }
       });
 
@@ -1769,7 +1774,7 @@
       textInput.title = layer.label;
       textInput.setAttribute('aria-label', layer.label + ' text');
       textInput.addEventListener('focus', () => {
-        if (selectSingleTextLayer(layer.id)) scheduleRender();
+        if (selectAndSyncTextLayer(layer.id)) scheduleRender();
       });
       textInput.addEventListener('input', () => {
         layer.content = textInput.value;
@@ -3154,12 +3159,15 @@
     $('font-upload-input').addEventListener('change', async e=>{
       const targetLayerId = pendingFontUploadLayerId;
       pendingFontUploadLayerId = null;
+      // Canceling the picker is intentionally silent; we only apply a font when
+      // the user actually chooses a file, and loadCustomFont already alerts on
+      // unsupported or failed uploads.
       if(e.target.files[0]) {
         const family = await loadCustomFont(e.target.files[0]);
         const layer = targetLayerId ? getTextLayerById(targetLayerId) : getSelectedTextLayer();
         if (family && layer) {
           layer.fontFamily = family;
-          selectSingleTextLayer(layer.id);
+          selectAndSyncTextLayer(layer.id);
           scheduleRender();
         }
       }

@@ -1478,7 +1478,7 @@
 
   function pixelText(str, x, y, color, size) {
     ctx.fillStyle = color || PAL.text;
-    ctx.font = window.SiteFontManager.getCanvasFont(size || 8, '"Press Start 2P", monospace');
+    ctx.font = window.SiteFontManager?.getCanvasFont(size || 8, '"Press Start 2P", monospace') || ((size || 8) + 'px "Press Start 2P", monospace');
     ctx.textBaseline = 'top';
     ctx.fillText(str, x, y);
   }

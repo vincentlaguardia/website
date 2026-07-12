@@ -136,7 +136,7 @@
     if (!activeFile || !document.fonts || typeof document.fonts.load !== 'function') return;
     document.fonts.load('12px "' + cssString(faceNameForFile(activeFile)) + '"').catch(error => {
       // Missing or invalid uploaded font files should fall back to the default stack without breaking the page.
-      console.debug('Site font load skipped:', error);
+      console.debug('Site font load skipped for ' + activeFile + ':', error);
     });
   }
 
@@ -195,7 +195,10 @@
     return prefix.join(' ') + ' ' + stack;
   }
 
-  const readyPromise = loadManifest().then(setFontOptions).catch(() => setFontOptions([]));
+  const readyPromise = loadManifest().then(setFontOptions).catch(error => {
+    console.debug('Site font manifest load skipped:', error);
+    return setFontOptions([]);
+  });
 
   window.SiteFontManager = {
     STORAGE_KEY,

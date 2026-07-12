@@ -1556,9 +1556,19 @@
     if(row) row.classList.toggle('row-active', checked);
   }
 
-  const getLuminance = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
-  const darkenRgb = ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`;
-  const toRgb = ({r,g,b}) => `rgb(${r},${g},${b})`;
+  const ColorUtils = {
+    getLuminance: ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b,
+    darkenRgb: ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`,
+    toRgb: ({r,g,b}) => `rgb(${r},${g},${b})`
+  };
+  const LUMINANCE_TEXT_SWITCH = 140;
+  const FLUORESCENT_SATURATION_MULTIPLIER = 1.7;
+  const FLUORESCENT_SATURATION_OFFSET = 0.08;
+  const FLUORESCENT_LIGHTNESS_MULTIPLIER = 1.08;
+  const FLUORESCENT_LIGHTNESS_OFFSET = 0.05;
+  const FLUORESCENT_LIGHTNESS_CEILING = 0.74;
+  // These normalized points sample separate frame regions (upper-left, mid-right, lower-mid)
+  // so the Pastrami gradient tracks the rendered image without flickering on every render.
   const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
   let friedGradientReadWarningShown = false;
 
@@ -1584,8 +1594,8 @@
       }
       h /= 6;
     }
-    const sat = Math.min(1, s * 1.7 + 0.08);
-    const light = Math.min(0.74, l * 1.08 + 0.05);
+    const sat = Math.min(1, s * FLUORESCENT_SATURATION_MULTIPLIER + FLUORESCENT_SATURATION_OFFSET);
+    const light = Math.min(FLUORESCENT_LIGHTNESS_CEILING, l * FLUORESCENT_LIGHTNESS_MULTIPLIER + FLUORESCENT_LIGHTNESS_OFFSET);
     const hueToRgb = (p, q, t) => {
       if(t < 0) t += 1;
       if(t > 1) t -= 1;
@@ -1624,12 +1634,12 @@
         const px = pctx.getImageData(x, y, 1, 1).data;
         return boostFluorescentColor({r:px[0], g:px[1], b:px[2]});
       });
-      const averageLuminance = (getLuminance(colors[0]) + getLuminance(colors[1]) + getLuminance(colors[2])) / 3;
-      const gradF = `linear-gradient(135deg, ${toRgb(colors[0])} 0%, ${toRgb(colors[1])} 50%, ${toRgb(colors[2])} 100%)`;
-      const gradFActive = `linear-gradient(135deg, ${darkenRgb(colors[0])} 0%, ${darkenRgb(colors[1])} 50%, ${darkenRgb(colors[2])} 100%)`;
+      const averageLuminance = (ColorUtils.getLuminance(colors[0]) + ColorUtils.getLuminance(colors[1]) + ColorUtils.getLuminance(colors[2])) / 3;
+      const gradF = `linear-gradient(135deg, ${ColorUtils.toRgb(colors[0])} 0%, ${ColorUtils.toRgb(colors[1])} 50%, ${ColorUtils.toRgb(colors[2])} 100%)`;
+      const gradFActive = `linear-gradient(135deg, ${ColorUtils.darkenRgb(colors[0])} 0%, ${ColorUtils.darkenRgb(colors[1])} 50%, ${ColorUtils.darkenRgb(colors[2])} 100%)`;
       btnFried.style.setProperty('--frd-bg', gradF);
       btnFried.style.setProperty('--frd-bg-active', gradFActive);
-      btnFried.style.setProperty('--frd-color', averageLuminance > 140 ? '#000' : '#fff');
+      btnFried.style.setProperty('--frd-color', averageLuminance > LUMINANCE_TEXT_SWITCH ? '#000' : '#fff');
     } catch(err) {
       clearFriedButtonGradient();
       if(!friedGradientReadWarningShown){
@@ -1656,13 +1666,13 @@
       const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
       return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
     });
-    const averageLuminance = (getLuminance(c[0]) + getLuminance(c[1]) + getLuminance(c[2])) / 3;
-    const grad       = `linear-gradient(135deg, ${toRgb(c[0])} 0%, ${toRgb(c[1])} 50%, ${toRgb(c[2])} 100%)`;
-    const gradActive = `linear-gradient(135deg, ${darkenRgb(c[0])} 0%, ${darkenRgb(c[1])} 50%, ${darkenRgb(c[2])} 100%)`;
+    const averageLuminance = (ColorUtils.getLuminance(c[0]) + ColorUtils.getLuminance(c[1]) + ColorUtils.getLuminance(c[2])) / 3;
+    const grad       = `linear-gradient(135deg, ${ColorUtils.toRgb(c[0])} 0%, ${ColorUtils.toRgb(c[1])} 50%, ${ColorUtils.toRgb(c[2])} 100%)`;
+    const gradActive = `linear-gradient(135deg, ${ColorUtils.darkenRgb(c[0])} 0%, ${ColorUtils.darkenRgb(c[1])} 50%, ${ColorUtils.darkenRgb(c[2])} 100%)`;
     btn.style.setProperty('--rnd-bg',        grad);
     btn.style.setProperty('--rnd-bg-active', gradActive);
     // Switch to white text when the image is too dark for black text to be legible
-    btn.style.setProperty('--rnd-color',     averageLuminance > 140 ? '#000' : '#fff');
+    btn.style.setProperty('--rnd-color',     averageLuminance > LUMINANCE_TEXT_SWITCH ? '#000' : '#fff');
   }
 
   function randomize(){

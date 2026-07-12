@@ -102,6 +102,10 @@
   .btn95:active{
     box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
+  .btn95.is-toggled{
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+    background:color-mix(in srgb, var(--face) 72%, #d8ecff);
+  }
   #btn-randomize{
     background:var(--rnd-bg, linear-gradient(180deg, #ffe58a 0%, #f3d250 100%));
     color:var(--rnd-color, #3f2a00);
@@ -297,6 +301,7 @@
       <button class="btn95" id="btn-save">Save</button>
       <button class="btn95" id="btn-randomize">Randomize</button>
       <button class="btn95" id="btn-fried">Dr. Pastrami Mode</button>
+      <button class="btn95 is-toggled" id="btn-text-fx-randomize" type="button" aria-pressed="true" title="Toggle whether Randomize and Dr. Pastrami change the text-only effect controls">Text FX Random: On</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
       <div class="diary-lastswatch sunken" id="diary-last-swatch" title="Last clicked color" role="img" aria-label="Last clicked color swatch"></div>
@@ -304,8 +309,8 @@
       <button class="btn95" id="diary-open-btn">Diary</button>
       <div class="zoom-control">
         <span>Zoom</span>
-        <input type="range" id="zoom-slider" min="25" max="300" step="5" value="115">
-        <span id="zoom-val">115%</span>
+        <input type="range" id="zoom-slider" min="25" max="300" step="5" value="180">
+        <span id="zoom-val">180%</span>
       </div>
       <input type="file" id="file-input" accept="image/*" hidden>
       <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" hidden>
@@ -2125,6 +2130,15 @@
   // so the Pastrami gradient tracks the rendered image without flickering on every render.
   const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
   let pastramiGradientReadWarningShown = false;
+  let randomizeTextEffects = true;
+
+  function updateTextFxRandomizeButton(){
+    const btn = $('btn-text-fx-randomize');
+    if(!btn) return;
+    btn.classList.toggle('is-toggled', randomizeTextEffects);
+    btn.setAttribute('aria-pressed', String(randomizeTextEffects));
+    btn.textContent = randomizeTextEffects ? 'Text FX Random: On' : 'Text FX Random: Off';
+  }
 
   function clearFriedButtonGradient(){
     const btnFried = $('btn-fried');
@@ -2299,17 +2313,19 @@
     setRowActive('moire-scale', Math.random()>0.15);
     $('moire-scale').value = Math.floor(Math.random()*100);
 
-    // New distortions — applied sparingly so they don't swamp every randomize
-    setRowActive('fx-stretch', Math.random()>0.7);
-    $('fx-stretch').value = Math.floor(Math.random()*70)+15;
-    setRowActive('fx-warp', Math.random()>0.65);
-    $('fx-warp').value = Math.floor(Math.random()*60)+10;
-    setRowActive('fx-vtear', Math.random()>0.75);
-    $('fx-vtear').value = Math.floor(Math.random()*70)+15;
-    setRowActive('fx-htear', Math.random()>0.75);
-    $('fx-htear').value = Math.floor(Math.random()*70)+15;
-    setRowActive('fx-opacity', true);
-    $('fx-opacity').value = Math.random()>0.5 ? 100 : Math.floor(Math.random()*40)+60;
+    if(randomizeTextEffects){
+      // Text distortions — applied sparingly so they don't swamp every randomize
+      setRowActive('fx-stretch', Math.random()>0.7);
+      $('fx-stretch').value = Math.floor(Math.random()*70)+15;
+      setRowActive('fx-warp', Math.random()>0.65);
+      $('fx-warp').value = Math.floor(Math.random()*60)+10;
+      setRowActive('fx-vtear', Math.random()>0.75);
+      $('fx-vtear').value = Math.floor(Math.random()*70)+15;
+      setRowActive('fx-htear', Math.random()>0.75);
+      $('fx-htear').value = Math.floor(Math.random()*70)+15;
+      setRowActive('fx-opacity', true);
+      $('fx-opacity').value = Math.random()>0.5 ? 100 : Math.floor(Math.random()*40)+60;
+    }
 
     updateAllSpans();
     updateRandomizeButtonGradient();
@@ -2339,6 +2355,19 @@
     $('scan-vmisalign').value = 65+Math.floor(Math.random()*35);
     setRowActive('grain-intensity', true);
     $('grain-intensity').value = 50+Math.floor(Math.random()*40);
+
+    if(randomizeTextEffects){
+      setRowActive('fx-stretch', true);
+      $('fx-stretch').value = 55+Math.floor(Math.random()*46);
+      setRowActive('fx-warp', true);
+      $('fx-warp').value = 40+Math.floor(Math.random()*51);
+      setRowActive('fx-vtear', true);
+      $('fx-vtear').value = 45+Math.floor(Math.random()*56);
+      setRowActive('fx-htear', true);
+      $('fx-htear').value = 45+Math.floor(Math.random()*56);
+      setRowActive('fx-opacity', true);
+      $('fx-opacity').value = 55+Math.floor(Math.random()*46);
+    }
 
     updateAllSpans();
     scheduleRender();
@@ -2414,7 +2443,9 @@
     if($('text-opacity'))  $('text-opacity').value   = 100;
     if($('text-blend'))    $('text-blend').value     = 'normal';
 
-    $('zoom-slider').value=115;               setZoom(115);
+    $('zoom-slider').value=180;               setZoom(180);
+    randomizeTextEffects = true;
+    updateTextFxRandomizeButton();
 
     updateAllSpans();
     scheduleRender();
@@ -2511,6 +2542,7 @@
       document.body.classList.add('embedded', 'maximized');
     }
     updateAllSpans();
+    updateTextFxRandomizeButton();
     setZoom(parseInt($('zoom-slider').value,10));
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
@@ -2535,6 +2567,10 @@
     $('btn-load').addEventListener('click', promptForImageFile);
     $('btn-randomize').addEventListener('click', randomize);
     $('btn-fried').addEventListener('click', friedMode);
+    $('btn-text-fx-randomize').addEventListener('click', ()=>{
+      randomizeTextEffects = !randomizeTextEffects;
+      updateTextFxRandomizeButton();
+    });
     $('btn-reset').addEventListener('click', resetAll);
     $('btn-off').addEventListener('click', turnAllOff);
     $('btn-save').addEventListener('click', savePNGToDisk);

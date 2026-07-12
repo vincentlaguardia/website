@@ -1556,9 +1556,10 @@
     if(row) row.classList.toggle('row-active', checked);
   }
 
-  const lum = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
+  const getLuminance = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
   const darkenRgb = ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`;
   const toRgb = ({r,g,b}) => `rgb(${r},${g},${b})`;
+  const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
 
   function clearFriedButtonGradient(){
     const btnFried = $('btn-fried');
@@ -1568,17 +1569,17 @@
   }
 
   function boostFluorescentColor({r,g,b}){
-    const rn = r/255, gn = g/255, bn = b/255;
-    const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+    const normalizedR = r/255, normalizedG = g/255, normalizedB = b/255;
+    const max = Math.max(normalizedR, normalizedG, normalizedB), min = Math.min(normalizedR, normalizedG, normalizedB);
     let h = 0, s = 0;
     const l = (max + min) / 2;
     if(max !== min){
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
       switch(max){
-        case rn: h = (gn - bn) / d + (gn < bn ? 6 : 0); break;
-        case gn: h = (bn - rn) / d + 2; break;
-        default: h = (rn - gn) / d + 4;
+        case normalizedR: h = (normalizedG - normalizedB) / d + (normalizedG < normalizedB ? 6 : 0); break;
+        case normalizedG: h = (normalizedB - normalizedR) / d + 2; break;
+        default: h = (normalizedR - normalizedG) / d + 4;
       }
       h /= 6;
     }
@@ -1592,17 +1593,17 @@
       if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
       return p;
     };
-    let rr, gg, bb;
+    let outputR, outputG, outputB;
     if(sat === 0){
-      rr = gg = bb = light;
+      outputR = outputG = outputB = light;
     } else {
       const q = light < 0.5 ? light * (1 + sat) : light + sat - light * sat;
       const p = 2 * light - q;
-      rr = hueToRgb(p, q, h + 1/3);
-      gg = hueToRgb(p, q, h);
-      bb = hueToRgb(p, q, h - 1/3);
+      outputR = hueToRgb(p, q, h + 1/3);
+      outputG = hueToRgb(p, q, h);
+      outputB = hueToRgb(p, q, h - 1/3);
     }
-    return {r:Math.round(rr*255), g:Math.round(gg*255), b:Math.round(bb*255)};
+    return {r:Math.round(outputR*255), g:Math.round(outputG*255), b:Math.round(outputB*255)};
   }
 
   function updateFriedButtonGradient(){
@@ -1615,14 +1616,14 @@
       const pctx = previewCanvas.getContext('2d');
       const pw = previewCanvas.width;
       const ph = previewCanvas.height;
-      const samplePoints = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
-      const colors = samplePoints.map(([nx, ny])=>{
+      // Stable sampling points keep the Pastrami button tied to the current frame without flickering.
+      const colors = PREVIEW_SAMPLE_POINTS.map(([nx, ny])=>{
         const x = Math.max(0, Math.min(pw - 1, Math.round((pw - 1) * nx)));
         const y = Math.max(0, Math.min(ph - 1, Math.round((ph - 1) * ny)));
         const px = pctx.getImageData(x, y, 1, 1).data;
         return boostFluorescentColor({r:px[0], g:px[1], b:px[2]});
       });
-      const avgLumF = (lum(colors[0]) + lum(colors[1]) + lum(colors[2])) / 3;
+      const avgLumF = (getLuminance(colors[0]) + getLuminance(colors[1]) + getLuminance(colors[2])) / 3;
       const gradF = `linear-gradient(135deg, ${toRgb(colors[0])} 0%, ${toRgb(colors[1])} 50%, ${toRgb(colors[2])} 100%)`;
       const gradFActive = `linear-gradient(135deg, ${darkenRgb(colors[0])} 0%, ${darkenRgb(colors[1])} 50%, ${darkenRgb(colors[2])} 100%)`;
       btnFried.style.setProperty('--frd-bg', gradF);
@@ -1650,7 +1651,7 @@
       const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
       return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
     });
-    const avgLum = (lum(c[0]) + lum(c[1]) + lum(c[2])) / 3;
+    const avgLum = (getLuminance(c[0]) + getLuminance(c[1]) + getLuminance(c[2])) / 3;
     const grad       = `linear-gradient(135deg, ${toRgb(c[0])} 0%, ${toRgb(c[1])} 50%, ${toRgb(c[2])} 100%)`;
     const gradActive = `linear-gradient(135deg, ${darkenRgb(c[0])} 0%, ${darkenRgb(c[1])} 50%, ${darkenRgb(c[2])} 100%)`;
     btn.style.setProperty('--rnd-bg',        grad);

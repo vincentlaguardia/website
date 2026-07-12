@@ -1342,9 +1342,9 @@
     const maxShift = Math.max(2, Math.round(width * 0.24 * strength));
     const splitChance = 0.18 + strength * 0.45;
     const minVisibleAlpha = 4;
-    const seamBaseProbability = 0.35;
-    const seamStrengthProbability = 0.45;
-    const seamProbability = seamBaseProbability + strength * seamStrengthProbability;
+    const seamProbability = 0.35 + strength * 0.45;
+    const seamAlphaBase = 145;
+    const seamAlphaRange = 110;
 
     for (let s = 0; s < numSlices; s++) {
       const sliceW = Math.max(2, Math.round(width * (0.03 + Math.random() * 0.14)));
@@ -1386,7 +1386,7 @@
           data[idx] = bright;
           data[idx + 1] = bright;
           data[idx + 2] = bright;
-          data[idx + 3] = Math.max(data[idx + 3], 145 + Math.round(strength * 110));
+          data[idx + 3] = Math.max(data[idx + 3], seamAlphaBase + Math.round(strength * seamAlphaRange));
         }
       });
     }
@@ -1447,7 +1447,10 @@
   const textMeasureCanvas = document.createElement('canvas');
   const textMeasureCtx = textMeasureCanvas.getContext('2d');
   const textDragState = { active:false, pointerId:null, offsetX:0, offsetY:0, moved:false };
+  const clickSuppressDelayMs = 250;
   let suppressPreviewClickUntil = 0;
+  let cachedPreviewTextLayout = null;
+  let cachedPreviewTextLayoutKey = '';
 
   // Read all text settings directly from the DOM controls.
   function getTextState() {
@@ -1531,9 +1534,29 @@
   function updateTextDragCursor(clientX, clientY) {
     if (textDragState.active) return;
     const point = clientToPreviewCoords(clientX, clientY);
-    const layout = getTextLayoutBox(getTextState(), previewCanvas.width, previewCanvas.height);
+    const layout = getCachedPreviewTextLayout();
     const hovering = !!point && isPointInTextLayout(layout, point.x, point.y);
     previewCanvas.classList.toggle('text-drag-ready', hovering);
+  }
+
+  function getCachedPreviewTextLayout() {
+    const ts = getTextState();
+    const key = [
+      previewCanvas.width,
+      previewCanvas.height,
+      ts.enabled,
+      ts.content,
+      ts.fontFamily,
+      ts.fontSize,
+      ts.x,
+      ts.y,
+      ts.rotation
+    ].join('|');
+    if (key !== cachedPreviewTextLayoutKey) {
+      cachedPreviewTextLayoutKey = key;
+      cachedPreviewTextLayout = getTextLayoutBox(ts, previewCanvas.width, previewCanvas.height);
+    }
+    return cachedPreviewTextLayout;
   }
 
   function buildTextOverlayCanvas(w, h, ts, distort) {
@@ -2541,7 +2564,7 @@
       if(e.button !== 0 || onboardingActive) return;
       const point = clientToPreviewCoords(e.clientX, e.clientY);
       if(!point) return;
-      const layout = getTextLayoutBox(getTextState(), previewCanvas.width, previewCanvas.height);
+      const layout = getCachedPreviewTextLayout();
       if(!isPointInTextLayout(layout, point.x, point.y)) return;
       textDragState.active = true;
       textDragState.pointerId = e.pointerId;
@@ -2577,7 +2600,7 @@
       if(previewCanvas.releasePointerCapture){
         try{ previewCanvas.releasePointerCapture(e.pointerId); } catch(_){}
       }
-      if(textDragState.moved) suppressPreviewClickUntil = performance.now() + 250;
+      if(textDragState.moved) suppressPreviewClickUntil = performance.now() + clickSuppressDelayMs;
       textDragState.active = false;
       textDragState.pointerId = null;
       textDragState.offsetX = 0;

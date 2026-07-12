@@ -1955,6 +1955,28 @@
     scheduleRender();
   }
 
+  function syncSiteFontsToTextSelector() {
+    const sel = $('text-font');
+    const fontManager = window.SiteFontManager;
+    if (!sel || !fontManager || typeof fontManager.getAvailableFonts !== 'function') return;
+    const selectedValue = sel.value;
+    sel.querySelectorAll('option[data-site-font="1"]').forEach(option => option.remove());
+    const defaultStack = fontManager.DEFAULT_FONT_STACK || 'Tahoma, "MS Sans Serif", Geneva, sans-serif';
+    fontManager.getAvailableFonts().forEach(font => {
+      if (!font || !font.faceName || !font.label) return;
+      if (Array.from(sel.options).some(option => option.value === font.faceName)) return;
+      const option = document.createElement('option');
+      option.value = font.faceName;
+      option.textContent = font.label;
+      option.dataset.siteFont = '1';
+      option.style.fontFamily = font.fontStack || ('"' + font.faceName + '", ' + defaultStack);
+      sel.appendChild(option);
+    });
+    if (selectedValue && Array.from(sel.options).some(option => option.value === selectedValue)) {
+      sel.value = selectedValue;
+    }
+  }
+
   // ---------- Canvas pipeline ----------
   const originalCanvas = document.createElement('canvas');
   const workingCanvas = document.createElement('canvas');
@@ -2804,6 +2826,15 @@
       if(e.target.files[0]) loadCustomFont(e.target.files[0]);
       e.target.value='';
     });
+    syncSiteFontsToTextSelector();
+    syncTextControlsFromSelectedLayer();
+    if (window.SiteFontManager && window.SiteFontManager.ready) {
+      Promise.resolve(window.SiteFontManager.ready).then(() => {
+        syncSiteFontsToTextSelector();
+        syncTextControlsFromSelectedLayer();
+      });
+      window.addEventListener('sitefontchange', syncSiteFontsToTextSelector);
+    }
     document.addEventListener('click', e=>{
       if(onboardingActive && e.target !== previewCanvas) clearOnboardingState();
     });

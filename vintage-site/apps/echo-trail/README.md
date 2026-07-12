@@ -24,7 +24,7 @@ It also works great hosted on GitHub Pages — just point Pages at the repo root
 - **V-Misalign** — glitchy vertical band displacement with occasional channel splitting
 - **Motion Echo** — symmetric zoom-echo trail
 - **Moire** — warped contour-line fingerprint texture
-- **Dr. Pastrami mode** — cranks everything into glitchy, fluorescent chaos in one click
+- **Dr. Pastrami mode** — cranks everything into glitchy, fluorescent chaos in one click (button label in the UI)
 
 ### New: Distortions
 
@@ -40,7 +40,7 @@ Add editable text on top of the processed image with full compositing controls:
 
 | Control | Range | Description |
 |---------|-------|-------------|
-| Text | (text input) | Content to render; multi-line supported (use \\n) |
+| Text | (text input) | Content to render (single line) |
 | Font | dropdown | Built-in font or uploaded custom font |
 | ↑ Font | button | Upload a custom font file |
 | Font Size | 8–200 px | Pixel size at preview resolution; scales proportionally on full-res export |
@@ -75,7 +75,7 @@ Click **↑ Font** to pick a font file. The font is loaded via the `FontFace` AP
 
 - **Warp** and **pixel-blend text** (Subtractive / Division) iterate every pixel and can be slow on images near the 2400 px cap. All other effects are fast.
 - Custom uploaded fonts are not persisted across page reloads.
-- Text is always rendered as a single flat layer; per-character transforms are not supported.
+- Text is always rendered as a single flat layer; the text input is single-line only.
 
 ## Credit
 

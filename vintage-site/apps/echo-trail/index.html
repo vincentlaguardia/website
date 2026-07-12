@@ -1472,8 +1472,9 @@
         if (ts.blendMode === 'subtractive') {
           blended = clamp(d - s, 0, 255);
         } else {
-          // Division: (dst / src) × 255; src=0 is treated as no-op (keep dst)
-          // to avoid unexpected full-white blowout from black/transparent text.
+          // Division: (dst / src) × 255, where s is the source colour channel
+          // value (0-255, not alpha). When s=0 (e.g. black text channel) treat
+          // it as a no-op (keep dst) to avoid blowing the image out to white.
           blended = s > 0 ? clamp(Math.floor(d * 255 / s), 0, 255) : d;
         }
         dst[i+c] = Math.round(d * (1 - sa) + blended * sa);

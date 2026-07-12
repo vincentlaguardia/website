@@ -2,7 +2,7 @@
   const STORAGE_KEY = 'site-font-choice';
   const DEFAULT_FONT_STACK = 'Tahoma, "MS Sans Serif", Geneva, sans-serif';
   const STYLE_ID = 'site-font-style';
-  const scriptEl = document.currentScript || Array.from(document.scripts).find(script => /site-fonts\.js(?:\?|$)/.test(script.src));
+  const scriptEl = document.currentScript;
   if (!scriptEl || !scriptEl.src) return;
   const fontDirUrl = new URL('./fonts/', scriptEl.src).toString();
   const manifestUrl = new URL('./fonts/manifest.json', scriptEl.src).toString();
@@ -134,8 +134,9 @@
 
   function loadActiveFont() {
     if (!activeFile || !document.fonts || typeof document.fonts.load !== 'function') return;
-    document.fonts.load('12px "' + cssString(faceNameForFile(activeFile)) + '"').catch(() => {
+    document.fonts.load('12px "' + cssString(faceNameForFile(activeFile)) + '"').catch(error => {
       // Missing or invalid uploaded font files should fall back to the default stack without breaking the page.
+      console.debug('Site font load skipped:', error);
     });
   }
 
@@ -165,7 +166,7 @@
 
   async function loadManifest() {
     try {
-      const response = await fetch(manifestUrl, { cache: 'no-cache' });
+      const response = await fetch(manifestUrl, { cache: 'default' });
       if (!response.ok) return [];
       const payload = await response.json();
       return Array.isArray(payload) ? payload : [];

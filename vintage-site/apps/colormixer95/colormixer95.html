@@ -1354,7 +1354,7 @@ document.getElementById('diaryExportBtn').addEventListener('click', ()=>{
   const c = document.createElement('canvas'); c.width = cw; c.height = ch;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#c0c0c0'; ctx.fillRect(0, 0, cw, ch);
-  ctx.fillStyle = '#000'; ctx.font = window.SiteFontManager ? window.SiteFontManager.getCanvasFont(13, 'Tahoma,Arial,sans-serif', { weight: 'bold' }) : 'bold 13px Tahoma,Arial,sans-serif';
+  ctx.fillStyle = '#000'; ctx.font = window.SiteFontManager.getCanvasFont(13, 'Tahoma,Arial,sans-serif', { weight: 'bold' });
   ctx.textAlign = 'left'; ctx.fillText('colormixer95 — Color Diary', DIARY_PAD, DIARY_PAD + 14);
   diaryColors.forEach((color, i)=>{
     const col = i % DIARY_EXPORT_COLS, row = Math.floor(i / DIARY_EXPORT_COLS);
@@ -1363,9 +1363,9 @@ document.getElementById('diaryExportBtn').addEventListener('click', ()=>{
     ctx.fillStyle = color.hex; ctx.fillRect(x, y, DIARY_SW, DIARY_SH);
     ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(x+0.5, y+0.5, DIARY_SW-1, DIARY_SH-1);
     const tc = diarySwatchTextColor(color.r, color.g, color.b);
-    ctx.fillStyle = tc; ctx.font = window.SiteFontManager ? window.SiteFontManager.getCanvasFont(10, 'Tahoma,Arial,sans-serif', { weight: 'bold' }) : 'bold 10px Tahoma,Arial,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = tc; ctx.font = window.SiteFontManager.getCanvasFont(10, 'Tahoma,Arial,sans-serif', { weight: 'bold' }); ctx.textAlign = 'center';
     ctx.fillText(color.hex, x + DIARY_SW/2, y + DIARY_SH/2 - 6);
-    ctx.font = window.SiteFontManager ? window.SiteFontManager.getCanvasFont(9, 'Tahoma,Arial,sans-serif') : '9px Tahoma,Arial,sans-serif'; ctx.fillText(color.r+','+color.g+','+color.b, x + DIARY_SW/2, y + DIARY_SH/2 + 8);
+    ctx.font = window.SiteFontManager.getCanvasFont(9, 'Tahoma,Arial,sans-serif'); ctx.fillText(color.r+','+color.g+','+color.b, x + DIARY_SW/2, y + DIARY_SH/2 + 8);
   });
   const link = document.createElement('a');
   link.download = 'colormixer95-diary-' + diaryTimestampTag() + '.jpg';

@@ -32,7 +32,7 @@ Add editable text on top of the processed image with full compositing controls a
 
 | Control | Range | Description |
 |---------|-------|-------------|
-| Text | (text input) | Content to render (single line) |
+| Text | (text input) | Content to render |
 | Stretch | 0–100 | Repeats text pixels in horizontal bands for a smear effect |
 | Warp | 0–100 | Applies smooth noise-based displacement to the text layer |
 | V-Tear | 0–100 | Adds a vertical rip to the text layer |

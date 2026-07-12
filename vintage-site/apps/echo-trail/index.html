@@ -1276,6 +1276,7 @@
   }
   function doRender(){
     renderToCanvas(workingCanvas, previewCanvas, getOpts());
+    updateFriedButtonGradient();
   }
 
   function clearOnboardingState(){
@@ -1555,16 +1556,90 @@
     if(row) row.classList.toggle('row-active', checked);
   }
 
+  const lum = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
+  const darkenRgb = ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`;
+  const toRgb = ({r,g,b}) => `rgb(${r},${g},${b})`;
+
+  function clearFriedButtonGradient(){
+    const btnFried = $('btn-fried');
+    btnFried.style.removeProperty('--frd-bg');
+    btnFried.style.removeProperty('--frd-bg-active');
+    btnFried.style.removeProperty('--frd-color');
+  }
+
+  function boostFluorescentColor({r,g,b}){
+    const rn = r/255, gn = g/255, bn = b/255;
+    const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if(max !== min){
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+        case rn: h = (gn - bn) / d + (gn < bn ? 6 : 0); break;
+        case gn: h = (bn - rn) / d + 2; break;
+        default: h = (rn - gn) / d + 4;
+      }
+      h /= 6;
+    }
+    const sat = Math.min(1, s * 1.7 + 0.08);
+    const light = Math.min(0.74, l * 1.08 + 0.05);
+    const hueToRgb = (p, q, t) => {
+      if(t < 0) t += 1;
+      if(t > 1) t -= 1;
+      if(t < 1/6) return p + (q - p) * 6 * t;
+      if(t < 1/2) return q;
+      if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    let rr, gg, bb;
+    if(sat === 0){
+      rr = gg = bb = light;
+    } else {
+      const q = light < 0.5 ? light * (1 + sat) : light + sat - light * sat;
+      const p = 2 * light - q;
+      rr = hueToRgb(p, q, h + 1/3);
+      gg = hueToRgb(p, q, h);
+      bb = hueToRgb(p, q, h - 1/3);
+    }
+    return {r:Math.round(rr*255), g:Math.round(gg*255), b:Math.round(bb*255)};
+  }
+
+  function updateFriedButtonGradient(){
+    const btnFried = $('btn-fried');
+    if(!originalCanvas.width || !originalCanvas.height || !previewCanvas.width || !previewCanvas.height){
+      clearFriedButtonGradient();
+      return;
+    }
+    try{
+      const pctx = previewCanvas.getContext('2d');
+      const pw = previewCanvas.width;
+      const ph = previewCanvas.height;
+      const samplePoints = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
+      const colors = samplePoints.map(([nx, ny])=>{
+        const x = Math.max(0, Math.min(pw - 1, Math.round((pw - 1) * nx)));
+        const y = Math.max(0, Math.min(ph - 1, Math.round((ph - 1) * ny)));
+        const px = pctx.getImageData(x, y, 1, 1).data;
+        return boostFluorescentColor({r:px[0], g:px[1], b:px[2]});
+      });
+      const avgLumF = (lum(colors[0]) + lum(colors[1]) + lum(colors[2])) / 3;
+      const gradF = `linear-gradient(135deg, ${toRgb(colors[0])} 0%, ${toRgb(colors[1])} 50%, ${toRgb(colors[2])} 100%)`;
+      const gradFActive = `linear-gradient(135deg, ${darkenRgb(colors[0])} 0%, ${darkenRgb(colors[1])} 50%, ${darkenRgb(colors[2])} 100%)`;
+      btnFried.style.setProperty('--frd-bg', gradF);
+      btnFried.style.setProperty('--frd-bg-active', gradFActive);
+      btnFried.style.setProperty('--frd-color', avgLumF > 140 ? '#000' : '#fff');
+    } catch {
+      clearFriedButtonGradient();
+    }
+  }
+
   function updateRandomizeButtonGradient(){
     const btn = $('btn-randomize');
-    const btnFried = $('btn-fried');
     if(!originalCanvas.width || !originalCanvas.height){
       btn.style.removeProperty('--rnd-bg');
       btn.style.removeProperty('--rnd-bg-active');
       btn.style.removeProperty('--rnd-color');
-      btnFried.style.removeProperty('--frd-bg');
-      btnFried.style.removeProperty('--frd-bg-active');
-      btnFried.style.removeProperty('--frd-color');
+      clearFriedButtonGradient();
       return;
     }
     // Sample 3 random pixels to get varied color stops from the image's palette
@@ -1575,29 +1650,13 @@
       const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
       return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
     });
-    const lum = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
     const avgLum = (lum(c[0]) + lum(c[1]) + lum(c[2])) / 3;
-    // Darken by 18% for the pressed state
-    const darken = ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`;
-    const toRgb  = ({r,g,b}) => `rgb(${r},${g},${b})`;
     const grad       = `linear-gradient(135deg, ${toRgb(c[0])} 0%, ${toRgb(c[1])} 50%, ${toRgb(c[2])} 100%)`;
-    const gradActive = `linear-gradient(135deg, ${darken(c[0])} 0%, ${darken(c[1])} 50%, ${darken(c[2])} 100%)`;
+    const gradActive = `linear-gradient(135deg, ${darkenRgb(c[0])} 0%, ${darkenRgb(c[1])} 50%, ${darkenRgb(c[2])} 100%)`;
     btn.style.setProperty('--rnd-bg',        grad);
     btn.style.setProperty('--rnd-bg-active', gradActive);
     // Switch to white text when the image is too dark for black text to be legible
     btn.style.setProperty('--rnd-color',     avgLum > 140 ? '#000' : '#fff');
-
-    // Sample a fresh set of 3 pixels for the fried button gradient
-    const cf = [0,1,2].map(()=>{
-      const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
-      return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
-    });
-    const avgLumF = (lum(cf[0]) + lum(cf[1]) + lum(cf[2])) / 3;
-    const gradF       = `linear-gradient(135deg, ${toRgb(cf[0])} 0%, ${toRgb(cf[1])} 50%, ${toRgb(cf[2])} 100%)`;
-    const gradFActive = `linear-gradient(135deg, ${darken(cf[0])} 0%, ${darken(cf[1])} 50%, ${darken(cf[2])} 100%)`;
-    btnFried.style.setProperty('--frd-bg',        gradF);
-    btnFried.style.setProperty('--frd-bg-active', gradFActive);
-    btnFried.style.setProperty('--frd-color',     avgLumF > 140 ? '#000' : '#fff');
   }
 
   function randomize(){

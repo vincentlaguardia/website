@@ -1446,7 +1446,7 @@
     tctx.save();
     tctx.translate(px, py);
     tctx.rotate(ts.rotation * Math.PI / 180);
-    tctx.font         = `bold ${fs}px "${ts.fontFamily}", Impact, sans-serif`;
+    tctx.font         = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
     tctx.textAlign    = 'center';
     tctx.textBaseline = 'middle';
     tctx.fillStyle    = ts.color;
@@ -1463,20 +1463,30 @@
     const globalA = clamp(ts.opacity / 100, 0, 1);
 
     for (let i = 0; i < dst.length; i += 4) {
-      const sa = (src[i+3] / 255) * globalA; // text alpha × layer opacity
-      if (sa <= 0) continue;
+      const textAlpha = src[i+3]; // raw 0-255 alpha of the text pixel
+      if (textAlpha === 0) continue; // skip fully-transparent pixels (fast path)
+      const sa = (textAlpha / 255) * globalA; // effective text alpha × layer opacity
       for (let c = 0; c < 3; c++) {
         const d = dst[i+c], s = src[i+c];
         let blended;
         if (ts.blendMode === 'subtractive') {
           blended = clamp(d - s, 0, 255);
-        } else { // division: brightens image proportional to text luminance
-          blended = s > 0 ? clamp(Math.floor(d * 255 / s), 0, 255) : 255;
+        } else {
+          // Division: (dst / src) × 255; src=0 is treated as no-op (keep dst)
+          // to avoid unexpected full-white blowout from black/transparent text.
+          blended = s > 0 ? clamp(Math.floor(d * 255 / s), 0, 255) : d;
         }
         dst[i+c] = Math.round(d * (1 - sa) + blended * sa);
       }
     }
     ctx.putImageData(dstData, 0, 0);
+  }
+
+  // Escape a font-family value for safe use inside CSS double-quoted strings.
+  // Replaces backslashes first, then double-quotes, so the result can be
+  // safely interpolated as: `"${escapeFontFamily(name)}"`.
+  function escapeFontFamily(name) {
+    return String(name || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
   // Draw the text overlay onto the given canvas 2D context.
@@ -1499,7 +1509,7 @@
     ctx.translate(px, py);
     ctx.rotate(ts.rotation * Math.PI / 180);
     ctx.globalAlpha = clamp(ts.opacity / 100, 0, 1);
-    ctx.font         = `bold ${fs}px "${ts.fontFamily}", Impact, sans-serif`;
+    ctx.font         = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle    = ts.color;
@@ -1530,13 +1540,17 @@
 
     const url      = URL.createObjectURL(file);
     const baseName = file.name.replace(/\.[^.]+$/, '');
-    // Sanitise to a safe CSS font-family name
-    const family   = 'upload-' + baseName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+    // Sanitise to a safe CSS font-family name; append a counter suffix for uniqueness
+    // if multiple fonts are uploaded whose names share the same first 40 characters.
+    const sanitized = baseName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+    const family    = 'upload-' + sanitized + '-' + (Date.now() & 0xffff).toString(16);
 
     try {
       const font = new FontFace(family, `url(${url}) format("${mimeMap[ext]}")`);
       await font.load();
       document.fonts.add(font);
+      // Revoke the blob URL now that the font data is held by the FontFace object
+      URL.revokeObjectURL(url);
     } catch(err) {
       URL.revokeObjectURL(url);
       alert('Could not load font: ' + (err && err.message ? err.message : err));

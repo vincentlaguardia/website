@@ -1341,6 +1341,7 @@
     const numSlices = 1 + Math.round(strength * 4);
     const maxShift = Math.max(2, Math.round(width * 0.24 * strength));
     const splitChance = 0.18 + strength * 0.45;
+    const minVisibleAlpha = 4;
 
     for (let s = 0; s < numSlices; s++) {
       const sliceW = Math.max(2, Math.round(width * (0.03 + Math.random() * 0.14)));
@@ -1357,7 +1358,7 @@
           const srcX = clamp(x - shift, 0, width - 1);
           const idx = (y * width + x) * 4;
           const si = (y * width + srcX) * 4;
-          const doSplit = src[si + 3] > 4 && Math.random() < splitChance;
+          const doSplit = src[si + 3] > minVisibleAlpha && Math.random() < splitChance;
           if (doSplit) {
             const srcXr = clamp(srcX - splitDir * splitShift, 0, width - 1);
             const srcXb = clamp(srcX + splitDir * splitShift, 0, width - 1);
@@ -1378,7 +1379,7 @@
         if (seamX < 0 || seamX >= width) return;
         for (let y = 0; y < height; y++) {
           const idx = (y * width + seamX) * 4;
-          if (data[idx + 3] <= 4 || Math.random() >= (0.35 + strength * 0.45)) continue;
+          if (data[idx + 3] <= minVisibleAlpha || Math.random() >= (0.35 + strength * 0.45)) continue;
           const bright = 165 + Math.random() * 90;
           data[idx] = bright;
           data[idx + 1] = bright;

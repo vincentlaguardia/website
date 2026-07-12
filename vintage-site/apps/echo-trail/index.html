@@ -374,7 +374,7 @@
       </div>
       <input type="file" id="file-input" accept="image/*" hidden>
       <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" hidden>
-      <select id="text-font" hidden aria-label="Text layer font template">
+      <select id="text-font" hidden>
         <option value="Impact">Impact</option>
         <option value="Arial Black">Arial Black</option>
         <option value="Arial">Arial</option>
@@ -387,7 +387,7 @@
         <option value="Trebuchet MS">Trebuchet MS</option>
         <option value="__upload__">Upload Font…</option>
       </select>
-      <select id="text-blend" hidden aria-label="Text layer blend template">
+      <select id="text-blend" hidden>
         <option value="normal">Normal</option>
         <option value="additive">Additive</option>
         <option value="subtractive">Subtractive</option>
@@ -1629,7 +1629,7 @@
   function formatSelectOptionLabel(value, fallback = 'Custom') {
     // These labels are assigned via textContent, so the browser handles HTML
     // escaping; we only normalize non-printable characters for readability.
-    const safeValue = String(value ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+    const safeValue = String(value ?? '').replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim();
     return safeValue || fallback;
   }
 
@@ -1646,8 +1646,9 @@
       option.textContent = formatSelectOptionLabel(selectedValue);
       selectEl.appendChild(option);
     }
-    // An empty string intentionally represents "no available option matched yet".
-    selectEl.value = selectedValue ?? selectEl.options[0]?.value ?? '';
+    if (selectedValue != null) selectEl.value = selectedValue;
+    else if (selectEl.options.length) selectEl.value = selectEl.options[0].value;
+    else selectEl.value = '';
   }
 
   function setTemplateSelectValue(id, value) {
@@ -3166,7 +3167,7 @@
       // unsupported or failed uploads.
       if(e.target.files[0]) {
         const family = await loadCustomFont(e.target.files[0]);
-        const layer = targetLayerId ? getTextLayerById(targetLayerId) : getSelectedTextLayer();
+        const layer = getTextLayerById(targetLayerId) || getSelectedTextLayer();
         if (family && layer) {
           layer.fontFamily = family;
           selectAndSyncTextLayer(layer.id);

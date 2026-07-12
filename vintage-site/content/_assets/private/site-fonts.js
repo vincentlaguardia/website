@@ -134,7 +134,7 @@
 
   function loadActiveFont() {
     if (!activeFile || !document.fonts || typeof document.fonts.load !== 'function') return;
-    document.fonts.load('12px "' + cssString(faceNameForFile(activeFile)) + '"').catch(error => {
+    document.fonts.load('12px "' + faceNameForFile(activeFile) + '"').catch(error => {
       // Missing or invalid uploaded font files should fall back to the default stack without breaking the page.
       console.debug('Site font load skipped for ' + activeFile + ':', error);
     });
@@ -191,7 +191,7 @@
     if (opts.weight) prefix.push(opts.weight);
     prefix.push(String(size || 12) + 'px');
     const fallback = defaultStack || DEFAULT_FONT_STACK;
-    const stack = activeFile ? ('"' + cssString(faceNameForFile(activeFile)) + '", ' + fallback) : fallback;
+    const stack = activeFile ? ('"' + faceNameForFile(activeFile) + '", ' + fallback) : fallback;
     return prefix.join(' ') + ' ' + stack;
   }
 

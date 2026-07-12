@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>q7mxf4k2pazn6vtrcdj9hslbeyw3u5g8o0</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="content/_assets/private/site-fonts.js"></script>
 <style>
   /* ============================================================
      CHANGE YOUR PASSWORD in the <script> block below:
@@ -21,7 +22,7 @@
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; height: 100%; width: 100%;
-    font-family: Tahoma, "MS Sans Serif", Geneva, sans-serif;
+    font-family: var(--site-font-family, Tahoma, "MS Sans Serif", Geneva, sans-serif);
     font-size: 12px;
     overflow: hidden;
     -webkit-user-select: none; user-select: none;
@@ -434,7 +435,7 @@
   .picture-window { resize: both; overflow: hidden; }
 
   /* ---- WMP XP-style audio preview ---- */
-  .pv-audio-viewer { width:100%; height:100%; display:flex; flex-direction:column; background:#111110; font-family:Tahoma,'MS Sans Serif',sans-serif; }
+  .pv-audio-viewer { width:100%; height:100%; display:flex; flex-direction:column; background:#111110; font-family:var(--site-font-family, Tahoma, "MS Sans Serif", sans-serif); }
   .pv-audio-display { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 6px 4px; background:#111110; min-height:0; }
   .pv-audio-viz { flex:1; width:100%; display:block; min-height:40px; }
   .pv-audio-title { color:var(--pv-accent,#79fa0f); font-size:12px; text-align:center; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:none; letter-spacing:0.5px; }
@@ -599,7 +600,7 @@
     z-index: 6100;
     width: 44px;
     font-size: 11px;
-    font-family: 'MS Sans Serif', Tahoma, sans-serif;
+    font-family: var(--site-font-family, "MS Sans Serif", Tahoma, sans-serif);
   }
   #vol-popup.open { display: flex; }
   #vol-popup-label { font-size: 10px; color: #333; white-space: nowrap; }
@@ -702,7 +703,7 @@
     background: #fff;
     border: 1px solid #000;
     box-shadow: 1px 1px 4px rgba(0,0,0,0.5);
-    font-family: Tahoma, sans-serif;
+    font-family: var(--site-font-family, Tahoma, sans-serif);
     font-size: 15px;
     font-weight: bold;
     padding: 3px 4px;
@@ -827,7 +828,7 @@
     overflow: hidden;
     isolation: isolate;
     transform: translateZ(0);
-    font-family: Tahoma, sans-serif;
+    font-family: var(--site-font-family, Tahoma, sans-serif);
     cursor: default;
   }
   .face-head-img {
@@ -2344,6 +2345,26 @@ function openBrowserWindow(landingUrlOverride) {
 }
 
 /* ---------- context menu ---------- */
+function shouldUseDesktopContextMenu(event) {
+  if (event && typeof event.pointerType === 'string') return event.pointerType === 'mouse';
+  return !(window.matchMedia && window.matchMedia('(pointer: coarse)').matches && window.matchMedia('(hover: none)').matches);
+}
+
+function buildFontContextMenuEntries() {
+  const fontManager = window.SiteFontManager;
+  if (!fontManager) return [{ label: 'Font controls unavailable' }];
+  const fonts = fontManager.getAvailableFonts();
+  const activeFile = fontManager.getActiveFile();
+  const entries = fonts.length
+    ? fonts.map(font => ({
+        label: (font.file === activeFile ? '\u2713 ' : '    ') + font.label,
+        onClick: () => fontManager.applyFontFile(font.file)
+      }))
+    : [{ label: '(add .ttf files to content/_assets/private/fonts/)' }];
+  entries.push({ label: 'Reset to Default', onClick: () => fontManager.reset() });
+  return entries;
+}
+
 function closeSubmenu() {
   const existing = document.getElementById('ctx-submenu');
   if (existing) existing.remove();
@@ -2422,6 +2443,9 @@ function showContextMenu(x, y, menuEntries) {
 }
 
 document.addEventListener('click', closeContextMenu);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeContextMenu();
+});
 document.addEventListener('contextmenu', e => {
   if (!e.target.closest('.grid-item, .details-row, .desktop-icon-item')) closeContextMenu();
 });
@@ -8822,6 +8846,7 @@ function buildDesktopIcons() {
   if (!wrap.dataset.newFolderBound) {
     wrap.dataset.newFolderBound = '1';
     wrap.addEventListener('contextmenu', e => {
+      if (!shouldUseDesktopContextMenu(e)) return;
       e.preventDefault();
       e.stopPropagation();
       const menuEntries = [];
@@ -8835,6 +8860,7 @@ function buildDesktopIcons() {
         ]
       });
       menuEntries.push(
+        { label: 'Fonts', subMenu: buildFontContextMenuEntries() },
         { label: 'Change Background', onClick: openBackgroundPickerWindow },
         { label: 'Palette', onClick: openSchemeWindow }
       );

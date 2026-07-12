@@ -1276,6 +1276,7 @@
   }
   function doRender(){
     renderToCanvas(workingCanvas, previewCanvas, getOpts());
+    updatePastramiButtonGradient();
   }
 
   function clearOnboardingState(){
@@ -1555,16 +1556,111 @@
     if(row) row.classList.toggle('row-active', checked);
   }
 
+  const ColorUtils = {
+    getLuminance: ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b,
+    darkenRgb: ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`,
+    toRgb: ({r,g,b}) => `rgb(${r},${g},${b})`
+  };
+  const LUMINANCE_TEXT_SWITCH = 140;
+  const FLUORESCENT_SATURATION_MULTIPLIER = 1.7;
+  const FLUORESCENT_SATURATION_OFFSET = 0.08;
+  const FLUORESCENT_LIGHTNESS_MULTIPLIER = 1.08;
+  const FLUORESCENT_LIGHTNESS_OFFSET = 0.05;
+  const FLUORESCENT_LIGHTNESS_CEILING = 0.74;
+  // These normalized points sample separate frame regions (upper-left, mid-right, lower-mid)
+  // so the Pastrami gradient tracks the rendered image without flickering on every render.
+  const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
+  let pastramiGradientReadWarningShown = false;
+
+  function clearFriedButtonGradient(){
+    const btnFried = $('btn-fried');
+    btnFried.style.removeProperty('--frd-bg');
+    btnFried.style.removeProperty('--frd-bg-active');
+    btnFried.style.removeProperty('--frd-color');
+  }
+
+  // Converts sampled preview RGB to HSL, boosts saturation/lightness with the fluorescent
+  // tuning constants above, then converts back to RGB for the Dr. Pastrami button gradient.
+  function boostFluorescentColor({r,g,b}){
+    const normalizedR = r/255, normalizedG = g/255, normalizedB = b/255;
+    const max = Math.max(normalizedR, normalizedG, normalizedB);
+    const min = Math.min(normalizedR, normalizedG, normalizedB);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    if(max !== min){
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+        case normalizedR: h = (normalizedG - normalizedB) / d + (normalizedG < normalizedB ? 6 : 0); break;
+        case normalizedG: h = (normalizedB - normalizedR) / d + 2; break;
+        default: h = (normalizedR - normalizedG) / d + 4;
+      }
+      h /= 6;
+    }
+    const sat = Math.min(1, s * FLUORESCENT_SATURATION_MULTIPLIER + FLUORESCENT_SATURATION_OFFSET);
+    const light = Math.min(FLUORESCENT_LIGHTNESS_CEILING, l * FLUORESCENT_LIGHTNESS_MULTIPLIER + FLUORESCENT_LIGHTNESS_OFFSET);
+    const hueToRgb = (p, q, t) => {
+      if(t < 0) t += 1;
+      if(t > 1) t -= 1;
+      if(t < 1/6) return p + (q - p) * 6 * t;
+      if(t < 1/2) return q;
+      if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    let outputR;
+    let outputG;
+    let outputB;
+    if(sat === 0){
+      outputR = outputG = outputB = light;
+    } else {
+      const q = light < 0.5 ? light * (1 + sat) : light + sat - light * sat;
+      const p = 2 * light - q;
+      outputR = hueToRgb(p, q, h + 1/3);
+      outputG = hueToRgb(p, q, h);
+      outputB = hueToRgb(p, q, h - 1/3);
+    }
+    return {r:Math.round(outputR*255), g:Math.round(outputG*255), b:Math.round(outputB*255)};
+  }
+
+  function updatePastramiButtonGradient(){
+    const btnFried = $('btn-fried');
+    if(!originalCanvas.width || !originalCanvas.height || !previewCanvas.width || !previewCanvas.height){
+      clearFriedButtonGradient();
+      return;
+    }
+    try{
+      const pctx = previewCanvas.getContext('2d');
+      const pw = previewCanvas.width;
+      const ph = previewCanvas.height;
+      // Stable sampling points keep the Pastrami button tied to the current frame without flickering.
+      const colors = PREVIEW_SAMPLE_POINTS.map(([nx, ny])=>{
+        const x = Math.max(0, Math.min(pw - 1, Math.round((pw - 1) * nx)));
+        const y = Math.max(0, Math.min(ph - 1, Math.round((ph - 1) * ny)));
+        const px = pctx.getImageData(x, y, 1, 1).data;
+        return boostFluorescentColor({r:px[0], g:px[1], b:px[2]});
+      });
+      const averageLuminance = (ColorUtils.getLuminance(colors[0]) + ColorUtils.getLuminance(colors[1]) + ColorUtils.getLuminance(colors[2])) / 3;
+      const gradF = `linear-gradient(135deg, ${ColorUtils.toRgb(colors[0])} 0%, ${ColorUtils.toRgb(colors[1])} 50%, ${ColorUtils.toRgb(colors[2])} 100%)`;
+      const gradFActive = `linear-gradient(135deg, ${ColorUtils.darkenRgb(colors[0])} 0%, ${ColorUtils.darkenRgb(colors[1])} 50%, ${ColorUtils.darkenRgb(colors[2])} 100%)`;
+      btnFried.style.setProperty('--frd-bg', gradF);
+      btnFried.style.setProperty('--frd-bg-active', gradFActive);
+      btnFried.style.setProperty('--frd-color', averageLuminance > LUMINANCE_TEXT_SWITCH ? '#000' : '#fff');
+    } catch(err) {
+      clearFriedButtonGradient();
+      if(!pastramiGradientReadWarningShown){
+        pastramiGradientReadWarningShown = true;
+        console.warn('Echo Trail: unable to sample preview canvas for Dr. Pastrami button colors (possible cross-origin canvas taint).', err);
+      }
+    }
+  }
+
   function updateRandomizeButtonGradient(){
     const btn = $('btn-randomize');
-    const btnFried = $('btn-fried');
     if(!originalCanvas.width || !originalCanvas.height){
       btn.style.removeProperty('--rnd-bg');
       btn.style.removeProperty('--rnd-bg-active');
       btn.style.removeProperty('--rnd-color');
-      btnFried.style.removeProperty('--frd-bg');
-      btnFried.style.removeProperty('--frd-bg-active');
-      btnFried.style.removeProperty('--frd-color');
+      clearFriedButtonGradient();
       return;
     }
     // Sample 3 random pixels to get varied color stops from the image's palette
@@ -1575,29 +1671,13 @@
       const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
       return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
     });
-    const lum = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
-    const avgLum = (lum(c[0]) + lum(c[1]) + lum(c[2])) / 3;
-    // Darken by 18% for the pressed state
-    const darken = ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`;
-    const toRgb  = ({r,g,b}) => `rgb(${r},${g},${b})`;
-    const grad       = `linear-gradient(135deg, ${toRgb(c[0])} 0%, ${toRgb(c[1])} 50%, ${toRgb(c[2])} 100%)`;
-    const gradActive = `linear-gradient(135deg, ${darken(c[0])} 0%, ${darken(c[1])} 50%, ${darken(c[2])} 100%)`;
+    const averageLuminance = (ColorUtils.getLuminance(c[0]) + ColorUtils.getLuminance(c[1]) + ColorUtils.getLuminance(c[2])) / 3;
+    const grad       = `linear-gradient(135deg, ${ColorUtils.toRgb(c[0])} 0%, ${ColorUtils.toRgb(c[1])} 50%, ${ColorUtils.toRgb(c[2])} 100%)`;
+    const gradActive = `linear-gradient(135deg, ${ColorUtils.darkenRgb(c[0])} 0%, ${ColorUtils.darkenRgb(c[1])} 50%, ${ColorUtils.darkenRgb(c[2])} 100%)`;
     btn.style.setProperty('--rnd-bg',        grad);
     btn.style.setProperty('--rnd-bg-active', gradActive);
     // Switch to white text when the image is too dark for black text to be legible
-    btn.style.setProperty('--rnd-color',     avgLum > 140 ? '#000' : '#fff');
-
-    // Sample a fresh set of 3 pixels for the fried button gradient
-    const cf = [0,1,2].map(()=>{
-      const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
-      return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
-    });
-    const avgLumF = (lum(cf[0]) + lum(cf[1]) + lum(cf[2])) / 3;
-    const gradF       = `linear-gradient(135deg, ${toRgb(cf[0])} 0%, ${toRgb(cf[1])} 50%, ${toRgb(cf[2])} 100%)`;
-    const gradFActive = `linear-gradient(135deg, ${darken(cf[0])} 0%, ${darken(cf[1])} 50%, ${darken(cf[2])} 100%)`;
-    btnFried.style.setProperty('--frd-bg',        gradF);
-    btnFried.style.setProperty('--frd-bg-active', gradFActive);
-    btnFried.style.setProperty('--frd-color',     avgLumF > 140 ? '#000' : '#fff');
+    btn.style.setProperty('--rnd-color',     averageLuminance > LUMINANCE_TEXT_SWITCH ? '#000' : '#fff');
   }
 
   function randomize(){

@@ -110,6 +110,14 @@
   #btn-randomize:active{
     background:var(--rnd-bg-active, linear-gradient(180deg, #f3d250 0%, #e0bb35 100%));
   }
+  #btn-fried{
+    background:var(--frd-bg, linear-gradient(180deg, #ffe58a 0%, #f3d250 100%));
+    color:var(--frd-color, #3f2a00);
+    font-weight:bold;
+  }
+  #btn-fried:active{
+    background:var(--frd-bg-active, linear-gradient(180deg, #f3d250 0%, #e0bb35 100%));
+  }
 
   .main-area{ display:flex; flex-direction:column; gap:8px; padding:8px; flex:1; min-height:0; overflow:auto; }
   .canvas-panel{
@@ -263,7 +271,7 @@
       <button class="btn95" id="btn-load">Load Image</button>
       <button class="btn95" id="btn-save">Save</button>
       <button class="btn95" id="btn-randomize">Randomize</button>
-      <button class="btn95" id="btn-fried">Fucked</button>
+      <button class="btn95" id="btn-fried">Dr. Pastrami Mode</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
       <div class="diary-lastswatch sunken" id="diary-last-swatch" title="Last clicked color" role="img" aria-label="Last clicked color swatch"></div>
@@ -1549,10 +1557,14 @@
 
   function updateRandomizeButtonGradient(){
     const btn = $('btn-randomize');
+    const btnFried = $('btn-fried');
     if(!originalCanvas.width || !originalCanvas.height){
       btn.style.removeProperty('--rnd-bg');
       btn.style.removeProperty('--rnd-bg-active');
       btn.style.removeProperty('--rnd-color');
+      btnFried.style.removeProperty('--frd-bg');
+      btnFried.style.removeProperty('--frd-bg-active');
+      btnFried.style.removeProperty('--frd-color');
       return;
     }
     // Sample 3 random pixels to get varied color stops from the image's palette
@@ -1574,6 +1586,18 @@
     btn.style.setProperty('--rnd-bg-active', gradActive);
     // Switch to white text when the image is too dark for black text to be legible
     btn.style.setProperty('--rnd-color',     avgLum > 140 ? '#000' : '#fff');
+
+    // Sample a fresh set of 3 pixels for the fried button gradient
+    const cf = [0,1,2].map(()=>{
+      const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
+      return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
+    });
+    const avgLumF = (lum(cf[0]) + lum(cf[1]) + lum(cf[2])) / 3;
+    const gradF       = `linear-gradient(135deg, ${toRgb(cf[0])} 0%, ${toRgb(cf[1])} 50%, ${toRgb(cf[2])} 100%)`;
+    const gradFActive = `linear-gradient(135deg, ${darken(cf[0])} 0%, ${darken(cf[1])} 50%, ${darken(cf[2])} 100%)`;
+    btnFried.style.setProperty('--frd-bg',        gradF);
+    btnFried.style.setProperty('--frd-bg-active', gradFActive);
+    btnFried.style.setProperty('--frd-color',     avgLumF > 140 ? '#000' : '#fff');
   }
 
   function randomize(){
@@ -1665,7 +1689,7 @@
     $('scan-tear').value = 50+Math.floor(Math.random()*50);
     setRowActive('scan-tear-shift', true);
     $('scan-tear-shift').value = 30+Math.floor(Math.random()*30);
-    setRowActive('scan-vmisalign', true);
+    setRowActive('scan-vmisalign', Math.random()<0.20);
     $('scan-vmisalign').value = 65+Math.floor(Math.random()*35);
     setRowActive('grain-intensity', true);
     $('grain-intensity').value = 50+Math.floor(Math.random()*40);

@@ -380,6 +380,9 @@
     z-index: 7000;
     padding: 2px;
     min-width: 140px;
+    max-height: min(70vh, 420px);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   .ctx-menu-item {
     padding: 5px 12px; font-size: 12px; cursor: default; color: #000;
@@ -2355,13 +2358,23 @@ function buildFontContextMenuEntries() {
   if (!fontManager) return [{ label: 'Font controls unavailable' }];
   const fonts = fontManager.getAvailableFonts();
   const activeFile = fontManager.getActiveFile();
-  const entries = fonts.length
-    ? fonts.map(font => ({
+  const defaultFontStack = fontManager.DEFAULT_FONT_STACK || 'Tahoma, "MS Sans Serif", Geneva, sans-serif';
+  const entries = [{
+    label: (!activeFile ? '\u2713 ' : '    ') + 'Default',
+    fontFamily: defaultFontStack,
+    onClick: () => fontManager.reset()
+  }];
+  if (fonts.length) {
+    fonts.forEach(font => {
+      entries.push({
         label: (font.file === activeFile ? '\u2713 ' : '    ') + font.label,
+        fontFamily: font.fontStack || ('"' + font.faceName + '", ' + defaultFontStack),
         onClick: () => fontManager.applyFontFile(font.file)
-      }))
-    : [{ label: '(add .ttf files to content/_assets/private/fonts/)' }];
-  entries.push({ label: 'Reset to Default', onClick: () => fontManager.reset() });
+      });
+    });
+  } else {
+    entries.push({ label: '(add .ttf files to content/_assets/private/fonts/)' });
+  }
   return entries;
 }
 
@@ -2399,6 +2412,7 @@ function buildMenuRows(entries, menuEl, isSubmenu) {
     } else {
       row.textContent = entry.label;
     }
+    if (entry.fontFamily) row.style.fontFamily = entry.fontFamily;
     if (entry.subMenu) {
       const openSub = () => {
         closeSubmenu();

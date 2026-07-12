@@ -1581,7 +1581,8 @@
 
   function boostFluorescentColor({r,g,b}){
     const normalizedR = r/255, normalizedG = g/255, normalizedB = b/255;
-    const max = Math.max(normalizedR, normalizedG, normalizedB), min = Math.min(normalizedR, normalizedG, normalizedB);
+    const max = Math.max(normalizedR, normalizedG, normalizedB);
+    const min = Math.min(normalizedR, normalizedG, normalizedB);
     let h = 0, s = 0;
     const l = (max + min) / 2;
     if(max !== min){
@@ -1604,7 +1605,9 @@
       if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
       return p;
     };
-    let outputR, outputG, outputB;
+    let outputR;
+    let outputG;
+    let outputB;
     if(sat === 0){
       outputR = outputG = outputB = light;
     } else {

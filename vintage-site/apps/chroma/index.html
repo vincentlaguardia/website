@@ -676,18 +676,18 @@
           </div>
         </div>
       </div>
-      <button class="ctrl-btn" id="cc-hide-targets">Hide</button>
+      <button class="ctrl-btn" id="cc-toggle-dots">Dots Off</button>
       <div class="picker-with-hex">
-        <input type="color" id="cc-target-color" value="#ec93d9">
+        <input type="color" id="cc-target-color" value="#a8a8a8">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
       <div class="match-sat-control">
         <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Sat: continuously lock Saturation to the selected source color" aria-pressed="false">Match Sat</button>
         <div class="match-source-wrap">
-          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select saturation match source">Circle &#9662;</button>
+          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select saturation match source">Dot &#9662;</button>
           <div class="match-source-dropdown raised" id="cc-match-source-dropdown">
-            <div class="menu-option active" data-source="circle">Circle</div>
+            <div class="menu-option active" data-source="dot">Dot</div>
             <div class="menu-option" data-source="skew">Skew</div>
             <div class="menu-option" data-source="focus">Focus</div>
             <div class="menu-option" data-source="user" id="cc-match-source-user" style="display:none">User</div>
@@ -750,7 +750,7 @@
   <div class="winbody">
     <div class="content-panel sunken">
       <div id="help-content"><p class="lead" style="margin-top:0;">this is a color study</p>
-      <p class="lead">all nine circles are the same color, but each one appears to change because it sits inside a different palette.</p>
+      <p class="lead">all nine dots are the same color, but each one appears to change because it sits inside a different palette.</p>
       <p class="lead">that trick is called simultaneous contrast. a color is never only itself, it is shaped by the colors around it.</p>
       <p class="lead">every hue lives somewhere on a circle from 0 to 360 degrees. red is near 0, yellow near 60, green near 120, cyan near 180, blue near 240, magenta near 300, then back to red again.</p>
       <p class="lead">a palette philosophy is a rule for choosing colors from that circle.</p>
@@ -816,9 +816,9 @@
         <p class="lead">this position differs from color harmonization methods that optimize an existing image toward a recognized harmony template. techno mode permits movement away from such a template and treats the resulting tension as an intended feature.</p>
         <p class="lead"><strong>3. structural substrate</strong></p>
         <p class="lead"><strong>3.1 grid</strong></p>
-        <p class="lead">the reference composition uses a 7 &times; 7 grid containing 49 cells. nine cells contain target circles and 40 act as background or support cells:</p>
+        <p class="lead">the reference composition uses a 7 &times; 7 grid containing 49 cells. nine cells contain target dots and 40 act as background or support cells:</p>
         <span class="math">9/49 &asymp; 18.4%&nbsp;&nbsp;&nbsp;&nbsp;40/49 &asymp; 81.6%</span>
-        <p class="lead">because support cells occupy most of the field, the overall composition is driven primarily by relationships among background colors, not by the target circles alone.</p>
+        <p class="lead">because support cells occupy most of the field, the overall composition is driven primarily by relationships among background colors, not by the target dots alone.</p>
         <p class="lead">the 7 &times; 7 configuration is the reference implementation rather than a mathematical necessity. a generalized implementation may use an r &times; c grid, provided the spatial and chromatic stages remain separate.</p>
         <p class="lead"><strong>3.2 modular diagonal band field</strong></p>
         <p class="lead">for zero indexed row r, column c, and band count n, band membership is:</p>
@@ -1408,7 +1408,7 @@
   const canvas = document.getElementById('cc-canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const targetColorInput = document.getElementById('cc-target-color');
-  const hideTargetsBtn = document.getElementById('cc-hide-targets');
+  const toggleDotsBtn = document.getElementById('cc-toggle-dots');
   const satSlider = document.getElementById('cc-sat');
   const matchSatBtn = document.getElementById('cc-match-sat');
   const matchSourceBtn = document.getElementById('cc-match-source-btn');
@@ -1434,7 +1434,7 @@
   const COLS = 7, ROWS = 7;
   let TARGET = hexToRgbObj(targetColorInput.value);
   let userChangedTargetColor = false;
-  const TARGET_CELLS = [
+  const DOT_CELLS = [
     {col:1,row:1}, {col:3,row:1}, {col:5,row:1},
     {col:1,row:3}, {col:3,row:3}, {col:5,row:3},
     {col:1,row:5}, {col:3,row:5}, {col:5,row:5}
@@ -1442,7 +1442,7 @@
   const zones = [];
   for(let row=0; row<ROWS; row++){
     for(let col=0; col<COLS; col++){
-      zones.push({ col, row, hasTarget: TARGET_CELLS.some(t=>t.col===col && t.row===row) });
+      zones.push({ col, row, hasDot: DOT_CELLS.some(t=>t.col===col && t.row===row) });
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
@@ -1598,7 +1598,7 @@
   let globalSatMul = satSlider.value/100;
   let baseHue = +hueSlider.value;
   let strange = +weirdSlider.value;
-  let showTargets = true;
+  let showDots = true;
   let dotSizeMode = DEFAULT_DOT_SIZE_MODE;
   let importedPalette = [];
   let importedMode = false;
@@ -1610,7 +1610,7 @@
   let focusActive = false;
   let focusHex = '#1fff8b';
   let matchSatActive = false;
-  let matchSatSource = 'circle'; // 'circle' | 'skew' | 'focus' | 'user'
+  let matchSatSource = 'dot'; // 'dot' | 'skew' | 'focus' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
   let matchSatValue = null; // raw HSL saturation (0–100) of the source color when active
   // (row + col) mod 4 maps cells into repeating diagonal bands.
@@ -1620,7 +1620,7 @@
   // --- Match Sat helpers ---
   function getMatchSatSourceRgb(){
     switch(matchSatSource){
-      case 'circle': return TARGET;
+      case 'dot': return TARGET;
       case 'skew': return (skewColor !== null) ? hexToRgbObj(skewInput.value) : null;
       case 'focus': return hexToRgbObj(focusHex);
       case 'user': return matchSatUserColor ? { r:matchSatUserColor.r, g:matchSatUserColor.g, b:matchSatUserColor.b } : null;
@@ -1664,7 +1664,7 @@
     } else {
       userOption.style.display = 'none';
     }
-    const labels = { circle:'Circle', skew:'Skew', focus:'Focus', user:'User' };
+    const labels = { dot:'Dot', skew:'Skew', focus:'Focus', user:'User' };
     matchSourceBtn.innerHTML = (labels[src] || 'Source') + ' &#9662;';
     syncMatchSatUI();
     if(matchSatActive){ applyMatchSat(); drawScene(); }
@@ -1685,7 +1685,7 @@
       ctx.fillStyle = zoneHex(z);
       const x = z.col*cw, y = z.row*ch;
       ctx.fillRect(x, y, cw+1, ch+1);
-      if(z.hasTarget && showTargets){
+      if(z.hasDot && showDots){
         const cx = x + cw/2, cy = y + ch/2;
         const r = getTargetRadius(cw, ch);
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
@@ -1854,10 +1854,10 @@
     drawScene();
   }
   targetColorInput.addEventListener('input', ()=>{ applyTargetHex(targetColorInput.value); });
-  hideTargetsBtn.addEventListener('click', ()=>{
-    showTargets = !showTargets;
-    hideTargetsBtn.textContent = showTargets ? 'Hide' : 'Show';
-    hideTargetsBtn.classList.toggle('is-active', !showTargets);
+  toggleDotsBtn.addEventListener('click', ()=>{
+    showDots = !showDots;
+    toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
+    toggleDotsBtn.classList.toggle('is-active', !showDots);
     drawScene();
   });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
@@ -1899,7 +1899,7 @@
     e.preventDefault();
     if(matchSatSource === 'user'){
       matchSatUserColor = null;
-      setMatchSatSource('circle');
+      setMatchSatSource('dot');
     }
   });
   syncMatchSatUI();

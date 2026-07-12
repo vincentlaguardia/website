@@ -260,8 +260,9 @@
     min-width:0;
   }
   .text-layer-font-btn{
-    flex:0 0 54px;
-    min-width:54px;
+    --font-btn-width:54px;
+    flex:0 0 var(--font-btn-width);
+    min-width:var(--font-btn-width);
     padding:0 6px;
     font-size:11px;
     white-space:nowrap;
@@ -1671,13 +1672,13 @@
       fontBtn.setAttribute('aria-label', fontBtn.title);
       fontBtn.style.fontFamily = getTextLayerButtonFontStack(layer.fontFamily);
       fontBtn.addEventListener('click', () => {
-        const fontSelect = $('text-font');
         if (selectedTextLayerId !== layer.id) {
           selectedTextLayerId = layer.id;
           renderTextLayerList();
           syncTextControlsFromSelectedLayer();
           scheduleRender();
         }
+        const fontSelect = $('text-font');
         if (fontSelect) fontSelect.focus();
       });
 
@@ -1919,7 +1920,7 @@
 
   function getTextLayerButtonFontStack(name) {
     const normalized = String(name || '').trim();
-    if (!normalized || !/^[\w\s\-&,.'()]+$/.test(normalized)) return 'Impact, sans-serif';
+    if (!normalized || !/^[A-Za-z0-9 _-]+$/.test(normalized)) return 'Impact, sans-serif';
     return `"${escapeFontFamily(normalized)}", Impact, sans-serif`;
   }
 

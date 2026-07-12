@@ -516,8 +516,9 @@ const MODES = {
     ],
     defaults: {R:128, G:128, B:128},
     layerColors(v){
+      const sq = n => Math.round(n*n/255);
       return [
-        [v.R, Math.round(v.G*v.G/255), Math.round(v.B*v.B/255)],
+        [v.R, sq(v.G), sq(v.B)],
         [255, v.G, 255],
         [255, 255, v.B],
       ];

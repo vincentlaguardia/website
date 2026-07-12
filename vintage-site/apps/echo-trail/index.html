@@ -1357,7 +1357,7 @@
           const srcX = clamp(x - shift, 0, width - 1);
           const idx = (y * width + x) * 4;
           const si = (y * width + srcX) * 4;
-          const doSplit = src[si + 3] > 0 && Math.random() < splitChance;
+          const doSplit = src[si + 3] > 4 && Math.random() < splitChance;
           if (doSplit) {
             const srcXr = clamp(srcX - splitDir * splitShift, 0, width - 1);
             const srcXb = clamp(srcX + splitDir * splitShift, 0, width - 1);
@@ -1499,8 +1499,10 @@
     if (!previewCanvas.width || !previewCanvas.height) return null;
     const rect = previewCanvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
-    const x = clamp((clientX - rect.left) * previewCanvas.width / rect.width, 0, previewCanvas.width - 1);
-    const y = clamp((clientY - rect.top) * previewCanvas.height / rect.height, 0, previewCanvas.height - 1);
+    const scaleX = previewCanvas.width / rect.width;
+    const scaleY = previewCanvas.height / rect.height;
+    const x = clamp((clientX - rect.left) * scaleX, 0, previewCanvas.width - 1);
+    const y = clamp((clientY - rect.top) * scaleY, 0, previewCanvas.height - 1);
     return { x, y };
   }
 
@@ -2552,11 +2554,13 @@
       if(textDragState.active && e.pointerId === textDragState.pointerId){
         const point = clientToPreviewCoords(e.clientX, e.clientY);
         if(!point) return;
-        const prevX = parseInt($('text-x') ? $('text-x').value : '50', 10);
-        const prevY = parseInt($('text-y') ? $('text-y').value : '50', 10);
+        const textXEl = $('text-x');
+        const textYEl = $('text-y');
+        const prevX = parseInt(textXEl ? textXEl.value : '50', 10);
+        const prevY = parseInt(textYEl ? textYEl.value : '50', 10);
         setTextPositionFromCanvas(point.x + textDragState.offsetX, point.y + textDragState.offsetY);
-        const nowX = parseInt($('text-x') ? $('text-x').value : '50', 10);
-        const nowY = parseInt($('text-y') ? $('text-y').value : '50', 10);
+        const nowX = parseInt(textXEl ? textXEl.value : '50', 10);
+        const nowY = parseInt(textYEl ? textYEl.value : '50', 10);
         if(nowX !== prevX || nowY !== prevY) textDragState.moved = true;
         e.preventDefault();
         return;

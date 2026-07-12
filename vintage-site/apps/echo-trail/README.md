@@ -26,21 +26,18 @@ It also works great hosted on GitHub Pages — just point Pages at the repo root
 - **Moire** — warped contour-line fingerprint texture
 - **Dr. Pastrami mode** — cranks everything into glitchy, fluorescent chaos in one click (button label in the UI)
 
-### New: Distortions
-
-- **Stretch** — repeats pixels in horizontal bands, creating a pixel-smear look; adjustable intensity controls band count and stretch factor
-- **Warp** — smooth noise-based pixel displacement (two-octave field); like looking through rippled glass
-- **V-Tear** — single dramatic vertical rip with a wavy noise-shaped seam; shifts everything to the right of the cut horizontally
-- **H-Tear** — single dramatic horizontal rip with a wavy noise-shaped seam; shifts everything below the cut vertically
-- **Img Opacity** — fades the full processed image toward black (100 = no change, 0 = solid black)
-
 ### New: Text Overlay
 
-Add editable text on top of the processed image with full compositing controls:
+Add editable text on top of the processed image with full compositing controls and text-only distortion effects:
 
 | Control | Range | Description |
 |---------|-------|-------------|
 | Text | (text input) | Content to render (single line) |
+| Stretch | 0–100 | Repeats text pixels in horizontal bands for a smear effect |
+| Warp | 0–100 | Applies smooth noise-based displacement to the text layer |
+| V-Tear | 0–100 | Adds a vertical rip to the text layer |
+| H-Tear | 0–100 | Adds a horizontal rip to the text layer |
+| Img Opacity | 0–100 % | Darkens the distorted text layer toward black before compositing |
 | Font | dropdown | Built-in font or uploaded custom font |
 | ↑ Font | button | Upload a custom font file |
 | Font Size | 8–200 px | Pixel size at preview resolution; scales proportionally on full-res export |
@@ -51,7 +48,7 @@ Add editable text on top of the processed image with full compositing controls:
 | Text Opacity | 0–100 % | Layer opacity of the text |
 | Blend | dropdown | How text is composited onto the image (see below) |
 
-**Toggle the "Text" button** to enable/disable the overlay. The text is re-editable and repositionable at any time before export.
+**Toggle the "Text" button** to enable/disable the overlay. The text is re-editable and repositionable at any time before export, and the Stretch / Warp / V-Tear / H-Tear / Img Opacity controls now affect only the text layer.
 
 ## Font Upload
 
@@ -80,4 +77,3 @@ Click **↑ Font** to pick a font file. The font is loaded via the `FontFace` AP
 ## Credit
 
 created by dr vincent j laguardia
-

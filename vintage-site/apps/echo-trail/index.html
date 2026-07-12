@@ -446,7 +446,11 @@
         </div>
 
         <div class="controls-col">
-          <div class="ctrl-section-label">— Distortions —</div>
+          <div class="ctrl-section-label">— Text Overlay —</div>
+          <div class="control-row">
+            <button type="button" class="item-toggle" id="text-enable-btn">Text</button>
+            <input type="text" id="text-content" class="text-input-95" placeholder="Enter text…" maxlength="200" value="ECHO TRAIL">
+          </div>
           <div class="control-row" style="--row-color:#B0D890;">
             <button type="button" class="item-toggle" data-target="fx-stretch" data-off="0">Stretch</button>
             <input type="range" id="fx-stretch" min="0" max="100" value="50">
@@ -471,12 +475,6 @@
             <button type="button" class="item-toggle active" data-target="fx-opacity" data-off="100">Img Opacity</button>
             <input type="range" id="fx-opacity" min="0" max="100" value="100">
             <span id="fx-opacity-val">100</span>
-          </div>
-
-          <div class="ctrl-section-label">— Text Overlay —</div>
-          <div class="control-row">
-            <button type="button" class="item-toggle" id="text-enable-btn">Text</button>
-            <input type="text" id="text-content" class="text-input-95" placeholder="Enter text…" maxlength="200" value="ECHO TRAIL">
           </div>
           <div class="control-row">
             <label style="width:80px;flex-shrink:0;font-size:11px;">Font</label>
@@ -1434,47 +1432,67 @@
     };
   }
 
-  // Pixel-level blend for blend modes that canvas globalCompositeOperation
-  // does not natively support (subtractive, division).  Renders text onto an
-  // offscreen canvas first, then blends into the destination pixel-by-pixel.
-  //   Subtractive: result = dst − src  (clamped ≥ 0)
-  //   Division:    result = (dst / src) × 255  (clamped ≤ 255; src=0 → 255)
-  function drawTextWithPixelBlend(ctx, w, h, ts, px, py, fs) {
-    const tmp  = document.createElement('canvas');
-    tmp.width  = w; tmp.height = h;
+  function buildTextOverlayCanvas(w, h, ts, distort) {
+    if (!ts.enabled || !ts.content.trim()) return null;
+    const tmp = document.createElement('canvas');
+    tmp.width = w;
+    tmp.height = h;
     const tctx = tmp.getContext('2d');
+    const scaleFactor = workingCanvas.height > 0 ? h / workingCanvas.height : 1;
+    const fs  = Math.max(4, Math.round(ts.fontSize * scaleFactor));
+    const px  = (ts.x / 100) * w;
+    const py  = (ts.y / 100) * h;
+
     tctx.save();
     tctx.translate(px, py);
     tctx.rotate(ts.rotation * Math.PI / 180);
+    tctx.globalAlpha = clamp(ts.opacity / 100, 0, 1);
     tctx.font         = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
     tctx.textAlign    = 'center';
     tctx.textBaseline = 'middle';
     tctx.fillStyle    = ts.color;
-    const lines  = ts.content.split('\n');
-    const lineH  = fs * 1.2;
+
+    const lines = ts.content.split('\n');
+    const lineH = fs * 1.2;
     lines.forEach((line, i) => {
       tctx.fillText(line, 0, (i - (lines.length - 1) / 2) * lineH);
     });
     tctx.restore();
 
+    const imgData = tctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    applyStretch(data, w, h, distort.stretch);
+    applyWarp(data, w, h, distort.warp);
+    applyVerticalTear(data, w, h, distort.vtear);
+    applyHorizontalTear(data, w, h, distort.htear);
+    applyImageOpacity(data, w, h, distort.opacity);
+    tctx.putImageData(imgData, 0, 0);
+    return tmp;
+  }
+
+  // Pixel-level blend for blend modes that canvas globalCompositeOperation
+  // does not natively support (subtractive, division). Renders the distorted
+  // text onto an offscreen canvas first, then blends it into the destination
+  // pixel-by-pixel.
+  //   Subtractive: result = dst − src  (clamped ≥ 0)
+  //   Division:    result = (dst / src) × 255  (clamped ≤ 255; src=0 → 255)
+  function drawTextWithPixelBlend(ctx, textCanvas, blendMode) {
+    const w = textCanvas.width;
+    const h = textCanvas.height;
     const dstData = ctx.getImageData(0, 0, w, h);
-    const srcData = tctx.getImageData(0, 0, w, h);
+    const srcData = textCanvas.getContext('2d').getImageData(0, 0, w, h);
     const dst = dstData.data, src = srcData.data;
-    const globalA = clamp(ts.opacity / 100, 0, 1);
 
     for (let i = 0; i < dst.length; i += 4) {
-      const textAlpha = src[i+3]; // raw 0-255 alpha of the text pixel
-      if (textAlpha === 0) continue; // skip fully-transparent pixels (fast path)
-      const sa = (textAlpha / 255) * globalA; // effective text alpha × layer opacity
+      const textAlpha = src[i+3];
+      if (textAlpha === 0) continue;
+      const sa = textAlpha / 255;
       for (let c = 0; c < 3; c++) {
         const d = dst[i+c], s = src[i+c];
         let blended;
-        if (ts.blendMode === 'subtractive') {
+        if (blendMode === 'subtractive') {
           blended = clamp(d - s, 0, 255);
         } else {
-          // Division: (dst / src) × 255, where s is the source colour channel
-          // value (0-255, not alpha). When s=0 (e.g. black text channel) treat
-          // it as a no-op (keep dst) to avoid blowing the image out to white.
           blended = s > 0 ? clamp(Math.floor(d * 255 / s), 0, 255) : d;
         }
         dst[i+c] = Math.round(d * (1 - sa) + blended * sa);
@@ -1493,39 +1511,21 @@
   // Draw the text overlay onto the given canvas 2D context.
   // Uses native blend modes for normal/additive/exclusion; falls back to
   // pixel processing for subtractive and division.
-  function drawTextOverlay(ctx, w, h, ts) {
-    if (!ts.enabled || !ts.content.trim()) return;
-    // Scale font size proportionally when rendering full-res export
-    const scaleFactor = workingCanvas.height > 0 ? h / workingCanvas.height : 1;
-    const fs  = Math.max(4, Math.round(ts.fontSize * scaleFactor));
-    const px  = (ts.x / 100) * w;
-    const py  = (ts.y / 100) * h;
-
+  function drawTextOverlay(ctx, w, h, ts, distort) {
+    const textCanvas = buildTextOverlayCanvas(w, h, ts, distort);
+    if (!textCanvas) return;
     if (ts.blendMode === 'subtractive' || ts.blendMode === 'division') {
-      drawTextWithPixelBlend(ctx, w, h, ts, px, py, fs);
+      drawTextWithPixelBlend(ctx, textCanvas, ts.blendMode);
       return;
     }
 
     ctx.save();
-    ctx.translate(px, py);
-    ctx.rotate(ts.rotation * Math.PI / 180);
-    ctx.globalAlpha = clamp(ts.opacity / 100, 0, 1);
-    ctx.font         = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle    = ts.color;
-
     switch (ts.blendMode) {
       case 'additive':  ctx.globalCompositeOperation = 'lighter';    break;
       case 'exclusion': ctx.globalCompositeOperation = 'exclusion';  break;
       default:          ctx.globalCompositeOperation = 'source-over'; break;
     }
-
-    const lines = ts.content.split('\n');
-    const lineH = fs * 1.2;
-    lines.forEach((line, i) => {
-      ctx.fillText(line, 0, (i - (lines.length - 1) / 2) * lineH);
-    });
+    ctx.drawImage(textCanvas, 0, 0);
     ctx.restore();
   }
 
@@ -1679,15 +1679,9 @@
     applyCorruption(data,w,h,opts.fried.corruption);
     // Moire runs last, like a print/scan texture over the finished composite
     applyMoire(data,w,h,opts.moire.amount,opts.moire.scale);
-    // New distortion effects — applied after core pipeline
-    applyStretch(data,w,h,opts.distort.stretch);
-    applyWarp(data,w,h,opts.distort.warp);
-    applyVerticalTear(data,w,h,opts.distort.vtear);
-    applyHorizontalTear(data,w,h,opts.distort.htear);
-    applyImageOpacity(data,w,h,opts.distort.opacity);
     dctx.putImageData(imgData,0,0);
-    // Text overlay uses canvas 2D API, composited after pixel processing
-    drawTextOverlay(dctx, w, h, getTextState());
+    // Text overlay uses canvas 2D API, with distortion controls applied only to the text layer
+    drawTextOverlay(dctx, w, h, getTextState(), opts.distort);
   }
 
   let renderPending=false;

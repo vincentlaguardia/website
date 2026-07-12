@@ -613,7 +613,7 @@
     <span id="status-dims">&mdash; &times; &mdash; px</span>
   </div>
 
-  <div id="text-color-diary-popup">
+  <div id="text-color-diary-popup" role="dialog" aria-label="Color Diary Picker" aria-modal="true">
     <div class="tcd-grid" id="tcd-grid"></div>
   </div>
 
@@ -3004,10 +3004,11 @@
     // Text color diary picker popup
     const tcdPopup = $('text-color-diary-popup');
     const tcdGrid = $('tcd-grid');
+    const TCD_MAX_SWATCHES = 18;
     function renderTcdGrid() {
       tcdGrid.innerHTML = '';
       const colors = diaryColors.slice();
-      const total = Math.min(colors.length, 18); // show up to 18 swatches
+      const total = Math.min(colors.length, TCD_MAX_SWATCHES);
       for (let i = 0; i < total; i++) {
         const c = colors[i];
         const sw = document.createElement('div');
@@ -3046,6 +3047,12 @@
         tcdPopup.classList.remove('show');
       }
     }, true);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && tcdPopup.classList.contains('show')) {
+        tcdPopup.classList.remove('show');
+        $('text-color-diary-btn').focus();
+      }
+    });
     ['text-size','text-rotation','text-opacity',...TEXT_DISTORT_IDS].forEach(id=>{
       $(id).addEventListener('input', ()=>{ syncSelectedTextLayerFromControls(); });
     });

@@ -260,6 +260,7 @@
     min-width:0;
   }
   .text-layer-font-btn{
+    /* Leaves room for the eye/X buttons while still fitting the "Font" label. */
     --font-btn-width:54px;
     flex:0 0 var(--font-btn-width);
     min-width:var(--font-btn-width);
@@ -1920,6 +1921,7 @@
 
   function getTextLayerButtonFontStack(name) {
     const normalized = String(name || '').trim();
+    // Button previews only mirror simple family names; anything else falls back.
     if (!normalized || !/^[A-Za-z0-9 _-]+$/.test(normalized)) return 'Impact, sans-serif';
     return `"${escapeFontFamily(normalized)}", Impact, sans-serif`;
   }

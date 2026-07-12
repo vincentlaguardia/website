@@ -255,23 +255,20 @@
   .text-layer-select.active{
     box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
+  .text-layer-font-select,
+  .text-layer-blend-select{
+    flex:0 0 92px;
+    width:92px;
+    min-width:72px;
+    font-size:10px;
+  }
+  .text-layer-font-select{
+    flex-basis:108px;
+    width:108px;
+  }
   .text-layer-text{
     flex:1;
     min-width:0;
-  }
-  .text-layer-text-btn{
-    max-width:110px;
-    min-width:58px;
-    padding:0 6px;
-    font-size:10px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    justify-content:flex-start;
-  }
-  .text-layer-text-btn.active{
-    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
-    background:#d8c8f0;
   }
   .text-layer-icon-btn{
     width:22px;
@@ -378,6 +375,26 @@
       </div>
       <input type="file" id="file-input" accept="image/*" hidden>
       <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" hidden>
+      <select id="text-font" hidden aria-hidden="true">
+        <option value="Impact">Impact</option>
+        <option value="Arial Black">Arial Black</option>
+        <option value="Arial">Arial</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Tahoma">Tahoma</option>
+        <option value="Comic Sans MS">Comic Sans MS</option>
+        <option value="Trebuchet MS">Trebuchet MS</option>
+        <option value="__upload__">Upload Font…</option>
+      </select>
+      <select id="text-blend" hidden aria-hidden="true">
+        <option value="normal">Normal</option>
+        <option value="additive">Additive</option>
+        <option value="subtractive">Subtractive</option>
+        <option value="exclusion">Exclusion</option>
+        <option value="division">Division</option>
+      </select>
     </div>
 
     <div class="main-area">
@@ -523,45 +540,17 @@
         </div>
 
         <div class="controls-col">
-          <div class="ctrl-section-label">— Text Overlay —</div>
-          <div class="ctrl-section-label">— Text Layers —</div>
+          <div class="ctrl-section-label">— Text Settings —</div>
           <div class="control-row">
             <div id="text-layer-list" class="text-layer-stack"></div>
           </div>
           <div class="control-row text-layer-add-row">
             <button type="button" class="btn95 text-layer-add-btn" id="text-layer-add-btn" title="Add text layer">+</button>
           </div>
-          <div class="ctrl-section-label">— Core Text Settings —</div>
-          <div class="control-row">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Font</label>
-            <select id="text-font">
-              <option value="Impact">Impact</option>
-              <option value="Arial Black">Arial Black</option>
-              <option value="Arial">Arial</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Courier New">Courier New</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Comic Sans MS">Comic Sans MS</option>
-              <option value="Trebuchet MS">Trebuchet MS</option>
-            </select>
-            <button type="button" class="btn95" id="text-font-upload-btn" title="Upload custom font (.ttf/.otf/.woff/.woff2)" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;">↑ Font</button>
-          </div>
           <div class="control-row">
             <label style="width:80px;flex-shrink:0;font-size:11px;">Color</label>
             <input type="color" id="text-color" value="#ffffff">
             <button type="button" class="btn95" id="text-color-diary-btn" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;" title="Pick from Color Diary">Diary</button>
-          </div>
-          <div class="control-row">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Blend</label>
-            <select id="text-blend">
-              <option value="normal">Normal</option>
-              <option value="additive">Additive</option>
-              <option value="subtractive">Subtractive</option>
-              <option value="exclusion">Exclusion</option>
-              <option value="division">Division</option>
-            </select>
           </div>
           <div class="control-row" style="--row-color:#E8C890;">
             <label style="width:80px;flex-shrink:0;font-size:11px;">Font Size</label>
@@ -578,7 +567,6 @@
             <input type="range" id="text-opacity" min="0" max="100" value="100">
             <span id="text-opacity-val">100</span>
           </div>
-          <div class="ctrl-section-label">— Text Effects —</div>
           <div class="control-row" style="--row-color:#B0D890;">
             <button type="button" class="item-toggle" data-target="fx-stretch" data-off="0">Stretch</button>
             <input type="range" id="fx-stretch" min="0" max="100" value="50">
@@ -1563,6 +1551,7 @@
   let selectedTextLayerId = null;
   let selectedTextLayerIds = new Set();
   let nextTextLayerNumber = 1;
+  let pendingFontUploadLayerId = null;
 
   function setControlValue(id, value) {
     const el = $(id);
@@ -1623,9 +1612,44 @@
     return textLayers.find(layer => layer.id === layerId) || null;
   }
 
+  function selectSingleTextLayer(layerId) {
+    if (selectedTextLayerId === layerId && selectedTextLayerIds.size === 1) return false;
+    selectedTextLayerId = layerId;
+    selectedTextLayerIds = new Set([layerId]);
+    renderTextLayerList();
+    syncTextControlsFromSelectedLayer();
+    return true;
+  }
+
   function getSelectedTextLayers() {
     if (!selectedTextLayerIds.size) return [getSelectedTextLayer()].filter(Boolean);
     return textLayers.filter(layer => selectedTextLayerIds.has(layer.id));
+  }
+
+  function syncSelectOptionsFromTemplate(selectEl, templateId, selectedValue) {
+    const template = $(templateId);
+    if (!selectEl || !template) return;
+    selectEl.innerHTML = template.innerHTML;
+    const hasValue = Array.from(selectEl.options).some(option => option.value === selectedValue);
+    if (!hasValue && selectedValue) {
+      const option = document.createElement('option');
+      option.value = selectedValue;
+      option.textContent = selectedValue;
+      selectEl.appendChild(option);
+    }
+    selectEl.value = hasValue || selectedValue ? selectedValue : selectEl.options[0]?.value || '';
+  }
+
+  function setTemplateSelectValue(id, value) {
+    const selectEl = $(id);
+    if (!selectEl) return;
+    if (value && !Array.from(selectEl.options).some(option => option.value === value)) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      selectEl.appendChild(option);
+    }
+    selectEl.value = value;
   }
 
   function syncSelectedTextLayerFromControls() {
@@ -1662,12 +1686,12 @@
   function syncTextControlsFromSelectedLayer() {
     const layer = getSelectedTextLayer();
     if (!layer) return;
-    if ($('text-font')) $('text-font').value = layer.fontFamily;
+    setTemplateSelectValue('text-font', layer.fontFamily);
     setControlValue('text-size', layer.fontSize);
     if ($('text-color')) $('text-color').value = layer.color;
     setControlValue('text-rotation', layer.rotation);
     setControlValue('text-opacity', layer.opacity);
-    if ($('text-blend')) $('text-blend').value = layer.blendMode;
+    setTemplateSelectValue('text-blend', layer.blendMode);
     TEXT_DISTORT_IDS.forEach(id => {
       const key = TEXT_DISTORT_KEYS[id];
       setControlValue(id, layer.distort[key]);
@@ -1682,7 +1706,6 @@
     textLayers.forEach(layer => {
       const isPrimary = layer.id === selectedTextLayerId;
       const isMulti = !isPrimary && selectedTextLayerIds.has(layer.id);
-      const buttonDisplayText = (layer.content || '').replace(/\s+/g, ' ').trim() || layer.label;
       const row = document.createElement('div');
       row.className = 'control-row text-layer-row' + (layer.enabled ? ' row-active' : '');
       row.style.setProperty('--row-color', '#d8c8f0');
@@ -1707,10 +1730,26 @@
           }
           renderTextLayerList();
         } else {
-          if (isPrimary && selectedTextLayerIds.size === 1) return;
-          selectedTextLayerId = layer.id;
-          selectedTextLayerIds = new Set([layer.id]);
-          renderTextLayerList();
+          if (selectSingleTextLayer(layer.id)) scheduleRender();
+        }
+      });
+
+      const fontSelect = document.createElement('select');
+      fontSelect.className = 'text-layer-font-select';
+      fontSelect.title = 'Font for ' + layer.label;
+      fontSelect.setAttribute('aria-label', fontSelect.title);
+      syncSelectOptionsFromTemplate(fontSelect, 'text-font', layer.fontFamily);
+      fontSelect.addEventListener('change', () => {
+        if (fontSelect.value === '__upload__') {
+          pendingFontUploadLayerId = layer.id;
+          fontSelect.value = layer.fontFamily;
+          $('font-upload-input').click();
+          return;
+        }
+        layer.fontFamily = fontSelect.value;
+        if (selectSingleTextLayer(layer.id)) {
+          scheduleRender();
+        } else {
           syncTextControlsFromSelectedLayer();
           scheduleRender();
         }
@@ -1725,31 +1764,26 @@
       textInput.title = layer.label;
       textInput.setAttribute('aria-label', layer.label + ' text');
       textInput.addEventListener('focus', () => {
-        if (selectedTextLayerId === layer.id) return;
-        selectedTextLayerId = layer.id;
-        selectedTextLayerIds = new Set([layer.id]);
-        renderTextLayerList();
-        syncTextControlsFromSelectedLayer();
-        scheduleRender();
+        if (selectSingleTextLayer(layer.id)) scheduleRender();
       });
       textInput.addEventListener('input', () => {
         layer.content = textInput.value;
         scheduleRender();
       });
 
-      const textSelectBtn = document.createElement('button');
-      textSelectBtn.type = 'button';
-      textSelectBtn.className = 'btn95 text-layer-text-btn' + (isPrimary ? ' active' : '');
-      textSelectBtn.textContent = buttonDisplayText;
-      textSelectBtn.title = 'Edit ' + layer.label;
-      textSelectBtn.setAttribute('aria-label', textSelectBtn.title);
-      textSelectBtn.addEventListener('click', () => {
-        if (selectedTextLayerId === layer.id && selectedTextLayerIds.size === 1) return;
-        selectedTextLayerId = layer.id;
-        selectedTextLayerIds = new Set([layer.id]);
-        renderTextLayerList();
-        syncTextControlsFromSelectedLayer();
-        scheduleRender();
+      const blendSelect = document.createElement('select');
+      blendSelect.className = 'text-layer-blend-select';
+      blendSelect.title = 'Blend mode for ' + layer.label;
+      blendSelect.setAttribute('aria-label', blendSelect.title);
+      syncSelectOptionsFromTemplate(blendSelect, 'text-blend', layer.blendMode);
+      blendSelect.addEventListener('change', () => {
+        layer.blendMode = blendSelect.value;
+        if (selectSingleTextLayer(layer.id)) {
+          scheduleRender();
+        } else {
+          syncTextControlsFromSelectedLayer();
+          scheduleRender();
+        }
       });
 
       const hideBtn = document.createElement('button');
@@ -1792,8 +1826,9 @@
       });
 
       row.appendChild(selectBtn);
-      row.appendChild(textSelectBtn);
+      row.appendChild(fontSelect);
       row.appendChild(textInput);
+      row.appendChild(blendSelect);
       row.appendChild(hideBtn);
       row.appendChild(deleteBtn);
       container.appendChild(row);
@@ -2125,10 +2160,10 @@
   // Load a user-supplied font file via the FontFace API and add it to the
   // font selector so it can be used immediately for text overlays.
   async function loadCustomFont(file) {
-    if (!file) return;
+    if (!file) return null;
     const ext = file.name.replace(/^.*\./, '').toLowerCase();
     const mimeMap = { ttf:'truetype', otf:'opentype', woff:'woff', woff2:'woff2' };
-    if (!mimeMap[ext]) { alert('Unsupported font format. Use .ttf, .otf, .woff, or .woff2.'); return; }
+    if (!mimeMap[ext]) { alert('Unsupported font format. Use .ttf, .otf, .woff, or .woff2.'); return null; }
 
     const url      = URL.createObjectURL(file);
     const baseName = file.name.replace(/\.[^.]+$/, '');
@@ -2146,7 +2181,7 @@
     } catch(err) {
       URL.revokeObjectURL(url);
       alert('Could not load font: ' + (err && err.message ? err.message : err));
-      return;
+      return null;
     }
 
     const sel = $('text-font');
@@ -2161,7 +2196,9 @@
     opt.dataset.uploaded = baseName;
     sel.appendChild(opt);
     sel.value = family;
+    renderTextLayerList();
     scheduleRender();
+    return family;
   }
 
   function syncSiteFontsToTextSelector() {
@@ -2184,6 +2221,7 @@
     if (selectedValue && Array.from(sel.options).some(option => option.value === selectedValue)) {
       sel.value = selectedValue;
     }
+    renderTextLayerList();
   }
 
   // ---------- Canvas pipeline ----------
@@ -3031,9 +3069,7 @@
 
     // Text overlay controls
     $('text-layer-add-btn').addEventListener('click', addTextLayer);
-    $('text-font').addEventListener('change',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
     $('text-color').addEventListener('input',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
-    $('text-blend').addEventListener('change',   ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
 
     // Text color diary picker popup
     const tcdPopup = $('text-color-diary-popup');
@@ -3114,9 +3150,18 @@
     });
 
     // Font upload
-    $('text-font-upload-btn').addEventListener('click', ()=>{ $('font-upload-input').click(); });
-    $('font-upload-input').addEventListener('change', e=>{
-      if(e.target.files[0]) loadCustomFont(e.target.files[0]);
+    $('font-upload-input').addEventListener('change', async e=>{
+      const targetLayerId = pendingFontUploadLayerId;
+      pendingFontUploadLayerId = null;
+      if(e.target.files[0]) {
+        const family = await loadCustomFont(e.target.files[0]);
+        const layer = targetLayerId ? getTextLayerById(targetLayerId) : getSelectedTextLayer();
+        if (family && layer) {
+          layer.fontFamily = family;
+          selectSingleTextLayer(layer.id);
+          scheduleRender();
+        }
+      }
       e.target.value='';
     });
     syncSiteFontsToTextSelector();

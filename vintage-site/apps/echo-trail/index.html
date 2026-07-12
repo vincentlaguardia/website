@@ -3079,6 +3079,9 @@
       const minLeft = appRect.left + pad;
       const maxLeft = appRect.right - popupRect.width - pad;
       const preferredLeft = rect.right - popupRect.width;
+      // If the popup is wider than the available panel space, anchor it to the
+      // panel's left padding so it stays inside as much as possible instead of
+      // spilling farther out to the right.
       const left = maxLeft < minLeft ? minLeft : Math.min(Math.max(preferredLeft, minLeft), maxLeft);
       const minTop = appRect.top + pad;
       const maxTop = Math.max(minTop, appRect.bottom - popupRect.height - pad);

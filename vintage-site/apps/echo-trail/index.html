@@ -102,6 +102,14 @@
   .btn95:active{
     box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
+  #btn-randomize{
+    background:linear-gradient(180deg, #ffe58a 0%, #f3d250 100%);
+    color:#3f2a00;
+    font-weight:bold;
+  }
+  #btn-randomize:active{
+    background:linear-gradient(180deg, #f3d250 0%, #e0bb35 100%);
+  }
 
   .main-area{ display:flex; flex-direction:column; gap:8px; padding:8px; flex:1; min-height:0; overflow:auto; }
   .canvas-panel{
@@ -272,7 +280,7 @@
     <div class="main-area">
       <div class="canvas-panel sunken" id="canvas-panel">
         <canvas id="preview-canvas"></canvas>
-        <div class="drop-hint" id="drop-hint">Drop image here</div>
+        <div class="drop-hint" id="drop-hint">Drop to import photo</div>
       </div>
 
       <div class="controls-panel">
@@ -1135,7 +1143,7 @@
       const bx = Math.floor(Math.random()*Math.max(1,width-bw));
       const by = Math.floor(Math.random()*Math.max(1,height-bh));
       const color = FRIED_NEON[Math.floor(Math.random()*FRIED_NEON.length)];
-      const alpha = 0.15+Math.random()*0.25;
+      const alpha = 0.075+Math.random()*0.125;
       for(let y=0;y<bh && by+y<height;y++){
         const edgeJitter = Math.round((Math.random()*2-1)*bw*0.08);
         const rowStart = clamp(bx+edgeJitter,0,width-1);
@@ -1290,8 +1298,8 @@
       onboardingActive = true;
       $('canvas-panel').classList.add('onboarding');
       $('drop-hint').style.display='block';
-      $('drop-hint').textContent='Click or drop your own photo';
-      $('status-main').textContent='Ready — click or drop to load your photo';
+      $('drop-hint').textContent='Drop to import photo';
+      $('status-main').textContent='Ready — drop to import photo or use the controls';
     } else {
       clearOnboardingState();
       $('status-main').textContent='Ready';
@@ -1816,12 +1824,10 @@
     panel.addEventListener('click', e=>{
       if(!onboardingActive || e.target === previewCanvas) return;
       clearOnboardingState();
-      promptForImageFile();
     });
     previewCanvas.addEventListener('click', e=>{
       if(onboardingActive){
         clearOnboardingState();
-        promptForImageFile();
         return;
       }
       const color = samplePreviewColor(e.clientX, e.clientY);

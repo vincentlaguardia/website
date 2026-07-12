@@ -1924,11 +1924,13 @@
 
   function normalizeTextLayerFontFamily(name) {
     const normalized = String(name || '').trim();
-    return /^[A-Za-z0-9 _-]+$/.test(normalized) ? normalized : TEXT_LAYER_DEFAULTS.fontFamily;
+    return normalized && !/[<>{};:\u0000-\u001F\u007F]/.test(normalized)
+      ? normalized
+      : TEXT_LAYER_DEFAULTS.fontFamily;
   }
 
   function sanitizeTextLayerMetadata(value) {
-    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
   function getTextLayerButtonFontStack(name) {

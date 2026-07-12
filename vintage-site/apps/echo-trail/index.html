@@ -255,7 +255,28 @@
   .text-layer-select.active{
     box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
-  .text-layer-toggle{ flex:1; width:auto; }
+  .text-layer-text{
+    flex:0 1 165px;
+    min-width:130px;
+    max-width:165px;
+  }
+  .text-layer-icon-btn{
+    width:22px;
+    min-width:22px;
+    height:22px;
+    padding:0;
+    font-size:12px;
+    line-height:1;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .text-layer-icon-btn svg{
+    width:12px;
+    height:12px;
+    display:block;
+  }
+  .text-layer-del-btn{ font-size:11px; }
   .text-layer-add-row{ margin-top:2px; }
   .text-layer-add-btn{ width:22px; min-width:22px; padding:3px 0; font-weight:bold; }
   input[type=color] {
@@ -475,10 +496,6 @@
           </div>
           <div class="control-row text-layer-add-row">
             <button type="button" class="btn95 text-layer-add-btn" id="text-layer-add-btn" title="Add text layer">+</button>
-          </div>
-          <div class="control-row">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Content</label>
-            <input type="text" id="text-content" class="text-input-95" placeholder="Enter text…" maxlength="200" value="ECHO TRAIL">
           </div>
           <div class="control-row" style="--row-color:#B0D890;">
             <button type="button" class="item-toggle" data-target="fx-stretch" data-off="0">Stretch</button>
@@ -1560,7 +1577,6 @@
   function syncSelectedTextLayerFromControls() {
     const layer = getSelectedTextLayer();
     if (!layer) return null;
-    layer.content = ($('text-content') ? $('text-content').value : '') || '';
     layer.fontFamily = $('text-font') ? $('text-font').value : TEXT_LAYER_DEFAULTS.fontFamily;
     layer.fontSize = $('text-size') ? parseInt($('text-size').value, 10) : TEXT_LAYER_DEFAULTS.fontSize;
     layer.color = $('text-color') ? $('text-color').value : TEXT_LAYER_DEFAULTS.color;
@@ -1581,7 +1597,6 @@
   function syncTextControlsFromSelectedLayer() {
     const layer = getSelectedTextLayer();
     if (!layer) return;
-    if ($('text-content')) $('text-content').value = layer.content;
     if ($('text-font')) $('text-font').value = layer.fontFamily;
     setControlValue('text-size', layer.fontSize);
     if ($('text-color')) $('text-color').value = layer.color;
@@ -1620,19 +1635,65 @@
         scheduleRender();
       });
 
-      const toggleBtn = document.createElement('button');
-      toggleBtn.type = 'button';
-      toggleBtn.className = 'item-toggle text-layer-toggle' + (layer.enabled ? ' active' : '');
-      toggleBtn.textContent = layer.label;
-      toggleBtn.title = 'Toggle ' + layer.label;
-      toggleBtn.addEventListener('click', () => {
+      const textInput = document.createElement('input');
+      textInput.type = 'text';
+      textInput.className = 'text-input-95 text-layer-text';
+      textInput.value = layer.content;
+      textInput.placeholder = layer.label;
+      textInput.maxLength = 200;
+      textInput.title = layer.label;
+      textInput.setAttribute('aria-label', layer.label + ' text');
+      textInput.addEventListener('focus', () => {
+        if (selectedTextLayerId === layer.id) return;
+        selectedTextLayerId = layer.id;
+        renderTextLayerList();
+        syncTextControlsFromSelectedLayer();
+        scheduleRender();
+      });
+      textInput.addEventListener('input', () => {
+        layer.content = textInput.value;
+        scheduleRender();
+      });
+
+      const hideBtn = document.createElement('button');
+      hideBtn.type = 'button';
+      hideBtn.className = 'btn95 text-layer-icon-btn';
+      hideBtn.innerHTML = layer.enabled
+        ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.4-4 7-4 7 4 7 4-2.4 4-7 4-7-4-7-4Z" fill="none" stroke="#000" stroke-width="1.2"/><circle cx="8" cy="8" r="2.1" fill="#000"/></svg>'
+        : '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.4-4 7-4 7 4 7 4-2.4 4-7 4-7-4-7-4Z" fill="none" stroke="#000" stroke-width="1.2"/><circle cx="8" cy="8" r="2.1" fill="#000"/><path d="M2 14 14 2" stroke="#000" stroke-width="1.4"/></svg>';
+      hideBtn.title = layer.enabled ? ('Hide ' + layer.label) : ('Show ' + layer.label);
+      hideBtn.setAttribute('aria-label', hideBtn.title);
+      hideBtn.addEventListener('click', () => {
         layer.enabled = !layer.enabled;
         renderTextLayerList();
         scheduleRender();
       });
 
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'btn95 text-layer-icon-btn text-layer-del-btn';
+      deleteBtn.textContent = 'X';
+      deleteBtn.title = 'Delete ' + layer.label;
+      deleteBtn.setAttribute('aria-label', deleteBtn.title);
+      deleteBtn.disabled = textLayers.length === 1;
+      deleteBtn.addEventListener('click', () => {
+        if (textLayers.length === 1) return;
+        const idx = textLayers.findIndex(entry => entry.id === layer.id);
+        if (idx === -1) return;
+        textLayers.splice(idx, 1);
+        if (selectedTextLayerId === layer.id) {
+          const fallback = textLayers[Math.min(idx, textLayers.length - 1)];
+          selectedTextLayerId = fallback.id;
+          syncTextControlsFromSelectedLayer();
+        }
+        renderTextLayerList();
+        scheduleRender();
+      });
+
       row.appendChild(selectBtn);
-      row.appendChild(toggleBtn);
+      row.appendChild(textInput);
+      row.appendChild(hideBtn);
+      row.appendChild(deleteBtn);
       container.appendChild(row);
     });
   }
@@ -2730,7 +2791,6 @@
 
     // Text overlay controls
     $('text-layer-add-btn').addEventListener('click', addTextLayer);
-    $('text-content').addEventListener('input',  ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
     $('text-font').addEventListener('change',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
     $('text-color').addEventListener('input',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
     $('text-blend').addEventListener('change',   ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });

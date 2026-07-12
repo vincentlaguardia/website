@@ -1674,14 +1674,9 @@
         const idx = textLayers.findIndex(entry => entry.id === layer.id);
         if (idx === -1) return;
         textLayers.splice(idx, 1);
-        if (!textLayers.length) {
-          resetTextLayers();
-          scheduleRender();
-          return;
-        }
         if (selectedTextLayerId === layer.id) {
           const fallback = textLayers[Math.min(idx, textLayers.length - 1)];
-          selectedTextLayerId = fallback ? fallback.id : textLayers[0].id;
+          selectedTextLayerId = fallback.id;
           syncTextControlsFromSelectedLayer();
         }
         renderTextLayerList();

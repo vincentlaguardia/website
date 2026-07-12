@@ -374,7 +374,7 @@
       </div>
       <input type="file" id="file-input" accept="image/*" hidden>
       <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" hidden>
-      <select id="text-font" hidden>
+      <select id="text-font" hidden aria-label="Text layer font template">
         <option value="Impact">Impact</option>
         <option value="Arial Black">Arial Black</option>
         <option value="Arial">Arial</option>
@@ -387,7 +387,7 @@
         <option value="Trebuchet MS">Trebuchet MS</option>
         <option value="__upload__">Upload Font…</option>
       </select>
-      <select id="text-blend" hidden>
+      <select id="text-blend" hidden aria-label="Text layer blend template">
         <option value="normal">Normal</option>
         <option value="additive">Additive</option>
         <option value="subtractive">Subtractive</option>
@@ -1667,6 +1667,7 @@
     // stays selected, we still need to mirror its inline font/blend changes back
     // into the shared slider/color controls.
     if (!selectAndSyncTextLayer(layerId)) syncTextControlsFromSelectedLayer();
+    scheduleRender();
   }
 
   function syncSelectedTextLayerFromControls() {
@@ -1766,7 +1767,6 @@
         }
         layer.fontFamily = fontSelect.value;
         ensureSingleTextLayerSelectedAndSynced(layer.id);
-        scheduleRender();
       });
 
       const textInput = document.createElement('input');
@@ -1792,7 +1792,6 @@
       blendSelect.addEventListener('change', () => {
         layer.blendMode = blendSelect.value;
         ensureSingleTextLayerSelectedAndSynced(layer.id);
-        scheduleRender();
       });
 
       const hideBtn = document.createElement('button');

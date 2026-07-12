@@ -259,6 +259,20 @@
     flex:1;
     min-width:0;
   }
+  .text-layer-text-btn{
+    max-width:110px;
+    min-width:58px;
+    padding:0 6px;
+    font-size:10px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    justify-content:flex-start;
+  }
+  .text-layer-text-btn.active{
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
+    background:#d8c8f0;
+  }
   .text-layer-icon-btn{
     width:22px;
     min-width:22px;
@@ -510,12 +524,61 @@
 
         <div class="controls-col">
           <div class="ctrl-section-label">— Text Overlay —</div>
+          <div class="ctrl-section-label">— Text Layers —</div>
           <div class="control-row">
             <div id="text-layer-list" class="text-layer-stack"></div>
           </div>
           <div class="control-row text-layer-add-row">
             <button type="button" class="btn95 text-layer-add-btn" id="text-layer-add-btn" title="Add text layer">+</button>
           </div>
+          <div class="ctrl-section-label">— Core Text Settings —</div>
+          <div class="control-row">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Font</label>
+            <select id="text-font">
+              <option value="Impact">Impact</option>
+              <option value="Arial Black">Arial Black</option>
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="Comic Sans MS">Comic Sans MS</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+            </select>
+            <button type="button" class="btn95" id="text-font-upload-btn" title="Upload custom font (.ttf/.otf/.woff/.woff2)" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;">↑ Font</button>
+          </div>
+          <div class="control-row">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Color</label>
+            <input type="color" id="text-color" value="#ffffff">
+            <button type="button" class="btn95" id="text-color-diary-btn" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;" title="Pick from Color Diary">Diary</button>
+          </div>
+          <div class="control-row">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Blend</label>
+            <select id="text-blend">
+              <option value="normal">Normal</option>
+              <option value="additive">Additive</option>
+              <option value="subtractive">Subtractive</option>
+              <option value="exclusion">Exclusion</option>
+              <option value="division">Division</option>
+            </select>
+          </div>
+          <div class="control-row" style="--row-color:#E8C890;">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Font Size</label>
+            <input type="range" id="text-size" min="8" max="200" value="48">
+            <span id="text-size-val">48</span>
+          </div>
+          <div class="control-row" style="--row-color:#E8A0C8;">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Rotation</label>
+            <input type="range" id="text-rotation" min="-180" max="180" value="0">
+            <span id="text-rotation-val">0</span>
+          </div>
+          <div class="control-row" style="--row-color:#C8A0E8;">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">Text Opacity</label>
+            <input type="range" id="text-opacity" min="0" max="100" value="100">
+            <span id="text-opacity-val">100</span>
+          </div>
+          <div class="ctrl-section-label">— Text Effects —</div>
           <div class="control-row" style="--row-color:#B0D890;">
             <button type="button" class="item-toggle" data-target="fx-stretch" data-off="0">Stretch</button>
             <input type="range" id="fx-stretch" min="0" max="100" value="50">
@@ -540,52 +603,6 @@
             <button type="button" class="item-toggle active" data-target="fx-opacity" data-off="100">Img Opacity</button>
             <input type="range" id="fx-opacity" min="0" max="100" value="100">
             <span id="fx-opacity-val">100</span>
-          </div>
-          <div class="control-row">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Font</label>
-            <select id="text-font">
-              <option value="Impact">Impact</option>
-              <option value="Arial Black">Arial Black</option>
-              <option value="Arial">Arial</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Courier New">Courier New</option>
-              <option value="Verdana">Verdana</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Tahoma">Tahoma</option>
-              <option value="Comic Sans MS">Comic Sans MS</option>
-              <option value="Trebuchet MS">Trebuchet MS</option>
-            </select>
-            <button type="button" class="btn95" id="text-font-upload-btn" title="Upload custom font (.ttf/.otf/.woff/.woff2)" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;">↑ Font</button>
-          </div>
-          <div class="control-row" style="--row-color:#E8C890;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Font Size</label>
-            <input type="range" id="text-size" min="8" max="200" value="48">
-            <span id="text-size-val">48</span>
-          </div>
-          <div class="control-row">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Color</label>
-            <input type="color" id="text-color" value="#ffffff">
-            <button type="button" class="btn95" id="text-color-diary-btn" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;" title="Pick from Color Diary">Diary</button>
-          </div>
-          <div class="control-row" style="--row-color:#E8A0C8;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Rotation</label>
-            <input type="range" id="text-rotation" min="-180" max="180" value="0">
-            <span id="text-rotation-val">0</span>
-          </div>
-          <div class="control-row" style="--row-color:#C8A0E8;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Text Opacity</label>
-            <input type="range" id="text-opacity" min="0" max="100" value="100">
-            <span id="text-opacity-val">100</span>
-          </div>
-          <div class="control-row">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Blend</label>
-            <select id="text-blend">
-              <option value="normal">Normal</option>
-              <option value="additive">Additive</option>
-              <option value="subtractive">Subtractive</option>
-              <option value="exclusion">Exclusion</option>
-              <option value="division">Division</option>
-            </select>
           </div>
           <div class="control-row" style="--row-color:#F080A0;">
             <button type="button" class="item-toggle" data-target="fx-glitch" data-off="0">Glitch</button>
@@ -1719,6 +1736,21 @@
         scheduleRender();
       });
 
+      const textSelectBtn = document.createElement('button');
+      textSelectBtn.type = 'button';
+      textSelectBtn.className = 'btn95 text-layer-text-btn' + (isPrimary ? ' active' : '');
+      textSelectBtn.textContent = (layer.content || '').trim() || layer.label;
+      textSelectBtn.title = 'Edit ' + layer.label;
+      textSelectBtn.setAttribute('aria-label', textSelectBtn.title);
+      textSelectBtn.addEventListener('click', () => {
+        if (selectedTextLayerId === layer.id && selectedTextLayerIds.size === 1) return;
+        selectedTextLayerId = layer.id;
+        selectedTextLayerIds = new Set([layer.id]);
+        renderTextLayerList();
+        syncTextControlsFromSelectedLayer();
+        scheduleRender();
+      });
+
       const hideBtn = document.createElement('button');
       hideBtn.type = 'button';
       hideBtn.className = 'btn95 text-layer-icon-btn';
@@ -1759,6 +1791,7 @@
       });
 
       row.appendChild(selectBtn);
+      row.appendChild(textSelectBtn);
       row.appendChild(textInput);
       row.appendChild(hideBtn);
       row.appendChild(deleteBtn);
@@ -3037,9 +3070,21 @@
         return;
       }
       const rect = e.currentTarget.getBoundingClientRect();
-      tcdPopup.style.left = rect.left + 'px';
-      tcdPopup.style.top = (rect.bottom + 2) + 'px';
       tcdPopup.classList.add('show');
+      const popupRect = tcdPopup.getBoundingClientRect();
+      const appRect = $('app-window').getBoundingClientRect();
+      const pad = 6;
+      const maxLeft = Math.max(appRect.left + pad, appRect.right - popupRect.width - pad);
+      const preferredLeft = rect.right - popupRect.width;
+      const left = Math.min(Math.max(preferredLeft, appRect.left + pad), maxLeft);
+      const maxTop = Math.max(appRect.top + pad, appRect.bottom - popupRect.height - pad);
+      const preferredTop = rect.bottom + 2;
+      const fallbackTop = rect.top - popupRect.height - 2;
+      const top = preferredTop <= maxTop
+        ? preferredTop
+        : Math.max(appRect.top + pad, Math.min(fallbackTop, maxTop));
+      tcdPopup.style.left = left + 'px';
+      tcdPopup.style.top = top + 'px';
     });
     document.addEventListener('pointerdown', e => {
       if (!tcdPopup.classList.contains('show')) return;

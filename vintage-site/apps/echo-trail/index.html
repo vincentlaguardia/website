@@ -1342,6 +1342,8 @@
     const maxShift = Math.max(2, Math.round(width * 0.24 * strength));
     const splitChance = 0.18 + strength * 0.45;
     const minVisibleAlpha = 4;
+    const seamBaseProbability = 0.35;
+    const seamStrengthProbability = 0.45;
 
     for (let s = 0; s < numSlices; s++) {
       const sliceW = Math.max(2, Math.round(width * (0.03 + Math.random() * 0.14)));
@@ -1379,7 +1381,7 @@
         if (seamX < 0 || seamX >= width) return;
         for (let y = 0; y < height; y++) {
           const idx = (y * width + seamX) * 4;
-          if (data[idx + 3] <= minVisibleAlpha || Math.random() >= (0.35 + strength * 0.45)) continue;
+          if (data[idx + 3] <= minVisibleAlpha || Math.random() >= (seamBaseProbability + strength * seamStrengthProbability)) continue;
           const bright = 165 + Math.random() * 90;
           data[idx] = bright;
           data[idx + 1] = bright;
@@ -1440,9 +1442,11 @@
   }
 
   // ---------- Text overlay ----------
+  // Dedicated offscreen canvas for text metrics; default 300x150 dimensions are
+  // sufficient because measureText depends on the active font, not bitmap size.
   const textMeasureCanvas = document.createElement('canvas');
   const textDragState = { active:false, pointerId:null, offsetX:0, offsetY:0, moved:false };
-  let suppressNextPreviewClick = false;
+  let suppressPreviewClickUntil = 0;
 
   // Read all text settings directly from the DOM controls.
   function getTextState() {
@@ -2522,8 +2526,7 @@
       if(onboardingActive && e.target !== previewCanvas) clearOnboardingState();
     });
     previewCanvas.addEventListener('click', e=>{
-      if(suppressNextPreviewClick){
-        suppressNextPreviewClick = false;
+      if(performance.now() < suppressPreviewClickUntil){
         return;
       }
       if(onboardingActive){
@@ -2573,7 +2576,7 @@
       if(previewCanvas.releasePointerCapture){
         try{ previewCanvas.releasePointerCapture(e.pointerId); } catch(_){}
       }
-      suppressNextPreviewClick = textDragState.moved;
+      if(textDragState.moved) suppressPreviewClickUntil = performance.now() + 250;
       textDragState.active = false;
       textDragState.pointerId = null;
       textDragState.offsetX = 0;

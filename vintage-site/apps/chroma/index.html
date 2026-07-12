@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>chroma.exe</title>
+<script src="../../content/_assets/private/site-fonts.js"></script>
 <style>
   :root{
     --face:#c0c0c0;
@@ -20,7 +21,7 @@
   html,body{
     margin:0; padding:0; height:100%;
     background:var(--teal);
-    font-family:Tahoma,'MS Sans Serif','Segoe UI',Arial,sans-serif;
+    font-family:var(--site-font-family, Tahoma, "MS Sans Serif", "Segoe UI", Arial, sans-serif);
     font-size:12px;
     color:#000;
     -webkit-font-smoothing:none;
@@ -433,7 +434,7 @@
   #shutdown-overlay{
     position:fixed; inset:0; background:#000; color:#fff;
     display:none; align-items:center; justify-content:center;
-    font-family:Tahoma,Arial,sans-serif; font-size:16px; text-align:center;
+    font-family:var(--site-font-family, Tahoma, Arial, sans-serif); font-size:16px; text-align:center;
     z-index:100; padding:20px;
   }
   #shutdown-overlay.show{ display:flex; }

@@ -23,8 +23,11 @@ const path = require('path');
 const CONTENT_DIR = path.join(__dirname, 'content');
 const BACKGROUNDS_DIR = path.join(CONTENT_DIR, '_backgrounds');
 const BACKGROUNDS_MANIFEST = path.join(BACKGROUNDS_DIR, 'backgrounds-manifest.json');
+const PRIVATE_FONTS_DIR = path.join(CONTENT_DIR, '_assets', 'private', 'fonts');
+const PRIVATE_FONTS_MANIFEST = path.join(PRIVATE_FONTS_DIR, 'manifest.json');
 const URL_SAFE_TXT_BASE_RE = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg']);
+const FONT_EXTS = new Set(['.ttf']);
 
 function isHidden(name) {
   return name.startsWith('.') || name.startsWith('_');
@@ -145,6 +148,7 @@ function main() {
   }
   buildManifest(CONTENT_DIR);
   buildBackgroundsManifest();
+  buildFontsManifest();
   console.log('Validation OK: manifests generated and all .txt filenames are lowercase URL-safe.');
 }
 
@@ -176,6 +180,34 @@ function buildBackgroundsManifest() {
   backgrounds.sort((a, b) => a.name.localeCompare(b.name));
   fs.writeFileSync(BACKGROUNDS_MANIFEST, JSON.stringify(backgrounds, null, 2));
   console.log('content/_backgrounds/backgrounds-manifest.json  (' + backgrounds.length + ' image' + (backgrounds.length === 1 ? '' : 's') + ')');
+}
+
+function buildFontsManifest() {
+  if (!fs.existsSync(PRIVATE_FONTS_DIR)) {
+    fs.mkdirSync(PRIVATE_FONTS_DIR, { recursive: true });
+    console.log('Created content/_assets/private/fonts/ folder.');
+  }
+
+  const entries = fs.readdirSync(PRIVATE_FONTS_DIR, { withFileTypes: true });
+  const fonts = [];
+
+  entries.forEach(entry => {
+    if (!entry.isFile()) return;
+    if (isHidden(entry.name)) return;
+    if (entry.name === 'manifest.json') return;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (!FONT_EXTS.has(ext)) return;
+    // The runtime loader consumes `{ file, name }` objects so the menu can use
+    // a human-readable label while still resolving the exact uploaded filename.
+    fonts.push({
+      name: path.basename(entry.name, ext),
+      file: entry.name
+    });
+  });
+
+  fonts.sort((a, b) => a.name.localeCompare(b.name));
+  fs.writeFileSync(PRIVATE_FONTS_MANIFEST, JSON.stringify(fonts, null, 2));
+  console.log('content/_assets/private/fonts/manifest.json  (' + fonts.length + ' font' + (fonts.length === 1 ? '' : 's') + ')');
 }
 
 main();

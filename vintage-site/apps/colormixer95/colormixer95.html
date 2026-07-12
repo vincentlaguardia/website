@@ -432,7 +432,7 @@ if(EMBEDDED) document.body.classList.add('embedded');
 function screen(a,b){ return 1-(1-a)*(1-b); }
 function multiply(a,b){ return a*b; }
 function exclusionBlend(a,b){ return a+b-2*a*b; }
-function divideBlend(a,b){ return b<=0 ? 1 : Math.min(1, a/b); }
+function divideBlend(a,b){ return b<=0 ? a : Math.min(1, a/b); }
 
 /* circles in `subset` (ascending index order) chain-blend together first,
    then the background blends in last, on top of that result. An empty
@@ -514,8 +514,14 @@ const MODES = {
       {key:'G', label:'Green', min:0, max:255},
       {key:'B', label:'Blue',  min:0, max:255},
     ],
-    defaults: {R:255, G:255, B:255},
-    layerColors(v){ return [[v.R,0,0],[0,v.G,0],[0,0,v.B]]; },
+    defaults: {R:128, G:128, B:128},
+    layerColors(v){
+      return [
+        [v.R, Math.round(v.G*v.G/255), Math.round(v.B*v.B/255)],
+        [255, v.G, 255],
+        [255, 255, v.B],
+      ];
+    },
   },
   exclusion: {
     legend: 'Exclusion',

@@ -1143,7 +1143,7 @@
       const bx = Math.floor(Math.random()*Math.max(1,width-bw));
       const by = Math.floor(Math.random()*Math.max(1,height-bh));
       const color = FRIED_NEON[Math.floor(Math.random()*FRIED_NEON.length)];
-      const alpha = 0.15+Math.random()*0.25;
+      const alpha = 0.075+Math.random()*0.125;
       for(let y=0;y<bh && by+y<height;y++){
         const edgeJitter = Math.round((Math.random()*2-1)*bw*0.08);
         const rowStart = clamp(bx+edgeJitter,0,width-1);

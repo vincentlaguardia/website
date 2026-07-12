@@ -245,7 +245,7 @@
     box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
   }
   .text-layer-stack{ display:flex; flex-direction:column; gap:5px; width:100%; }
-  .text-layer-row{ --font-btn-width: 54px; margin:0; }
+  .text-layer-row{ --font-btn-width: 54px; --text-layer-icon-total-width: 66px; margin:0; }
   .text-layer-select{
     width:22px; height:22px; flex:0 0 22px; padding:0;
     font-family:inherit; font-size:11px; line-height:1; cursor:pointer;
@@ -258,7 +258,7 @@
   .text-layer-text{
     flex:1;
     min-width:0;
-    max-width: calc(100% - var(--font-btn-width) - 66px);
+    max-width: calc(100% - var(--font-btn-width) - var(--text-layer-icon-total-width));
   }
   .text-layer-font-btn{
     /* Leaves room for the eye/X buttons while still fitting the "Font" label. */
@@ -1503,6 +1503,8 @@
   const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100 };
   const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true };
   const TEXT_LAYER_BUTTON_FONT_STACK_FALLBACK = 'Impact, sans-serif';
+  const TEXT_LAYER_METADATA_CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
+  const TEXT_LAYER_FONT_NAME_UNSAFE_CHARS = /[<>{};:'"`\u0000-\u001F\u007F]/;
   const TEXT_LAYER_DEFAULTS = {
     enabled: false,
     content: 'ECHO TRAIL',
@@ -1924,15 +1926,15 @@
 
   function normalizeTextLayerFontFamily(name) {
     const normalized = String(name || '').trim();
-    // Exclude CSS/attribute-breaking characters before previewing user-selected font names.
-    return normalized && !/[<>{};:'"`\u0000-\u001F\u007F]/.test(normalized)
+    // Block CSS/attribute-breaking characters before reusing font names in UI previews.
+    return normalized && !TEXT_LAYER_FONT_NAME_UNSAFE_CHARS.test(normalized)
       ? normalized
       : TEXT_LAYER_DEFAULTS.fontFamily;
   }
 
   function sanitizeTextLayerMetadata(value) {
     // Tooltips/aria labels should not carry control characters or irregular spacing.
-    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim();
+    return String(value || '').replace(TEXT_LAYER_METADATA_CONTROL_CHARS, '').replace(/\s+/g, ' ').trim();
   }
 
   function getTextLayerButtonFontStack(name) {

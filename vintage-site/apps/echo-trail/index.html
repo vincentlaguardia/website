@@ -261,14 +261,14 @@
   }
   .text-layer-font-btn{
     /* Leaves room for the eye/X buttons while still fitting the "Font" label. */
-    --font-btn-width:54px;
-    flex:0 0 var(--font-btn-width);
-    min-width:var(--font-btn-width);
-    padding:0 6px;
-    font-size:11px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    --font-btn-width: 54px;
+    flex: 0 0 var(--font-btn-width);
+    min-width: var(--font-btn-width);
+    padding: 0 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .text-layer-icon-btn{
     width:22px;
@@ -1924,7 +1924,7 @@
 
   function normalizeTextLayerFontFamily(name) {
     const normalized = String(name || '').trim();
-    return normalized && !/[<>{};:\u0000-\u001F\u007F]/.test(normalized)
+    return normalized && !/[<>{};:'"\u0000-\u001F\u007F]/.test(normalized)
       ? normalized
       : TEXT_LAYER_DEFAULTS.fontFamily;
   }

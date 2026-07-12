@@ -2868,9 +2868,6 @@
     $('fx-dissolve').value = Math.floor(Math.random()*80)+10;
     setRowActive('fx-txtgrain', Math.random()>0.55);
     $('fx-txtgrain').value = Math.floor(Math.random()*80)+10;
-    $('text-size').value = Math.floor(Math.random()*120)+20;
-    $('text-rotation').value = Math.floor(Math.random()*361)-180;
-    $('text-opacity').value = Math.floor(Math.random()*31)+70;
     const blends = ['normal','additive','subtractive','exclusion','division'];
     setTemplateSelectValue('text-blend', blends[Math.floor(Math.random()*blends.length)]);
     updateAllSpans();

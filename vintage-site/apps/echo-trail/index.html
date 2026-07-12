@@ -279,9 +279,29 @@
   .text-layer-add-row{ margin-top:2px; }
   .text-layer-add-btn{ width:22px; min-width:22px; padding:3px 0; font-weight:bold; }
   input[type=color] {
-    flex:1; height:22px; padding:1px 2px; border:none; cursor:pointer;
+    flex:1; height:28px; min-height:28px; padding:1px 2px; border:none; cursor:pointer;
     background:#fff;
     box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
+  }
+
+  /* Text color diary popup */
+  #text-color-diary-popup {
+    display:none; position:fixed; z-index:300; background:var(--face);
+    box-shadow: inset -1px -1px 0 #000, inset 1px 1px 0 #fff, inset -2px -2px 0 #808080, inset 2px 2px 0 #dfdfdf;
+    padding:4px;
+  }
+  #text-color-diary-popup.show { display:block; }
+  .tcd-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; }
+  .tcd-swatch {
+    width:22px; height:22px; cursor:pointer; border:1px solid rgba(0,0,0,0.25);
+  }
+  .tcd-swatch:hover { outline:2px solid #000080; outline-offset:-1px; }
+  .tcd-empty { width:22px; height:22px; background:var(--face); border:1px dashed var(--shadow); opacity:0.3; }
+
+  /* Multi-select indicator for text layers */
+  .text-layer-select.multi-selected {
+    background: #c8d8f0;
+    box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
 
   #diary-ctx-menu,
@@ -545,16 +565,7 @@
           <div class="control-row">
             <label style="width:80px;flex-shrink:0;font-size:11px;">Color</label>
             <input type="color" id="text-color" value="#ffffff">
-          </div>
-          <div class="control-row" style="--row-color:#C8E8A0;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">X Pos</label>
-            <input type="range" id="text-x" min="0" max="100" value="50">
-            <span id="text-x-val">50</span>
-          </div>
-          <div class="control-row" style="--row-color:#A0C8E8;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">Y Pos</label>
-            <input type="range" id="text-y" min="0" max="100" value="50">
-            <span id="text-y-val">50</span>
+            <button type="button" class="btn95" id="text-color-diary-btn" style="padding:3px 6px;font-size:10px;flex-shrink:0;white-space:nowrap;" title="Pick from Color Diary">Diary</button>
           </div>
           <div class="control-row" style="--row-color:#E8A0C8;">
             <label style="width:80px;flex-shrink:0;font-size:11px;">Rotation</label>
@@ -576,6 +587,21 @@
               <option value="division">Division</option>
             </select>
           </div>
+          <div class="control-row" style="--row-color:#F080A0;">
+            <button type="button" class="item-toggle" data-target="fx-glitch" data-off="0">Glitch</button>
+            <input type="range" id="fx-glitch" min="0" max="100" value="50">
+            <span id="fx-glitch-val">50</span>
+          </div>
+          <div class="control-row" style="--row-color:#A0C0F0;">
+            <button type="button" class="item-toggle" data-target="fx-dissolve" data-off="0">Dissolve</button>
+            <input type="range" id="fx-dissolve" min="0" max="100" value="50">
+            <span id="fx-dissolve-val">50</span>
+          </div>
+          <div class="control-row" style="--row-color:#C0A880;">
+            <button type="button" class="item-toggle" data-target="fx-txtgrain" data-off="0">Text Grain</button>
+            <input type="range" id="fx-txtgrain" min="0" max="100" value="50">
+            <span id="fx-txtgrain-val">50</span>
+          </div>
         </div>
       </div>
     </div>
@@ -585,6 +611,10 @@
   <div hidden aria-hidden="true">
     <span id="status-main">Ready</span>
     <span id="status-dims">&mdash; &times; &mdash; px</span>
+  </div>
+
+  <div id="text-color-diary-popup" role="dialog" aria-label="Color Diary Picker" aria-modal="true">
+    <div class="tcd-grid" id="tcd-grid"></div>
   </div>
 
   <div class="modal-overlay" id="about-overlay">
@@ -1487,10 +1517,10 @@
   }
 
   // ---------- Text overlay ----------
-  const TEXT_DISTORT_IDS = ['fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity'];
-  const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity' };
-  const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100 };
-  const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true };
+  const TEXT_DISTORT_IDS = ['fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain'];
+  const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity', 'fx-glitch':'glitch', 'fx-dissolve':'dissolve', 'fx-txtgrain':'txtgrain' };
+  const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100, glitch:50, dissolve:50, txtgrain:50 };
+  const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true, glitch:false, dissolve:false, txtgrain:false };
   const TEXT_LAYER_DEFAULTS = {
     enabled: false,
     content: 'ECHO TRAIL',
@@ -1514,6 +1544,7 @@
   let cachedPreviewTextLayoutsKey = '';
   let textLayers = [];
   let selectedTextLayerId = null;
+  let selectedTextLayerIds = new Set();
   let nextTextLayerNumber = 1;
 
   function setControlValue(id, value) {
@@ -1557,6 +1588,7 @@
     nextTextLayerNumber = 1;
     textLayers = [createTextLayer()];
     selectedTextLayerId = textLayers[0].id;
+    selectedTextLayerIds = new Set([selectedTextLayerId]);
     renderTextLayerList();
     syncTextControlsFromSelectedLayer();
   }
@@ -1566,6 +1598,7 @@
     const selected = textLayers.find(layer => layer.id === selectedTextLayerId);
     if (selected) return selected;
     selectedTextLayerId = textLayers[0].id;
+    selectedTextLayerIds = new Set([selectedTextLayerId]);
     return textLayers[0];
   }
 
@@ -1573,22 +1606,38 @@
     return textLayers.find(layer => layer.id === layerId) || null;
   }
 
+  function getSelectedTextLayers() {
+    if (!selectedTextLayerIds.size) return [getSelectedTextLayer()].filter(Boolean);
+    return textLayers.filter(layer => selectedTextLayerIds.has(layer.id));
+  }
+
   function syncSelectedTextLayerFromControls() {
     const layer = getSelectedTextLayer();
     if (!layer) return null;
-    layer.fontFamily = $('text-font') ? $('text-font').value : TEXT_LAYER_DEFAULTS.fontFamily;
-    layer.fontSize = $('text-size') ? parseInt($('text-size').value, 10) : TEXT_LAYER_DEFAULTS.fontSize;
-    layer.color = $('text-color') ? $('text-color').value : TEXT_LAYER_DEFAULTS.color;
-    layer.x = $('text-x') ? parseInt($('text-x').value, 10) : TEXT_LAYER_DEFAULTS.x;
-    layer.y = $('text-y') ? parseInt($('text-y').value, 10) : TEXT_LAYER_DEFAULTS.y;
-    layer.rotation = $('text-rotation') ? parseInt($('text-rotation').value, 10) : TEXT_LAYER_DEFAULTS.rotation;
-    layer.opacity = $('text-opacity') ? parseInt($('text-opacity').value, 10) : TEXT_LAYER_DEFAULTS.opacity;
-    layer.blendMode = $('text-blend') ? $('text-blend').value : TEXT_LAYER_DEFAULTS.blendMode;
+    const fontFamily = $('text-font') ? $('text-font').value : TEXT_LAYER_DEFAULTS.fontFamily;
+    const fontSize = $('text-size') ? parseInt($('text-size').value, 10) : TEXT_LAYER_DEFAULTS.fontSize;
+    const color = $('text-color') ? $('text-color').value : TEXT_LAYER_DEFAULTS.color;
+    const rotation = $('text-rotation') ? parseInt($('text-rotation').value, 10) : TEXT_LAYER_DEFAULTS.rotation;
+    const opacity = $('text-opacity') ? parseInt($('text-opacity').value, 10) : TEXT_LAYER_DEFAULTS.opacity;
+    const blendMode = $('text-blend') ? $('text-blend').value : TEXT_LAYER_DEFAULTS.blendMode;
+    const distortVals = {};
+    const effectActiveVals = {};
     TEXT_DISTORT_IDS.forEach(id => {
       const key = TEXT_DISTORT_KEYS[id];
-      if ($(id)) layer.distort[key] = parseInt($(id).value, 10);
+      distortVals[key] = $(id) ? parseInt($(id).value, 10) : TEXT_DISTORT_DEFAULTS[key];
       const btn = document.querySelector('.item-toggle[data-target="' + id + '"]');
-      layer.effectActive[key] = btn ? btn.classList.contains('active') : TEXT_DISTORT_ACTIVE_DEFAULTS[key];
+      effectActiveVals[key] = btn ? btn.classList.contains('active') : TEXT_DISTORT_ACTIVE_DEFAULTS[key];
+    });
+    // Apply to all selected layers
+    getSelectedTextLayers().forEach(l => {
+      l.fontFamily = fontFamily;
+      l.fontSize = fontSize;
+      l.color = color;
+      l.rotation = rotation;
+      l.opacity = opacity;
+      l.blendMode = blendMode;
+      Object.assign(l.distort, distortVals);
+      Object.assign(l.effectActive, effectActiveVals);
     });
     return layer;
   }
@@ -1599,8 +1648,6 @@
     if ($('text-font')) $('text-font').value = layer.fontFamily;
     setControlValue('text-size', layer.fontSize);
     if ($('text-color')) $('text-color').value = layer.color;
-    setControlValue('text-x', layer.x);
-    setControlValue('text-y', layer.y);
     setControlValue('text-rotation', layer.rotation);
     setControlValue('text-opacity', layer.opacity);
     if ($('text-blend')) $('text-blend').value = layer.blendMode;
@@ -1616,22 +1663,39 @@
     if (!container) return;
     container.innerHTML = '';
     textLayers.forEach(layer => {
+      const isPrimary = layer.id === selectedTextLayerId;
+      const isMulti = !isPrimary && selectedTextLayerIds.has(layer.id);
       const row = document.createElement('div');
       row.className = 'control-row text-layer-row' + (layer.enabled ? ' row-active' : '');
       row.style.setProperty('--row-color', '#d8c8f0');
 
       const selectBtn = document.createElement('button');
       selectBtn.type = 'button';
-      selectBtn.className = 'text-layer-select' + (layer.id === selectedTextLayerId ? ' active' : '');
-      selectBtn.textContent = layer.id === selectedTextLayerId ? '●' : '○';
-      selectBtn.title = 'Select ' + layer.label;
+      let btnClass = 'text-layer-select';
+      if (isPrimary) btnClass += ' active';
+      else if (isMulti) btnClass += ' multi-selected';
+      selectBtn.className = btnClass;
+      selectBtn.textContent = isPrimary ? '●' : (isMulti ? '◆' : '○');
+      selectBtn.title = (isPrimary ? 'Selected: ' : 'Select: ') + layer.label + ' (Shift+click to multi-select)';
       selectBtn.setAttribute('aria-label', 'Select ' + layer.label);
-      selectBtn.addEventListener('click', () => {
-        if (selectedTextLayerId === layer.id) return;
-        selectedTextLayerId = layer.id;
-        renderTextLayerList();
-        syncTextControlsFromSelectedLayer();
-        scheduleRender();
+      selectBtn.addEventListener('click', e => {
+        if (e.shiftKey) {
+          // Shift+click: toggle this layer in multi-selection
+          if (isPrimary) return; // can't deselect primary via shift-click, use regular click on another
+          if (selectedTextLayerIds.has(layer.id)) {
+            selectedTextLayerIds.delete(layer.id);
+          } else {
+            selectedTextLayerIds.add(layer.id);
+          }
+          renderTextLayerList();
+        } else {
+          if (isPrimary && selectedTextLayerIds.size === 1) return;
+          selectedTextLayerId = layer.id;
+          selectedTextLayerIds = new Set([layer.id]);
+          renderTextLayerList();
+          syncTextControlsFromSelectedLayer();
+          scheduleRender();
+        }
       });
 
       const textInput = document.createElement('input');
@@ -1645,6 +1709,7 @@
       textInput.addEventListener('focus', () => {
         if (selectedTextLayerId === layer.id) return;
         selectedTextLayerId = layer.id;
+        selectedTextLayerIds = new Set([layer.id]);
         renderTextLayerList();
         syncTextControlsFromSelectedLayer();
         scheduleRender();
@@ -1680,9 +1745,13 @@
         const idx = textLayers.findIndex(entry => entry.id === layer.id);
         if (idx === -1) return;
         textLayers.splice(idx, 1);
+        selectedTextLayerIds.delete(layer.id);
         if (selectedTextLayerId === layer.id) {
           const fallback = textLayers[Math.min(idx, textLayers.length - 1)];
           selectedTextLayerId = fallback.id;
+          if (!selectedTextLayerIds.has(selectedTextLayerId)) {
+            selectedTextLayerIds = new Set([selectedTextLayerId]);
+          }
           syncTextControlsFromSelectedLayer();
         }
         renderTextLayerList();
@@ -1707,6 +1776,7 @@
     });
     textLayers.push(layer);
     selectedTextLayerId = layer.id;
+    selectedTextLayerIds = new Set([layer.id]);
     renderTextLayerList();
     syncTextControlsFromSelectedLayer();
     scheduleRender();
@@ -1766,10 +1836,6 @@
     if (!layer) return;
     layer.x = clamp(Math.round((px / Math.max(1, previewCanvas.width)) * 100), 0, 100);
     layer.y = clamp(Math.round((py / Math.max(1, previewCanvas.height)) * 100), 0, 100);
-    if (layer.id === selectedTextLayerId) {
-      setControlValue('text-x', layer.x);
-      setControlValue('text-y', layer.y);
-    }
     scheduleRender();
   }
 
@@ -1802,7 +1868,10 @@
       warp: layer.effectActive.warp ? layer.distort.warp : 0,
       vtear: layer.effectActive.vtear ? layer.distort.vtear : 0,
       htear: layer.effectActive.htear ? layer.distort.htear : 0,
-      opacity: layer.effectActive.opacity ? layer.distort.opacity : 100
+      opacity: layer.effectActive.opacity ? layer.distort.opacity : 100,
+      glitch: layer.effectActive.glitch ? layer.distort.glitch : 0,
+      dissolve: layer.effectActive.dissolve ? layer.distort.dissolve : 0,
+      txtgrain: layer.effectActive.txtgrain ? layer.distort.txtgrain : 0
     };
   }
 
@@ -1811,6 +1880,110 @@
     const point = clientToPreviewCoords(clientX, clientY);
     const hit = point ? getTextLayoutHit(point.x, point.y) : null;
     previewCanvas.classList.toggle('text-drag-ready', !!hit);
+  }
+
+  // ---------- New text-specific effects ----------
+
+  // Text Glitch: horizontal RGB channel splits on random bands of text pixels.
+  // Independently shifts the R and B channels left/right, leaving G in place,
+  // giving each band a chromatic-aberration glitch look.
+  function applyTextGlitch(data, width, height, amount) {
+    if (amount <= 0) return;
+    const src = new Uint8ClampedArray(data);
+    const strength = amount / 100;
+    const numBands = 2 + Math.round(strength * 6);
+    const maxShift = Math.max(2, Math.round(width * 0.18 * strength));
+
+    for (let b = 0; b < numBands; b++) {
+      const bandH = Math.max(1, Math.round(height * (0.02 + Math.random() * 0.10)));
+      const startY = Math.floor(Math.random() * Math.max(1, height - bandH));
+      const rShift = Math.round((Math.random() * 2 - 1) * maxShift);
+      const bShift = Math.round((Math.random() * 2 - 1) * maxShift);
+      const gShift = Math.round((Math.random() * 2 - 1) * maxShift * 0.3);
+
+      for (let y = startY; y < startY + bandH && y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4;
+          if (src[idx + 3] === 0) continue;
+          const rxs = clamp(x - rShift, 0, width - 1);
+          const gxs = clamp(x - gShift, 0, width - 1);
+          const bxs = clamp(x - bShift, 0, width - 1);
+          data[idx]   = src[(y * width + rxs) * 4];
+          data[idx+1] = src[(y * width + gxs) * 4 + 1];
+          data[idx+2] = src[(y * width + bxs) * 4 + 2];
+        }
+      }
+
+      // Occasionally invert a sub-band for extra corruption
+      if (Math.random() < strength * 0.4) {
+        const subY = startY + Math.floor(Math.random() * bandH);
+        for (let x = 0; x < width; x++) {
+          const idx = (subY * width + x) * 4;
+          if (data[idx + 3] === 0) continue;
+          data[idx]   = 255 - data[idx];
+          data[idx+1] = 255 - data[idx+1];
+          data[idx+2] = 255 - data[idx+2];
+        }
+      }
+    }
+  }
+
+  // Text Dissolve: noise-based fade that organically eats away at text pixels.
+  // Uses smooth Perlin-style noise so the dissolve has rounded, amoeba-like
+  // edges rather than random salt-and-pepper. Higher amount = more text eaten.
+  function applyTextDissolve(data, width, height, amount) {
+    if (amount <= 0) return;
+    const t = amount / 100;
+    const freq = 0.04 + t * 0.08;
+    for (let y = 0; y < height; y++) {
+      const fy = y * freq;
+      const iy0 = Math.floor(fy);
+      const ty = fade(fy - iy0);
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        if (data[idx + 3] === 0) continue;
+        const fx = x * freq;
+        const ix0 = Math.floor(fx);
+        const tx = fade(fx - ix0);
+        // noise in [0,1]
+        const n = (bilerpHash(ix0, iy0, tx, ty, 13) + 1) * 0.5;
+        const dropThreshold = t * 0.88;
+        if (n < dropThreshold) {
+          data[idx + 3] = 0;
+        } else {
+          // soft edge: partial transparency near the dissolve boundary
+          const edge = clamp((n - dropThreshold) / Math.max(0.001, 0.18 * (1 - t * 0.5)), 0, 1);
+          data[idx + 3] = Math.round(data[idx + 3] * edge);
+        }
+      }
+    }
+  }
+
+  // Text Grain: applies organic film grain directly to text pixels only.
+  // Adds three independent noise octaves (R, G, B) so the grain is full-color
+  // and reads as film emulsion texture rather than digital pixel noise.
+  function applyTextGrain(data, width, height, amount) {
+    if (amount <= 0) return;
+    const amp = (amount / 100) * 130;
+    const invSize = 1 / 1.2;
+    for (let y = 0; y < height; y++) {
+      const fy = y * invSize;
+      const iy0 = Math.floor(fy);
+      const ty = fade(fy - iy0);
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        if (data[idx + 3] === 0) continue;
+        const fx = x * invSize;
+        const ix0 = Math.floor(fx);
+        const tx = fade(fx - ix0);
+        const nr = bilerpHash(ix0, iy0, tx, ty, 31) * amp;
+        const ng = bilerpHash(ix0, iy0, tx, ty, 32) * amp;
+        const nb = bilerpHash(ix0, iy0, tx, ty, 33) * amp;
+        data[idx]   = clamp(data[idx]   + nr, 0, 255);
+        data[idx+1] = clamp(data[idx+1] + ng, 0, 255);
+        data[idx+2] = clamp(data[idx+2] + nb, 0, 255);
+      }
+    }
   }
 
   function buildTextOverlayCanvas(w, h, ts, distort) {
@@ -1847,6 +2020,9 @@
     applyVerticalTear(data, w, h, distort.vtear);
     applyHorizontalTear(data, w, h, distort.htear);
     applyImageOpacity(data, w, h, distort.opacity);
+    applyTextGlitch(data, w, h, distort.glitch);
+    applyTextDissolve(data, w, h, distort.dissolve);
+    applyTextGrain(data, w, h, distort.txtgrain);
     tctx.putImageData(imgData, 0, 0);
     return tmp;
   }
@@ -2349,7 +2525,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','text-size','text-x','text-y','text-rotation','text-opacity'].forEach(id=>{
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -2577,6 +2753,12 @@
     $('fx-htear').value = Math.floor(Math.random()*70)+15;
     setRowActive('fx-opacity', true);
     $('fx-opacity').value = Math.random()>0.5 ? 100 : Math.floor(Math.random()*40)+60;
+    setRowActive('fx-glitch', Math.random()>0.72);
+    $('fx-glitch').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-dissolve', Math.random()>0.72);
+    $('fx-dissolve').value = Math.floor(Math.random()*65)+10;
+    setRowActive('fx-txtgrain', Math.random()>0.68);
+    $('fx-txtgrain').value = Math.floor(Math.random()*70)+10;
     syncSelectedTextLayerFromControls();
 
     updateAllSpans();
@@ -2670,6 +2852,9 @@
     $('fx-vtear').value=50;                   setRowActive('fx-vtear', false);
     $('fx-htear').value=50;                   setRowActive('fx-htear', false);
     $('fx-opacity').value=100;                setRowActive('fx-opacity', true);
+    $('fx-glitch').value=50;                  setRowActive('fx-glitch', false);
+    $('fx-dissolve').value=50;                setRowActive('fx-dissolve', false);
+    $('fx-txtgrain').value=50;                setRowActive('fx-txtgrain', false);
 
     resetTextLayers();
 
@@ -2775,7 +2960,7 @@
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','text-size','text-x','text-y','text-rotation','text-opacity'].forEach(bindRange);
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
 
@@ -2815,7 +3000,60 @@
     $('text-font').addEventListener('change',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
     $('text-color').addEventListener('input',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
     $('text-blend').addEventListener('change',   ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
-    ['text-size','text-x','text-y','text-rotation','text-opacity',...TEXT_DISTORT_IDS].forEach(id=>{
+
+    // Text color diary picker popup
+    const tcdPopup = $('text-color-diary-popup');
+    const tcdGrid = $('tcd-grid');
+    const TCD_MAX_SWATCHES = 18;
+    function renderTcdGrid() {
+      tcdGrid.innerHTML = '';
+      const colors = diaryColors.slice();
+      const total = Math.min(colors.length, TCD_MAX_SWATCHES);
+      for (let i = 0; i < total; i++) {
+        const c = colors[i];
+        const sw = document.createElement('div');
+        sw.className = 'tcd-swatch';
+        sw.style.background = c.hex;
+        sw.title = c.hex;
+        sw.addEventListener('click', () => {
+          $('text-color').value = c.hex;
+          $('text-color').dispatchEvent(new Event('input'));
+          tcdPopup.classList.remove('show');
+        });
+        tcdGrid.appendChild(sw);
+      }
+      if (!total) {
+        const msg = document.createElement('div');
+        msg.style.cssText = 'font-size:10px;padding:4px;color:#555;white-space:nowrap;';
+        msg.textContent = 'Diary is empty';
+        tcdGrid.appendChild(msg);
+      }
+    }
+    $('text-color-diary-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      renderTcdGrid();
+      if (tcdPopup.classList.contains('show')) {
+        tcdPopup.classList.remove('show');
+        return;
+      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      tcdPopup.style.left = rect.left + 'px';
+      tcdPopup.style.top = (rect.bottom + 2) + 'px';
+      tcdPopup.classList.add('show');
+    });
+    document.addEventListener('pointerdown', e => {
+      if (!tcdPopup.classList.contains('show')) return;
+      if (!tcdPopup.contains(e.target) && e.target.id !== 'text-color-diary-btn') {
+        tcdPopup.classList.remove('show');
+      }
+    }, true);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && tcdPopup.classList.contains('show')) {
+        tcdPopup.classList.remove('show');
+        $('text-color-diary-btn').focus();
+      }
+    });
+    ['text-size','text-rotation','text-opacity',...TEXT_DISTORT_IDS].forEach(id=>{
       $(id).addEventListener('input', ()=>{ syncSelectedTextLayerFromControls(); });
     });
 
@@ -2861,6 +3099,7 @@
       if(!hit) return;
       if(selectedTextLayerId !== hit.layerId){
         selectedTextLayerId = hit.layerId;
+        selectedTextLayerIds = new Set([hit.layerId]);
         renderTextLayerList();
         syncTextControlsFromSelectedLayer();
       }

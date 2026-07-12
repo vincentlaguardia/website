@@ -3,5 +3,10 @@
     "type": "folder",
     "name": "albums",
     "modified": "2026-07-11"
+  },
+  {
+    "type": "file",
+    "name": "livvy am bandcamp",
+    "url": "https://easyfr.bandcamp.com/album/livvy-am"
   }
 ]

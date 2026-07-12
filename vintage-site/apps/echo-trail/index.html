@@ -540,6 +540,10 @@
 
         <div class="controls-col">
           <div class="ctrl-section-label">— Text Settings —</div>
+          <div class="control-row" style="gap:4px;margin:2px 0;">
+            <button type="button" class="btn95" id="btn-random-text-fx" style="font-size:10px;padding:3px 8px;">Random FX</button>
+            <button type="button" class="btn95" id="btn-random-text-font" style="font-size:10px;padding:3px 8px;">Random Font</button>
+          </div>
           <div class="control-row">
             <div id="text-layer-list" class="text-layer-stack"></div>
           </div>
@@ -2847,6 +2851,45 @@
     scheduleRender();
   }
 
+  function randomTextFX(){
+    setRowActive('fx-stretch', Math.random()>0.5);
+    $('fx-stretch').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-warp', Math.random()>0.5);
+    $('fx-warp').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-vtear', Math.random()>0.6);
+    $('fx-vtear').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-htear', Math.random()>0.6);
+    $('fx-htear').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-opacity', true);
+    $('fx-opacity').value = Math.random()>0.4 ? 100 : Math.floor(Math.random()*40)+60;
+    setRowActive('fx-glitch', Math.random()>0.6);
+    $('fx-glitch').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-dissolve', Math.random()>0.6);
+    $('fx-dissolve').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-txtgrain', Math.random()>0.55);
+    $('fx-txtgrain').value = Math.floor(Math.random()*80)+10;
+    $('text-size').value = Math.floor(Math.random()*120)+20;
+    $('text-rotation').value = Math.floor(Math.random()*361)-180;
+    $('text-opacity').value = Math.floor(Math.random()*31)+70;
+    const blends = ['normal','additive','subtractive','exclusion','division'];
+    setTemplateSelectValue('text-blend', blends[Math.floor(Math.random()*blends.length)]);
+    updateAllSpans();
+    syncSelectedTextLayerFromControls();
+    scheduleRender();
+  }
+
+  function randomTextFont(){
+    const fontSel = $('text-font');
+    if(!fontSel) return;
+    const opts = Array.from(fontSel.options).filter(o=>o.value!==FONT_UPLOAD_OPTION_VALUE);
+    if(!opts.length) return;
+    const chosen = opts[Math.floor(Math.random()*opts.length)].value;
+    setTemplateSelectValue('text-font', chosen);
+    syncSelectedTextLayerFromControls();
+    renderTextLayerList();
+    scheduleRender();
+  }
+
   function friedMode(){
     setRowActive('fried-duplicate', true);
     $('fried-duplicate').value = 55+Math.floor(Math.random()*45);
@@ -3078,6 +3121,8 @@
 
     // Text overlay controls
     $('text-layer-add-btn').addEventListener('click', addTextLayer);
+    $('btn-random-text-fx').addEventListener('click', randomTextFX);
+    $('btn-random-text-font').addEventListener('click', randomTextFont);
     $('text-color').addEventListener('input',    ()=>{ syncSelectedTextLayerFromControls(); scheduleRender(); });
 
     // Text color diary picker popup

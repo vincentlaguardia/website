@@ -255,16 +255,17 @@
   .text-layer-select.active{
     box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
-  .text-layer-font-select,
+  .text-layer-font-select{
+    flex:0 0 108px;
+    width:108px;
+    min-width:84px;
+    font-size:10px;
+  }
   .text-layer-blend-select{
     flex:0 0 92px;
     width:92px;
     min-width:72px;
     font-size:10px;
-  }
-  .text-layer-font-select{
-    flex-basis:108px;
-    width:108px;
   }
   .text-layer-text{
     flex:1;
@@ -375,7 +376,7 @@
       </div>
       <input type="file" id="file-input" accept="image/*" hidden>
       <input type="file" id="font-upload-input" accept=".ttf,.otf,.woff,.woff2" hidden>
-      <select id="text-font" hidden aria-hidden="true">
+      <select id="text-font" hidden>
         <option value="Impact">Impact</option>
         <option value="Arial Black">Arial Black</option>
         <option value="Arial">Arial</option>
@@ -388,7 +389,7 @@
         <option value="Trebuchet MS">Trebuchet MS</option>
         <option value="__upload__">Upload Font…</option>
       </select>
-      <select id="text-blend" hidden aria-hidden="true">
+      <select id="text-blend" hidden>
         <option value="normal">Normal</option>
         <option value="additive">Additive</option>
         <option value="subtractive">Subtractive</option>
@@ -1637,7 +1638,7 @@
       option.textContent = selectedValue;
       selectEl.appendChild(option);
     }
-    selectEl.value = hasValue || selectedValue ? selectedValue : selectEl.options[0]?.value || '';
+    selectEl.value = selectedValue || selectEl.options[0]?.value || '';
   }
 
   function setTemplateSelectValue(id, value) {
@@ -1747,12 +1748,8 @@
           return;
         }
         layer.fontFamily = fontSelect.value;
-        if (selectSingleTextLayer(layer.id)) {
-          scheduleRender();
-        } else {
-          syncTextControlsFromSelectedLayer();
-          scheduleRender();
-        }
+        if (!selectSingleTextLayer(layer.id)) syncTextControlsFromSelectedLayer();
+        scheduleRender();
       });
 
       const textInput = document.createElement('input');
@@ -1778,12 +1775,8 @@
       syncSelectOptionsFromTemplate(blendSelect, 'text-blend', layer.blendMode);
       blendSelect.addEventListener('change', () => {
         layer.blendMode = blendSelect.value;
-        if (selectSingleTextLayer(layer.id)) {
-          scheduleRender();
-        } else {
-          syncTextControlsFromSelectedLayer();
-          scheduleRender();
-        }
+        if (!selectSingleTextLayer(layer.id)) syncTextControlsFromSelectedLayer();
+        scheduleRender();
       });
 
       const hideBtn = document.createElement('button');

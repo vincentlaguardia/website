@@ -1667,9 +1667,12 @@
       fontBtn.type = 'button';
       fontBtn.className = 'btn95 text-layer-font-btn';
       fontBtn.textContent = 'Font';
-      fontBtn.title = layer.label + ' font: ' + layer.fontFamily;
+      fontBtn.title = `${layer.label} font: ${layer.fontFamily}`;
       fontBtn.setAttribute('aria-label', fontBtn.title);
-      fontBtn.style.fontFamily = '"' + escapeFontFamily(layer.fontFamily) + '", Impact, sans-serif';
+      const buttonFontFamily = (typeof escapeFontFamily === 'function' && layer.fontFamily)
+        ? `"${escapeFontFamily(layer.fontFamily)}", Impact, sans-serif`
+        : 'Impact, sans-serif';
+      fontBtn.style.fontFamily = buttonFontFamily;
       fontBtn.addEventListener('click', () => {
         if (selectedTextLayerId !== layer.id) {
           selectedTextLayerId = layer.id;

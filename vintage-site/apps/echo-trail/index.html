@@ -1344,6 +1344,7 @@
     const minVisibleAlpha = 4;
     const seamBaseProbability = 0.35;
     const seamStrengthProbability = 0.45;
+    const seamProbability = seamBaseProbability + strength * seamStrengthProbability;
 
     for (let s = 0; s < numSlices; s++) {
       const sliceW = Math.max(2, Math.round(width * (0.03 + Math.random() * 0.14)));
@@ -1376,17 +1377,16 @@
         }
       }
 
-      const seamAlpha = 145 + Math.round(strength * 110);
       [startX, startX + sliceW - 1].forEach(seamX => {
         if (seamX < 0 || seamX >= width) return;
         for (let y = 0; y < height; y++) {
           const idx = (y * width + seamX) * 4;
-          if (data[idx + 3] <= minVisibleAlpha || Math.random() >= (seamBaseProbability + strength * seamStrengthProbability)) continue;
+          if (data[idx + 3] <= minVisibleAlpha || Math.random() >= seamProbability) continue;
           const bright = 165 + Math.random() * 90;
           data[idx] = bright;
           data[idx + 1] = bright;
           data[idx + 2] = bright;
-          data[idx + 3] = Math.max(data[idx + 3], seamAlpha);
+          data[idx + 3] = Math.max(data[idx + 3], 145 + Math.round(strength * 110));
         }
       });
     }
@@ -1445,6 +1445,7 @@
   // Dedicated offscreen canvas for text metrics; default 300x150 dimensions are
   // sufficient because measureText depends on the active font, not bitmap size.
   const textMeasureCanvas = document.createElement('canvas');
+  const textMeasureCtx = textMeasureCanvas.getContext('2d');
   const textDragState = { active:false, pointerId:null, offsetX:0, offsetY:0, moved:false };
   let suppressPreviewClickUntil = 0;
 
@@ -1467,17 +1468,17 @@
 
   function getTextLayoutBox(ts, w, h) {
     if (!ts || !ts.enabled || !String(ts.content || '').trim() || w <= 0 || h <= 0) return null;
-    const mctx = textMeasureCanvas.getContext('2d');
+    if (!textMeasureCtx) return null;
     const scaleFactor = workingCanvas.height > 0 ? h / workingCanvas.height : 1;
     const fs = Math.max(4, Math.round(ts.fontSize * scaleFactor));
     const px = (ts.x / 100) * w;
     const py = (ts.y / 100) * h;
     const lines = String(ts.content || '').split('\n');
     const lineH = fs * 1.2;
-    mctx.font = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
+    textMeasureCtx.font = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
     let maxLineW = 0;
     for (let i = 0; i < lines.length; i++) {
-      maxLineW = Math.max(maxLineW, mctx.measureText(lines[i]).width);
+      maxLineW = Math.max(maxLineW, textMeasureCtx.measureText(lines[i]).width);
     }
     const pad = Math.max(8, fs * 0.2);
     return {

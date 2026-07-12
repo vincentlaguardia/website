@@ -245,7 +245,7 @@
     box-shadow:inset 1px 1px 0 #808080, inset -1px -1px 0 #fff;
   }
   .text-layer-stack{ display:flex; flex-direction:column; gap:5px; width:100%; }
-  .text-layer-row{ margin:0; }
+  .text-layer-row{ --font-btn-width: 54px; margin:0; }
   .text-layer-select{
     width:22px; height:22px; flex:0 0 22px; padding:0;
     font-family:inherit; font-size:11px; line-height:1; cursor:pointer;
@@ -261,7 +261,6 @@
   }
   .text-layer-font-btn{
     /* Leaves room for the eye/X buttons while still fitting the "Font" label. */
-    --font-btn-width: 54px;
     flex: 0 0 var(--font-btn-width);
     min-width: var(--font-btn-width);
     padding: 0 6px;
@@ -1924,12 +1923,14 @@
 
   function normalizeTextLayerFontFamily(name) {
     const normalized = String(name || '').trim();
+    // Exclude CSS/attribute-breaking characters before previewing user-selected font names.
     return normalized && !/[<>{};:'"\u0000-\u001F\u007F]/.test(normalized)
       ? normalized
       : TEXT_LAYER_DEFAULTS.fontFamily;
   }
 
   function sanitizeTextLayerMetadata(value) {
+    // Tooltips/aria labels should not carry control characters or irregular spacing.
     return String(value || '').replace(/[\u0000-\u001F\u007F]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 

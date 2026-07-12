@@ -1560,6 +1560,7 @@
   const darkenRgb = ({r,g,b}) => `rgb(${Math.round(r*0.82)},${Math.round(g*0.82)},${Math.round(b*0.82)})`;
   const toRgb = ({r,g,b}) => `rgb(${r},${g},${b})`;
   const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
+  let friedGradientReadWarningShown = false;
 
   function clearFriedButtonGradient(){
     const btnFried = $('btn-fried');
@@ -1629,8 +1630,12 @@
       btnFried.style.setProperty('--frd-bg', gradF);
       btnFried.style.setProperty('--frd-bg-active', gradFActive);
       btnFried.style.setProperty('--frd-color', avgLumF > 140 ? '#000' : '#fff');
-    } catch {
+    } catch(err) {
       clearFriedButtonGradient();
+      if(!friedGradientReadWarningShown){
+        friedGradientReadWarningShown = true;
+        console.warn('Echo Trail: unable to sample preview canvas for Dr. Pastrami button colors (possible cross-origin canvas taint).', err);
+      }
     }
   }
 

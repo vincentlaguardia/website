@@ -1307,6 +1307,30 @@ const DEFAULT_NEW_FOLDER_NAME_RE = /^New Folder(?: \(\d+\))?$/;
 function saveCustomFolders() {
   localStorage.setItem('site-custom-folders', JSON.stringify(customFolders));
 }
+function createCustomPictureItem(name, src) {
+  const resolvedName = String(name || '').trim() || 'photo.png';
+  return {
+    type: 'picture',
+    name: resolvedName,
+    file: src,
+    thumb: src,
+    modified: new Date().toISOString().slice(0, 10),
+    custom: true
+  };
+}
+function addCustomPictureToDesktop(name, src, idPrefix) {
+  const newId = (idPrefix || 'picture') + '_' + Date.now();
+  const newItem = createCustomPictureItem(name, src);
+  items[newId] = newItem;
+  customFolders[newId] = newItem;
+  saveCustomFolders();
+  if (!items.desktop.children.includes(newId)) {
+    items.desktop.children.push(newId);
+    persistFolderChildren('desktop');
+  }
+  buildDesktopIcons();
+  return newId;
+}
 function persistFolderChildren(parentId) {
   if (!items[parentId]) return;
   items[parentId].modified = Date.now();
@@ -2693,6 +2717,37 @@ const DEFAULT_WALLPAPER_SRC = 'content/_backgrounds/trinityneo.jpg';
 const WALLPAPER_PREF_VERSION = 1;  // increment when changing DEFAULT_WALLPAPER_SRC
 const WALLPAPER_VERSION_KEY  = 'site-wallpaper-version';
 
+function resolveWallpaperUrl(src) {
+  const trimmed = String(src || '').trim();
+  if (!trimmed) return toAssetUrl(DEFAULT_WALLPAPER_SRC);
+  if (/^(?:data:|blob:)/i.test(trimmed)) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+  } catch (_) {}
+  return toAssetUrl(trimmed);
+}
+
+function getDesktopWallpaperChoices() {
+  const desktopChildren = items.desktop && Array.isArray(items.desktop.children) ? items.desktop.children : [];
+  return desktopChildren
+    .map(id => {
+      const item = items[id];
+      if (!item || item.type !== 'picture') return null;
+      const src = String(item.file || item.filePath || '').trim();
+      if (!src) return null;
+      const thumb = String(item.thumb || src).trim() || src;
+      return {
+        id: 'desktop-wallpaper-' + id,
+        name: item.name || 'Untitled picture',
+        src: src,
+        thumb: thumb,
+        sourceLabel: 'Virtual desktop'
+      };
+    })
+    .filter(Boolean);
+}
+
 // Apply wallpaper CSS rules to the desktop element for a given fit mode.
 // fit: 'fill' (cover) | 'stretch' | 'tile'
 function applyWallpaperFitStyle(desktopEl, fit) {
@@ -2720,7 +2775,7 @@ function applyWallpaper(src, fit, persist) {
   const desktopEl = document.getElementById('desktop');
   const resolvedFit = fit || localStorage.getItem('site-wallpaper-fit') || 'fill';
   applyWallpaperFitStyle(desktopEl, resolvedFit);
-  const resolvedSrc = src ? toAssetUrl(src) : toAssetUrl(DEFAULT_WALLPAPER_SRC);
+  const resolvedSrc = resolveWallpaperUrl(src);
   desktopEl.style.backgroundImage = 'url(' + resolvedSrc + ')';
   if (resolvedFit === 'tile') {
     // Shrink the image to 10% of its natural size and tile it across the desktop
@@ -2734,9 +2789,16 @@ function applyWallpaper(src, fit, persist) {
   }
   if (src) {
     if (persist !== false) {
-      localStorage.setItem('site-wallpaper-src', src);
-      localStorage.setItem('site-wallpaper-fit', resolvedFit);
-      localStorage.setItem(WALLPAPER_VERSION_KEY, String(WALLPAPER_PREF_VERSION));
+      try {
+        localStorage.setItem('site-wallpaper-src', src);
+        localStorage.setItem('site-wallpaper-fit', resolvedFit);
+        localStorage.setItem(WALLPAPER_VERSION_KEY, String(WALLPAPER_PREF_VERSION));
+      } catch (err) {
+        console.warn('Failed to save wallpaper preference.', err);
+        alert(/^data:/i.test(String(src || ''))
+          ? 'That photo is too large to save as a wallpaper here. Try a smaller image.'
+          : 'Could not save your wallpaper preference in this browser.');
+      }
     }
   } else {
     if (persist !== false) {
@@ -2786,6 +2848,8 @@ async function openBackgroundPickerWindow() {
     }
   } catch (_) { /* network error - show empty state */ }
 
+  const desktopBackgrounds = getDesktopWallpaperChoices();
+
   // Snapshot the saved state so we can revert on Cancel/Close
   const originalSrc = localStorage.getItem('site-wallpaper-src') || null;
   const originalFit = localStorage.getItem('site-wallpaper-fit') || 'fill';
@@ -2817,6 +2881,67 @@ async function openBackgroundPickerWindow() {
   content.className = 'win98-content';
   content.style.cssText = 'display:flex;flex-direction:column;flex:1;overflow:hidden;';
 
+  function clearSelectedThumbs() {
+    content.querySelectorAll('[data-bg-thumb-selected]').forEach(el => {
+      el.removeAttribute('data-bg-thumb-selected');
+      el.style.outline = '';
+    });
+  }
+
+  function selectWallpaperChoice(thumb, src) {
+    clearSelectedThumbs();
+    if (thumb) {
+      thumb.setAttribute('data-bg-thumb-selected', '1');
+      thumb.style.outline = '2px solid #000080';
+    }
+    previewSrc = src;
+    applyWallpaper(previewSrc, previewFit, false);
+  }
+
+  function buildChoiceThumb(choice) {
+    const thumb = document.createElement('div');
+    thumb.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;';
+    if (choice.src === previewSrc) {
+      thumb.setAttribute('data-bg-thumb-selected', '1');
+      thumb.style.outline = '2px solid #000080';
+    }
+
+    const img = document.createElement('img');
+    img.src = resolveWallpaperUrl(choice.thumb || choice.src);
+    img.alt = choice.name;
+    img.style.cssText = 'width:88px;height:64px;object-fit:cover;display:block;border:1px solid #808080;';
+
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:10px;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    label.textContent = choice.name;
+
+    const source = document.createElement('div');
+    source.style.cssText = 'font-size:9px;color:#808080;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    source.textContent = choice.sourceLabel;
+
+    thumb.appendChild(img);
+    thumb.appendChild(label);
+    thumb.appendChild(source);
+    thumb.addEventListener('click', () => selectWallpaperChoice(thumb, choice.src));
+    return thumb;
+  }
+
+  function appendChoiceSection(parent, title, choices) {
+    if (!choices.length) return null;
+    const section = document.createElement('div');
+    section.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
+    const heading = document.createElement('div');
+    heading.style.cssText = 'font-size:11px;font-weight:bold;';
+    heading.textContent = title;
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;';
+    choices.forEach(choice => grid.appendChild(buildChoiceThumb(choice)));
+    section.appendChild(heading);
+    section.appendChild(grid);
+    parent.appendChild(section);
+    return grid;
+  }
+
   // Fit mode radio row
   const fitRow = document.createElement('div');
   fitRow.style.cssText = 'display:flex;align-items:center;gap:12px;padding:6px 10px 4px;flex-shrink:0;border-bottom:1px solid #808080;font-size:11px;';
@@ -2844,48 +2969,77 @@ async function openBackgroundPickerWindow() {
   });
   content.appendChild(fitRow);
 
-  if (backgrounds.length === 0) {
+  const chooserArea = document.createElement('div');
+  chooserArea.style.cssText = 'flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:10px;';
+
+  const importRow = document.createElement('div');
+  importRow.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+  const importBtn = document.createElement('button');
+  importBtn.className = 'win98-button';
+  importBtn.textContent = 'Import From My Computer...';
+  importRow.appendChild(importBtn);
+  const importHint = document.createElement('span');
+  importHint.style.cssText = 'font-size:10px;color:#808080;';
+  importHint.textContent = 'You can also pick an image already on the virtual desktop below.';
+  importRow.appendChild(importHint);
+  chooserArea.appendChild(importRow);
+
+  const importedSection = document.createElement('div');
+  importedSection.style.cssText = 'display:none;flex-direction:column;gap:6px;';
+  const importedHeading = document.createElement('div');
+  importedHeading.style.cssText = 'font-size:11px;font-weight:bold;';
+  importedHeading.textContent = 'Imported From My Computer';
+  const importedGrid = document.createElement('div');
+  importedGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;';
+  importedSection.appendChild(importedHeading);
+  importedSection.appendChild(importedGrid);
+  chooserArea.appendChild(importedSection);
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/*';
+  fileInput.style.display = 'none';
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    fileInput.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      const result = String(event && event.target ? event.target.result || '' : '').trim();
+      if (!result) return;
+      importedSection.style.display = 'flex';
+      const choice = {
+        id: 'imported-wallpaper-' + Date.now(),
+        name: file.name || 'Imported image',
+        src: result,
+        thumb: result,
+        sourceLabel: 'My computer'
+      };
+      const thumb = buildChoiceThumb(choice);
+      importedGrid.prepend(thumb);
+      selectWallpaperChoice(thumb, choice.src);
+    };
+    reader.readAsDataURL(file);
+  });
+  importBtn.addEventListener('click', () => fileInput.click());
+  content.appendChild(fileInput);
+
+  appendChoiceSection(chooserArea, 'Virtual Desktop Pictures', desktopBackgrounds);
+  appendChoiceSection(chooserArea, 'Built-in Wallpapers', backgrounds.map(bg => ({
+    id: bg.id,
+    name: bg.name,
+    src: bg.src,
+    thumb: bg.src,
+    sourceLabel: 'Built-in'
+  })));
+
+  if (desktopBackgrounds.length === 0 && backgrounds.length === 0) {
     const empty = document.createElement('div');
-    empty.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:#808080;padding:16px;text-align:center;';
-    empty.textContent = 'No backgrounds available. Drop images into content/_backgrounds/ and rebuild.';
-    content.appendChild(empty);
-  } else {
-    const grid = document.createElement('div');
-    grid.style.cssText = 'flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;padding:10px;';
-
-    backgrounds.forEach(bg => {
-      const thumb = document.createElement('div');
-      thumb.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px;';
-      if (bg.src === originalSrc) thumb.style.outline = '2px solid #000080';
-
-      const img = document.createElement('img');
-      img.src = toAssetUrl(bg.src);
-      img.alt = bg.name;
-      img.style.cssText = 'width:88px;height:64px;object-fit:cover;display:block;border:1px solid #808080;';
-
-      const label = document.createElement('div');
-      label.style.cssText = 'font-size:10px;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-      label.textContent = bg.name;
-
-      thumb.appendChild(img);
-      thumb.appendChild(label);
-
-      thumb.addEventListener('click', () => {
-        grid.querySelectorAll('[data-bg-thumb-selected]').forEach(el => {
-          el.removeAttribute('data-bg-thumb-selected');
-          el.style.outline = '';
-        });
-        thumb.setAttribute('data-bg-thumb-selected', '1');
-        thumb.style.outline = '2px solid #000080';
-        previewSrc = bg.src;
-        // Preview without persisting
-        applyWallpaper(previewSrc, previewFit, false);
-      });
-
-      grid.appendChild(thumb);
-    });
-    content.appendChild(grid);
+    empty.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:11px;color:#808080;padding:16px;text-align:center;border:1px solid #c0c0c0;';
+    empty.textContent = 'No wallpapers found yet. Import one from your computer or add files to content/_backgrounds/.';
+    chooserArea.appendChild(empty);
   }
+  content.appendChild(chooserArea);
 
   const btnRow = document.createElement('div');
   btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;padding:8px 12px;flex-shrink:0;';
@@ -9041,65 +9195,17 @@ window.addEventListener('message', function(e) {
   if (e.data.type === 'chroma-save-to-desktop' && (isFromChroma || isFromDiary || isFromSam)) {
     const name = String(e.data.name || '').trim() || 'chroma-palette.jpg';
     const dataUrl = String(e.data.dataUrl || '');
-    const newId = 'chroma_' + Date.now();
-    const newItem = {
-      type: 'picture',
-      name: name,
-      file: dataUrl,
-      thumb: dataUrl,
-      modified: new Date().toISOString().slice(0, 10),
-      custom: true
-    };
-    items[newId] = newItem;
-    customFolders[newId] = newItem;
-    saveCustomFolders();
-    if (!items.desktop.children.includes(newId)) {
-      items.desktop.children.push(newId);
-      persistFolderChildren('desktop');
-    }
-    buildDesktopIcons();
+    addCustomPictureToDesktop(name, dataUrl, 'chroma');
   }
   if (e.data.type === 'echo-trail-save-to-desktop' && isFromEchoTrail) {
     const name = String(e.data.name || '').trim() || 'echo-trail.png';
     const dataUrl = String(e.data.dataUrl || '');
-    const newId = 'echo_trail_' + Date.now();
-    const newItem = {
-      type: 'picture',
-      name: name,
-      file: dataUrl,
-      thumb: dataUrl,
-      modified: new Date().toISOString().slice(0, 10),
-      custom: true
-    };
-    items[newId] = newItem;
-    customFolders[newId] = newItem;
-    saveCustomFolders();
-    if (!items.desktop.children.includes(newId)) {
-      items.desktop.children.push(newId);
-      persistFolderChildren('desktop');
-    }
-    buildDesktopIcons();
+    addCustomPictureToDesktop(name, dataUrl, 'echo_trail');
   }
   if (e.data.type === 'colormixer95-save-to-desktop' && isFromColorMixer95) {
     const name = String(e.data.name || '').trim() || 'color-mix.png';
     const dataUrl = String(e.data.dataUrl || '');
-    const newId = 'colormixer95_' + Date.now();
-    const newItem = {
-      type: 'picture',
-      name: name,
-      file: dataUrl,
-      thumb: dataUrl,
-      modified: new Date().toISOString().slice(0, 10),
-      custom: true
-    };
-    items[newId] = newItem;
-    customFolders[newId] = newItem;
-    saveCustomFolders();
-    if (!items.desktop.children.includes(newId)) {
-      items.desktop.children.push(newId);
-      persistFolderChildren('desktop');
-    }
-    buildDesktopIcons();
+    addCustomPictureToDesktop(name, dataUrl, 'colormixer95');
   }
 });
 

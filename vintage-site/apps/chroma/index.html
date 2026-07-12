@@ -1602,6 +1602,10 @@
   let matchSatSource = 'dot'; // 'dot' | 'skew' | 'focus' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
   let matchSatValue = null; // raw HSL saturation (0–100) of the source color when active
+  function syncDotsToggleUI(){
+    toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
+    toggleDotsBtn.classList.toggle('is-active', showDots);
+  }
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
@@ -1843,10 +1847,10 @@
     drawScene();
   }
   targetColorInput.addEventListener('input', ()=>{ applyTargetHex(targetColorInput.value); });
+  syncDotsToggleUI();
   toggleDotsBtn.addEventListener('click', ()=>{
     showDots = !showDots;
-    toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
-    toggleDotsBtn.classList.toggle('is-active', !showDots);
+    syncDotsToggleUI();
     drawScene();
   });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });

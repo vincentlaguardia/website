@@ -6812,8 +6812,8 @@ function openEchoTrailWindow() {
   const availH = window.innerHeight - taskbarHeight;
   const minOpenW = Math.min(720, Math.max(240, availW - 16));
   const minOpenH = Math.min(560, Math.max(320, availH - 16));
-  const openW = Math.min(960, Math.max(minOpenW, availW - 48));
-  const openH = Math.min(920, Math.max(minOpenH, availH - 72));
+  const openW = Math.max(minOpenW, availW - 48);
+  const openH = Math.max(minOpenH, availH - 72);
   // Bottom-right placement: keep a visible gap above taskbar and from the right edge
   const winLeft = Math.max(0, availW - openW - ECHO_TRAIL_RIGHT_MARGIN);
   const winTop  = Math.max(0, availH - openH - ECHO_TRAIL_BOTTOM_GAP);

@@ -1345,6 +1345,8 @@
     const seamProbability = 0.35 + strength * 0.45;
     const seamAlphaBase = 145;
     const seamAlphaRange = 110;
+    const seamBrightnessBase = 165;
+    const seamBrightnessRange = 90;
 
     for (let s = 0; s < numSlices; s++) {
       const sliceW = Math.max(2, Math.round(width * (0.03 + Math.random() * 0.14)));
@@ -1382,7 +1384,7 @@
         for (let y = 0; y < height; y++) {
           const idx = (y * width + seamX) * 4;
           if (data[idx + 3] <= minVisibleAlpha || Math.random() >= seamProbability) continue;
-          const bright = 165 + Math.random() * 90;
+          const bright = seamBrightnessBase + Math.random() * seamBrightnessRange;
           data[idx] = bright;
           data[idx + 1] = bright;
           data[idx + 2] = bright;
@@ -1473,7 +1475,10 @@
     if (!ts || !ts.enabled || !String(ts.content || '').trim() || w <= 0 || h <= 0) return null;
     if (!textMeasureCtx) return null;
     const scaleFactor = workingCanvas.height > 0 ? h / workingCanvas.height : 1;
-    const fs = Math.max(4, Math.round(ts.fontSize * scaleFactor));
+    const minFontSize = 4;
+    const minTextLayoutPadding = 8;
+    const textLayoutPaddingFactor = 0.2;
+    const fs = Math.max(minFontSize, Math.round(ts.fontSize * scaleFactor));
     const px = (ts.x / 100) * w;
     const py = (ts.y / 100) * h;
     const lines = String(ts.content || '').split('\n');
@@ -1483,7 +1488,7 @@
     for (let i = 0; i < lines.length; i++) {
       maxLineW = Math.max(maxLineW, textMeasureCtx.measureText(lines[i]).width);
     }
-    const pad = Math.max(8, fs * 0.2);
+    const pad = Math.max(minTextLayoutPadding, fs * textLayoutPaddingFactor);
     return {
       px,
       py,

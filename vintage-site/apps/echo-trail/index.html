@@ -3073,19 +3073,21 @@
       const rect = e.currentTarget.getBoundingClientRect();
       tcdPopup.classList.add('show');
       const popupRect = tcdPopup.getBoundingClientRect();
-      const appWindow = $('app-window');
+      const appWindow = document.getElementById('app-window');
       const appRect = appWindow ? appWindow.getBoundingClientRect() : document.body.getBoundingClientRect();
       const pad = 6;
       const minLeft = appRect.left + pad;
       const maxLeft = appRect.right - popupRect.width - pad;
       const preferredLeft = rect.right - popupRect.width;
       const left = maxLeft < minLeft ? minLeft : Math.min(Math.max(preferredLeft, minLeft), maxLeft);
-      const maxTop = Math.max(appRect.top + pad, appRect.bottom - popupRect.height - pad);
+      const minTop = appRect.top + pad;
+      const maxTop = Math.max(minTop, appRect.bottom - popupRect.height - pad);
       const preferredTop = rect.bottom + 2;
       const fallbackTop = rect.top - popupRect.height - 2;
-      const top = preferredTop <= maxTop
-        ? preferredTop
-        : Math.max(appRect.top + pad, Math.min(fallbackTop, maxTop));
+      let top = preferredTop;
+      if (preferredTop > maxTop) {
+        top = Math.max(minTop, Math.min(fallbackTop, maxTop));
+      }
       tcdPopup.style.left = left + 'px';
       tcdPopup.style.top = top + 'px';
     });

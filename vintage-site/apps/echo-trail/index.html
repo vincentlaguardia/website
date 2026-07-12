@@ -1555,17 +1555,14 @@
       btn.style.removeProperty('--rnd-color');
       return;
     }
-    // Downsample to 3×1 to get three representative color stops across the image
-    const tmp = document.createElement('canvas');
-    tmp.width = 3; tmp.height = 1;
-    const ctx = tmp.getContext('2d');
-    ctx.drawImage(originalCanvas, 0, 0, 3, 1);
-    const d = ctx.getImageData(0, 0, 3, 1).data;
-    const c = [
-      {r:d[0],  g:d[1],  b:d[2]},
-      {r:d[4],  g:d[5],  b:d[6]},
-      {r:d[8],  g:d[9],  b:d[10]}
-    ];
+    // Sample 3 random pixels to get varied color stops from the image's palette
+    const octx = originalCanvas.getContext('2d');
+    const ow = originalCanvas.width, oh = originalCanvas.height;
+    const allPixels = octx.getImageData(0, 0, ow, oh).data;
+    const c = [0,1,2].map(()=>{
+      const i = (Math.floor(Math.random()*oh) * ow + Math.floor(Math.random()*ow)) * 4;
+      return {r:allPixels[i], g:allPixels[i+1], b:allPixels[i+2]};
+    });
     const lum = ({r,g,b}) => 0.299*r + 0.587*g + 0.114*b;
     const avgLum = (lum(c[0]) + lum(c[1]) + lum(c[2])) / 3;
     // Darken by 18% for the pressed state
@@ -1645,6 +1642,7 @@
     $('moire-scale').value = Math.floor(Math.random()*100);
 
     updateAllSpans();
+    updateRandomizeButtonGradient();
     scheduleRender();
   }
 
@@ -1853,10 +1851,8 @@
       if(e.target.files[0]) loadImageFile(e.target.files[0]);
       e.target.value='';
     });
-    const panel = $('canvas-panel');
-    panel.addEventListener('click', e=>{
-      if(!onboardingActive || e.target === previewCanvas) return;
-      clearOnboardingState();
+    document.addEventListener('click', e=>{
+      if(onboardingActive && e.target !== previewCanvas) clearOnboardingState();
     });
     previewCanvas.addEventListener('click', e=>{
       if(onboardingActive){

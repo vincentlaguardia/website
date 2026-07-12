@@ -1504,7 +1504,7 @@
   const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true };
   const TEXT_LAYER_BUTTON_FONT_STACK_FALLBACK = 'Impact, sans-serif';
   const TEXT_LAYER_METADATA_CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
-  const TEXT_LAYER_FONT_NAME_UNSAFE_CHARS = /[<>{};:'"`\u0000-\u001F\u007F]/;
+  const TEXT_LAYER_FONT_NAME_UNSAFE_CHARS = /[\\<>{};:'"`\u0000-\u001F\u007F]/;
   const TEXT_LAYER_DEFAULTS = {
     enabled: false,
     content: 'ECHO TRAIL',

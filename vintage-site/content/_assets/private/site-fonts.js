@@ -7,6 +7,10 @@
   const fontDirUrl = new URL('./fonts/', scriptEl.src).toString();
   const manifestUrl = new URL('./fonts/manifest.json', scriptEl.src).toString();
   const rootEl = document.documentElement;
+  // When data-provider-only="true", only register @font-face rules so fonts
+  // are available for canvas/text use. Desktop font selection is not applied
+  // to this document's UI elements and storage events are ignored.
+  const providerOnly = scriptEl.dataset.providerOnly === 'true';
   let fontOptions = [];
   let activeFile = null;
   let ready = false;
@@ -106,6 +110,7 @@
       'font-display: swap;' +
       '}'
     )).join('\n');
+    if (providerOnly) return faceRules;
     const currentStack = activeFile ? ('"' + cssString(faceNameForFile(activeFile)) + '", ' + DEFAULT_FONT_STACK) : DEFAULT_FONT_STACK;
     return [
       ':root {',
@@ -215,8 +220,10 @@
 
   applyFontFile(getStoredFile(), false);
 
-  window.addEventListener('storage', event => {
-    if (event.key !== STORAGE_KEY) return;
-    applyFontFile(event.newValue || '', false);
-  });
+  if (!providerOnly) {
+    window.addEventListener('storage', event => {
+      if (event.key !== STORAGE_KEY) return;
+      applyFontFile(event.newValue || '', false);
+    });
+  }
 })();

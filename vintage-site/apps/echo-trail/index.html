@@ -257,13 +257,11 @@
   }
   .text-layer-font-select{
     flex:0 0 108px;
-    width:108px;
     min-width:84px;
     font-size:10px;
   }
   .text-layer-blend-select{
     flex:0 0 92px;
-    width:92px;
     min-width:72px;
     font-size:10px;
   }
@@ -1527,6 +1525,7 @@
   const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity', 'fx-glitch':'glitch', 'fx-dissolve':'dissolve', 'fx-txtgrain':'txtgrain' };
   const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100, glitch:50, dissolve:50, txtgrain:50 };
   const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true, glitch:false, dissolve:false, txtgrain:false };
+  const FONT_UPLOAD_OPTION_VALUE = '__upload__';
   const TEXT_LAYER_DEFAULTS = {
     enabled: false,
     content: 'ECHO TRAIL',
@@ -1627,15 +1626,20 @@
     return textLayers.filter(layer => selectedTextLayerIds.has(layer.id));
   }
 
+  function formatSelectOptionLabel(value, fallback = 'Custom') {
+    const safeValue = String(value ?? '').replace(/[\u0000-\u001F\u007F<>]/g, ' ').trim();
+    return safeValue || fallback;
+  }
+
   function syncSelectOptionsFromTemplate(selectEl, templateId, selectedValue) {
     const template = $(templateId);
     if (!selectEl || !template) return;
-    selectEl.innerHTML = template.innerHTML;
+    selectEl.replaceChildren(...Array.from(template.options, option => option.cloneNode(true)));
     const hasValue = Array.from(selectEl.options).some(option => option.value === selectedValue);
     if (!hasValue && selectedValue) {
       const option = document.createElement('option');
       option.value = selectedValue;
-      option.textContent = selectedValue;
+      option.textContent = formatSelectOptionLabel(selectedValue);
       selectEl.appendChild(option);
     }
     selectEl.value = selectedValue ?? selectEl.options[0]?.value ?? '';
@@ -1647,7 +1651,7 @@
     if (value && !Array.from(selectEl.options).some(option => option.value === value)) {
       const option = document.createElement('option');
       option.value = value;
-      option.textContent = value;
+      option.textContent = formatSelectOptionLabel(value);
       selectEl.appendChild(option);
     }
     selectEl.value = value;
@@ -1745,7 +1749,7 @@
       fontSelect.setAttribute('aria-label', fontSelect.title);
       syncSelectOptionsFromTemplate(fontSelect, 'text-font', layer.fontFamily);
       fontSelect.addEventListener('change', () => {
-        if (fontSelect.value === '__upload__') {
+        if (fontSelect.value === FONT_UPLOAD_OPTION_VALUE) {
           pendingFontUploadLayerId = layer.id;
           fontSelect.value = layer.fontFamily;
           $('font-upload-input').click();

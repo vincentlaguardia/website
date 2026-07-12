@@ -108,6 +108,13 @@
     flex:1; min-height:80px; background:#000;
     display:flex; align-items:center; justify-content:center; position:relative; overflow:auto;
   }
+  .canvas-panel.onboarding::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:rgba(128,128,128,0.1);
+    pointer-events:none;
+  }
   .sunken{ box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf; }
   #preview-canvas{ max-width:100%; max-height:100%; image-rendering:auto; transform-origin:center center; flex-shrink:0; }
   .drop-hint{ position:absolute; color:#999; text-align:center; font-size:12px; pointer-events:none; line-height:1.6; }
@@ -475,6 +482,8 @@
   "use strict";
   const $ = id => document.getElementById(id);
   const embeddedMode = new URLSearchParams(window.location.search).get('embedded') === '1' || window.self !== window.top;
+  const DEFAULT_IMAGE_URL = '/content/_assets/private/blood_teeth.jpg';
+  const DEFAULT_IMAGE_NAME = 'blood_teeth.jpg';
   const DIARY_KEY = 'chroma.diary';
   const DIARY_MAX = 36;
   const DIARY_EXPORT_COLS = 6;
@@ -488,6 +497,7 @@
   let diaryCtxIdx = -1;
   let diaryCtxColor = null;
   let appCtxColor = null;
+  let onboardingActive = false;
 
   function rgbToHex(rgb){
     return '#' + rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
@@ -1252,7 +1262,14 @@
     renderToCanvas(workingCanvas, previewCanvas, getOpts());
   }
 
-  function setImage(source, name){
+  function clearOnboardingState(){
+    onboardingActive = false;
+    $('canvas-panel').classList.remove('onboarding');
+    $('drop-hint').style.display='none';
+  }
+
+  function setImage(source, name, options){
+    const opts = options || {};
     const w0 = source.naturalWidth || source.width;
     const h0 = source.naturalHeight || source.height;
     const MAX_DIM = 2400;
@@ -1269,7 +1286,16 @@
     workingCanvas.width=pw; workingCanvas.height=ph;
     workingCanvas.getContext('2d').drawImage(originalCanvas,0,0,pw,ph);
 
-    $('drop-hint').style.display='none';
+    if(opts.isDefault){
+      onboardingActive = true;
+      $('canvas-panel').classList.add('onboarding');
+      $('drop-hint').style.display='block';
+      $('drop-hint').textContent='Click or drop your own photo';
+      $('status-main').textContent='Ready — click or drop to load your photo';
+    } else {
+      clearOnboardingState();
+      $('status-main').textContent='Ready';
+    }
     $('status-dims').textContent = w+' × '+h+' px';
     scheduleRender();
 
@@ -1336,11 +1362,18 @@
     const reader = new FileReader();
     reader.onload = e=>{
       const img = new Image();
-      img.onload = ()=>{ setImage(img, file.name); $('status-main').textContent='Ready'; };
+      img.onload = ()=>{ setImage(img, file.name); };
       img.onerror = ()=>{ $('status-main').textContent='Could not load image'; };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+  }
+
+  function loadDefaultImage(){
+    const img = new Image();
+    img.onload = ()=>{ setImage(img, DEFAULT_IMAGE_NAME, { isDefault: true }); };
+    img.onerror = ()=>{ $('status-main').textContent='Could not load default image'; };
+    img.src = DEFAULT_IMAGE_URL;
   }
 
   // Desktop-drop URLs may contain URI-encoded names; fall back to the raw value
@@ -1779,7 +1812,18 @@
       if(e.target.files[0]) loadImageFile(e.target.files[0]);
       e.target.value='';
     });
+    const panel = $('canvas-panel');
+    panel.addEventListener('click', e=>{
+      if(!onboardingActive || e.target === previewCanvas) return;
+      clearOnboardingState();
+      promptForImageFile();
+    });
     previewCanvas.addEventListener('click', e=>{
+      if(onboardingActive){
+        clearOnboardingState();
+        promptForImageFile();
+        return;
+      }
       const color = samplePreviewColor(e.clientX, e.clientY);
       if(color) setLastClickedColor(color.r, color.g, color.b);
     });
@@ -1795,7 +1839,6 @@
     });
 
     // Drag and drop - works anywhere on the window, not just the canvas
-    const panel = $('canvas-panel');
     const win = $('app-window');
     win.addEventListener('dragover', e=>{ e.preventDefault(); panel.classList.add('drag-over'); });
     win.addEventListener('dragleave', e=>{ if(!win.contains(e.relatedTarget)) panel.classList.remove('drag-over'); });
@@ -1945,6 +1988,8 @@
       setTimeout(()=>win.classList.remove('minimized'), 450);
     });
     $('btn-max').addEventListener('click', ()=>{ document.body.classList.toggle('maximized'); });
+
+    loadDefaultImage();
   });
 })();
 </script>

@@ -133,6 +133,8 @@
   }
   .sunken{ box-shadow: inset 1px 1px 0 #000, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf; }
   #preview-canvas{ max-width:100%; max-height:100%; image-rendering:auto; transform-origin:center center; flex-shrink:0; }
+  #preview-canvas.text-drag-ready{ cursor:move; }
+  #preview-canvas.text-dragging{ cursor:grabbing; }
   .drop-hint{ position:absolute; color:#999; text-align:center; font-size:12px; pointer-events:none; line-height:1.6; }
   .canvas-panel.drag-over{ outline:2px dashed #1084d0; outline-offset:-6px; }
 
@@ -1299,6 +1301,7 @@
           data[idx]   = src[si];
           data[idx+1] = src[si+1];
           data[idx+2] = src[si+2];
+          data[idx+3] = src[si+3];
         }
       }
     }
@@ -1324,44 +1327,70 @@
         data[idx]   = src[si];
         data[idx+1] = src[si+1];
         data[idx+2] = src[si+2];
+        data[idx+3] = src[si+3];
       }
     }
   }
 
-  // Vertical tear: a wavy vertical rip shifts everything to the right of the cut
-  // horizontally, like a photo torn from top to bottom. The cut line wobbles via
-  // smooth noise; a bright seam marks the tear edge.
+  // Vertical tear: split into vertical slices, displace them independently, and
+  // add jagged seam highlights for a glitched "torn text" look.
   function applyVerticalTear(data, width, height, amount) {
     if (amount <= 0) return;
-    const src      = new Uint8ClampedArray(data);
+    const src = new Uint8ClampedArray(data);
     const strength = amount / 100;
-    const numTears = 1 + Math.round(strength * 1.5);
-    const maxShift = Math.max(4, Math.round(width * 0.28 * strength));
+    const numSlices = 1 + Math.round(strength * 4);
+    const maxShift = Math.max(2, Math.round(width * 0.24 * strength));
+    const splitChance = 0.18 + strength * 0.45;
+    const minVisibleAlpha = 4;
+    const seamProbability = 0.35 + strength * 0.45;
+    const seamAlphaBase = 145;
+    const seamAlphaRange = 110;
+    const seamBrightnessBase = 165;
+    const seamBrightnessRange = 90;
 
-    for (let t = 0; t < numTears; t++) {
-      const centerX   = Math.floor(width * (0.15 + Math.random() * 0.70));
-      const dir       = Math.random() < 0.5 ? 1 : -1;
-      const shift     = dir * Math.round(maxShift * (0.45 + Math.random() * 0.55));
-      const wobbleAmp = Math.max(1, Math.round(width * 0.015 * strength));
+    for (let s = 0; s < numSlices; s++) {
+      const sliceW = Math.max(2, Math.round(width * (0.03 + Math.random() * 0.14)));
+      const startX = Math.floor(Math.random() * Math.max(1, width - sliceW));
+      const baseShift = Math.round((Math.random() * 2 - 1) * maxShift);
+      const wobbleAmp = Math.max(1, Math.round(width * 0.025 * strength));
+      const splitShift = Math.max(1, Math.round(maxShift * (0.18 + Math.random() * 0.25)));
+      const splitDir = Math.random() < 0.5 ? 1 : -1;
 
-      for (let y = 0; y < height; y++) {
-        const wobble = Math.round(smoothNoise2D(0, y, 0.018, 51) * wobbleAmp);
-        const cutX   = clamp(centerX + wobble, 0, width - 1);
-
-        for (let x = cutX; x < width; x++) {
+      for (let x = startX; x < startX + sliceW && x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const rowWobble = Math.round(smoothNoise2D(y, x, 0.02, 91) * wobbleAmp);
+          const shift = baseShift + rowWobble;
           const srcX = clamp(x - shift, 0, width - 1);
-          const idx  = (y * width + x) * 4;
-          const si   = (y * width + srcX) * 4;
-          data[idx]   = src[si];
-          data[idx+1] = src[si+1];
-          data[idx+2] = src[si+2];
-        }
-        if (Math.random() < 0.65) {
-          const si = (y * width + cutX) * 4;
-          const b  = 185 + Math.random() * 70;
-          data[si] = b; data[si+1] = b; data[si+2] = b;
+          const idx = (y * width + x) * 4;
+          const si = (y * width + srcX) * 4;
+          const shouldSplitChannels = src[si + 3] > minVisibleAlpha && Math.random() < splitChance;
+          if (shouldSplitChannels) {
+            const srcXr = clamp(srcX - splitDir * splitShift, 0, width - 1);
+            const srcXb = clamp(srcX + splitDir * splitShift, 0, width - 1);
+            data[idx]   = src[(y * width + srcXr) * 4];
+            data[idx+1] = src[si + 1];
+            data[idx+2] = src[(y * width + srcXb) * 4 + 2];
+          } else {
+            data[idx]   = src[si];
+            data[idx+1] = src[si + 1];
+            data[idx+2] = src[si + 2];
+          }
+          data[idx+3] = src[si + 3];
         }
       }
+
+      [startX, startX + sliceW - 1].forEach(seamX => {
+        if (seamX < 0 || seamX >= width) return;
+        for (let y = 0; y < height; y++) {
+          const idx = (y * width + seamX) * 4;
+          if (data[idx + 3] <= minVisibleAlpha || Math.random() >= seamProbability) continue;
+          const bright = seamBrightnessBase + Math.random() * seamBrightnessRange;
+          data[idx] = bright;
+          data[idx + 1] = bright;
+          data[idx + 2] = bright;
+          data[idx + 3] = Math.max(data[idx + 3], seamAlphaBase + Math.round(strength * seamAlphaRange));
+        }
+      });
     }
   }
 
@@ -1391,11 +1420,12 @@
           data[idx]   = src[si];
           data[idx+1] = src[si+1];
           data[idx+2] = src[si+2];
+          data[idx+3] = src[si+3];
         }
         if (Math.random() < 0.65) {
           const si = (cutY * width + x) * 4;
           const b  = 185 + Math.random() * 70;
-          data[si] = b; data[si+1] = b; data[si+2] = b;
+          data[si] = b; data[si+1] = b; data[si+2] = b; data[si+3] = Math.max(data[si+3], 170);
         }
       }
     }
@@ -1414,6 +1444,15 @@
   }
 
   // ---------- Text overlay ----------
+  // Dedicated offscreen canvas for text metrics; default 300x150 dimensions are
+  // sufficient because measureText depends on the active font, not bitmap size.
+  const textMeasureCanvas = document.createElement('canvas');
+  const textMeasureCtx = textMeasureCanvas.getContext('2d');
+  const textDragState = { active: false, pointerId: null, offsetX: 0, offsetY: 0, moved: false };
+  const clickSuppressDelayMillis = 250;
+  let suppressPreviewClickUntil = 0;
+  let cachedPreviewTextLayout = null;
+  let cachedPreviewTextLayoutKey = '';
 
   // Read all text settings directly from the DOM controls.
   function getTextState() {
@@ -1430,6 +1469,99 @@
       opacity:    $('text-opacity')  ? parseInt($('text-opacity').value,  10) : 100,
       blendMode:  $('text-blend')    ? $('text-blend').value    : 'normal'
     };
+  }
+
+  function getTextLayoutBox(ts, w, h) {
+    if (!ts || !ts.enabled || !String(ts.content || '').trim() || w <= 0 || h <= 0) return null;
+    if (!textMeasureCtx) return null;
+    const scaleFactor = workingCanvas.height > 0 ? h / workingCanvas.height : 1;
+    const minFontSize = 4;
+    const minTextLayoutPadding = 8;
+    const textLayoutPaddingFactor = 0.2;
+    const fs = Math.max(minFontSize, Math.round(ts.fontSize * scaleFactor));
+    const px = (ts.x / 100) * w;
+    const py = (ts.y / 100) * h;
+    const lines = String(ts.content || '').split('\n');
+    const lineH = fs * 1.2;
+    textMeasureCtx.font = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
+    let maxLineW = 0;
+    for (let i = 0; i < lines.length; i++) {
+      maxLineW = Math.max(maxLineW, textMeasureCtx.measureText(lines[i]).width);
+    }
+    const pad = Math.max(minTextLayoutPadding, fs * textLayoutPaddingFactor);
+    return {
+      px,
+      py,
+      halfW: Math.max(1, maxLineW * 0.5 + pad),
+      halfH: Math.max(1, (lineH * lines.length) * 0.5 + pad),
+      rot: ts.rotation * Math.PI / 180
+    };
+  }
+
+  function isPointInTextLayout(layout, x, y) {
+    if (!layout) return false;
+    const dx = x - layout.px;
+    const dy = y - layout.py;
+    const c = Math.cos(-layout.rot);
+    const s = Math.sin(-layout.rot);
+    const lx = dx * c - dy * s;
+    const ly = dx * s + dy * c;
+    return Math.abs(lx) <= layout.halfW && Math.abs(ly) <= layout.halfH;
+  }
+
+  function clientToPreviewCoords(clientX, clientY) {
+    if (!previewCanvas.width || !previewCanvas.height) return null;
+    const rect = previewCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const scaleX = previewCanvas.width / rect.width;
+    const scaleY = previewCanvas.height / rect.height;
+    const x = clamp((clientX - rect.left) * scaleX, 0, previewCanvas.width - 1);
+    const y = clamp((clientY - rect.top) * scaleY, 0, previewCanvas.height - 1);
+    return { x, y };
+  }
+
+  function setTextPositionFromCanvas(px, py) {
+    const xPct = clamp(Math.round((px / Math.max(1, previewCanvas.width)) * 100), 0, 100);
+    const yPct = clamp(Math.round((py / Math.max(1, previewCanvas.height)) * 100), 0, 100);
+    if ($('text-x')) {
+      $('text-x').value = xPct;
+      const spanX = $('text-x-val');
+      if (spanX) spanX.textContent = String(xPct);
+    }
+    if ($('text-y')) {
+      $('text-y').value = yPct;
+      const spanY = $('text-y-val');
+      if (spanY) spanY.textContent = String(yPct);
+    }
+    scheduleRender();
+  }
+
+  function updateTextDragCursor(clientX, clientY) {
+    if (textDragState.active) return;
+    const point = clientToPreviewCoords(clientX, clientY);
+    const layout = getCachedPreviewTextLayout();
+    const hovering = !!point && isPointInTextLayout(layout, point.x, point.y);
+    previewCanvas.classList.toggle('text-drag-ready', hovering);
+  }
+
+  function getCachedPreviewTextLayout() {
+    const ts = getTextState();
+    const key = [
+      previewCanvas.width,
+      previewCanvas.height,
+      ts.enabled,
+      ts.content,
+      ts.fontFamily,
+      ts.fontSize,
+      ts.x,
+      ts.y,
+      ts.rotation
+    ].join('|');
+    if (key !== cachedPreviewTextLayoutKey) {
+      cachedPreviewTextLayoutKey = key;
+      cachedPreviewTextLayout = getTextLayoutBox(ts, previewCanvas.width, previewCanvas.height);
+    }
+    return cachedPreviewTextLayout;
   }
 
   function buildTextOverlayCanvas(w, h, ts, distort) {
@@ -2423,12 +2555,70 @@
       if(onboardingActive && e.target !== previewCanvas) clearOnboardingState();
     });
     previewCanvas.addEventListener('click', e=>{
+      if(performance.now() < suppressPreviewClickUntil){
+        return;
+      }
       if(onboardingActive){
         clearOnboardingState();
         return;
       }
       const color = samplePreviewColor(e.clientX, e.clientY);
       if(color) setLastClickedColor(color.r, color.g, color.b);
+    });
+    previewCanvas.addEventListener('pointerdown', e=>{
+      if(e.button !== 0 || onboardingActive) return;
+      const point = clientToPreviewCoords(e.clientX, e.clientY);
+      if(!point) return;
+      const layout = getCachedPreviewTextLayout();
+      if(!isPointInTextLayout(layout, point.x, point.y)) return;
+      textDragState.active = true;
+      textDragState.pointerId = e.pointerId;
+      textDragState.offsetX = layout.px - point.x;
+      textDragState.offsetY = layout.py - point.y;
+      textDragState.moved = false;
+      previewCanvas.classList.remove('text-drag-ready');
+      previewCanvas.classList.add('text-dragging');
+      if(previewCanvas.setPointerCapture){
+        try{ previewCanvas.setPointerCapture(e.pointerId); } catch(_){}
+      }
+      e.preventDefault();
+    });
+    previewCanvas.addEventListener('pointermove', e=>{
+      if(textDragState.active && e.pointerId === textDragState.pointerId){
+        const point = clientToPreviewCoords(e.clientX, e.clientY);
+        if(!point) return;
+        const textXEl = $('text-x');
+        const textYEl = $('text-y');
+        const prevX = parseInt(textXEl ? textXEl.value : '50', 10);
+        const prevY = parseInt(textYEl ? textYEl.value : '50', 10);
+        setTextPositionFromCanvas(point.x + textDragState.offsetX, point.y + textDragState.offsetY);
+        const nowX = parseInt(textXEl ? textXEl.value : '50', 10);
+        const nowY = parseInt(textYEl ? textYEl.value : '50', 10);
+        if(nowX !== prevX || nowY !== prevY) textDragState.moved = true;
+        e.preventDefault();
+        return;
+      }
+      updateTextDragCursor(e.clientX, e.clientY);
+    });
+    const stopTextDrag = e=>{
+      if(!textDragState.active || e.pointerId !== textDragState.pointerId) return;
+      if(previewCanvas.releasePointerCapture){
+        try{ previewCanvas.releasePointerCapture(e.pointerId); } catch(_){}
+      }
+      if(textDragState.moved) suppressPreviewClickUntil = performance.now() + clickSuppressDelayMillis;
+      textDragState.active = false;
+      textDragState.pointerId = null;
+      textDragState.offsetX = 0;
+      textDragState.offsetY = 0;
+      textDragState.moved = false;
+      previewCanvas.classList.remove('text-dragging');
+      updateTextDragCursor(e.clientX, e.clientY);
+    };
+    previewCanvas.addEventListener('pointerup', stopTextDrag);
+    previewCanvas.addEventListener('pointercancel', stopTextDrag);
+    previewCanvas.addEventListener('pointerleave', ()=>{
+      if(textDragState.active) return;
+      previewCanvas.classList.remove('text-drag-ready');
     });
     previewCanvas.addEventListener('contextmenu', e=>{
       e.preventDefault();

@@ -47,6 +47,7 @@ Add editable text on top of the processed image with full compositing controls a
 | Rotation | −180–180 ° | Text rotation in degrees |
 | Text Opacity | 0–100 % | Layer opacity of the text |
 | Blend | dropdown | How text is composited onto the image (see below) |
+| Drag on canvas | (mouse drag) | Reposition the text by clicking and dragging directly on the preview |
 
 **Toggle the "Text" button** to enable/disable the overlay. The text is re-editable and repositionable at any time before export, and the Stretch / Warp / V-Tear / H-Tear / Img Opacity controls now affect only the text layer.
 

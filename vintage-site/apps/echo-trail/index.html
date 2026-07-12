@@ -1363,8 +1363,8 @@
           const srcX = clamp(x - shift, 0, width - 1);
           const idx = (y * width + x) * 4;
           const si = (y * width + srcX) * 4;
-          const doSplit = src[si + 3] > minVisibleAlpha && Math.random() < splitChance;
-          if (doSplit) {
+          const shouldSplitChannels = src[si + 3] > minVisibleAlpha && Math.random() < splitChance;
+          if (shouldSplitChannels) {
             const srcXr = clamp(srcX - splitDir * splitShift, 0, width - 1);
             const srcXb = clamp(srcX + splitDir * splitShift, 0, width - 1);
             data[idx]   = src[(y * width + srcXr) * 4];
@@ -1448,8 +1448,8 @@
   // sufficient because measureText depends on the active font, not bitmap size.
   const textMeasureCanvas = document.createElement('canvas');
   const textMeasureCtx = textMeasureCanvas.getContext('2d');
-  const textDragState = { active:false, pointerId:null, offsetX:0, offsetY:0, moved:false };
-  const clickSuppressDelayMs = 250;
+  const textDragState = { active: false, pointerId: null, offsetX: 0, offsetY: 0, moved: false };
+  const clickSuppressDelayMillis = 250;
   let suppressPreviewClickUntil = 0;
   let cachedPreviewTextLayout = null;
   let cachedPreviewTextLayoutKey = '';
@@ -2605,7 +2605,7 @@
       if(previewCanvas.releasePointerCapture){
         try{ previewCanvas.releasePointerCapture(e.pointerId); } catch(_){}
       }
-      if(textDragState.moved) suppressPreviewClickUntil = performance.now() + clickSuppressDelayMs;
+      if(textDragState.moved) suppressPreviewClickUntil = performance.now() + clickSuppressDelayMillis;
       textDragState.active = false;
       textDragState.pointerId = null;
       textDragState.offsetX = 0;

@@ -25,9 +25,13 @@ const BACKGROUNDS_DIR = path.join(CONTENT_DIR, '_backgrounds');
 const BACKGROUNDS_MANIFEST = path.join(BACKGROUNDS_DIR, 'backgrounds-manifest.json');
 const PRIVATE_FONTS_DIR = path.join(CONTENT_DIR, '_assets', 'private', 'fonts');
 const PRIVATE_FONTS_MANIFEST = path.join(PRIVATE_FONTS_DIR, 'manifest.json');
+const PRIVATE_FONTS_PICKER_MANIFEST = path.join(PRIVATE_FONTS_DIR, 'fonts-picker.json');
 const URL_SAFE_TXT_BASE_RE = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg']);
+// Extensions accepted by the font-face picker (TTF only — reliable @font-face rendering).
 const FONT_EXTS = new Set(['.ttf']);
+// All downloadable font-format extensions shown in the desktop folder.
+const FONT_FOLDER_EXTS = new Set(['.ttf', '.otf', '.fon']);
 
 function isHidden(name) {
   return name.startsWith('.') || name.startsWith('_');
@@ -189,25 +193,41 @@ function buildFontsManifest() {
   }
 
   const entries = fs.readdirSync(PRIVATE_FONTS_DIR, { withFileTypes: true });
-  const fonts = [];
+  // Picker list: only TTF files, with human-readable display name + exact filename.
+  // Used by site-fonts.js to populate the font-switcher menu and register @font-face rules.
+  const pickerFonts = [];
+  // Folder manifest: all downloadable font formats in standard synced-folder format.
+  // Used by loadSyncChildren() to populate the "these are my fonts" desktop folder.
+  const folderEntries = [];
 
   entries.forEach(entry => {
     if (!entry.isFile()) return;
     if (isHidden(entry.name)) return;
-    if (entry.name === 'manifest.json') return;
+    if (entry.name === 'manifest.json' || entry.name === 'fonts-picker.json') return;
     const ext = path.extname(entry.name).toLowerCase();
-    if (!FONT_EXTS.has(ext)) return;
-    // The runtime loader consumes `{ file, name }` objects so the menu can use
-    // a human-readable label while still resolving the exact uploaded filename.
-    fonts.push({
-      name: path.basename(entry.name, ext),
-      file: entry.name
-    });
+    const fullPath = path.join(PRIVATE_FONTS_DIR, entry.name);
+    const stat = fs.statSync(fullPath);
+
+    if (FONT_EXTS.has(ext)) {
+      // TTF -> include in picker and folder view.
+      pickerFonts.push({ name: path.basename(entry.name, ext), file: entry.name });
+      folderEntries.push({ type: 'file', name: entry.name, size: stat.size, modified: formatDate(stat.mtime) });
+    } else if (FONT_FOLDER_EXTS.has(ext)) {
+      // OTF / FON -> folder view only (not rendered via @font-face in the picker).
+      folderEntries.push({ type: 'file', name: entry.name, size: stat.size, modified: formatDate(stat.mtime) });
+    }
   });
 
-  fonts.sort((a, b) => a.name.localeCompare(b.name));
-  fs.writeFileSync(PRIVATE_FONTS_MANIFEST, JSON.stringify(fonts, null, 2));
-  console.log('content/_assets/private/fonts/manifest.json  (' + fonts.length + ' font' + (fonts.length === 1 ? '' : 's') + ')');
+  pickerFonts.sort((a, b) => a.name.localeCompare(b.name));
+  folderEntries.sort((a, b) => a.name.localeCompare(b.name));
+
+  // fonts-picker.json - consumed by site-fonts.js for the @font-face switcher.
+  fs.writeFileSync(PRIVATE_FONTS_PICKER_MANIFEST, JSON.stringify(pickerFonts, null, 2));
+  console.log('content/_assets/private/fonts/fonts-picker.json  (' + pickerFonts.length + ' TTF font' + (pickerFonts.length === 1 ? '' : 's') + ')');
+
+  // manifest.json - standard synced-folder format consumed by the desktop folder.
+  fs.writeFileSync(PRIVATE_FONTS_MANIFEST, JSON.stringify(folderEntries, null, 2));
+  console.log('content/_assets/private/fonts/manifest.json  (' + folderEntries.length + ' font file' + (folderEntries.length === 1 ? '' : 's') + ')');
 }
 
 main();

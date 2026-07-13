@@ -5,7 +5,7 @@
   const scriptEl = document.currentScript;
   if (!scriptEl || !scriptEl.src) return;
   const fontDirUrl = new URL('./fonts/', scriptEl.src).toString();
-  const manifestUrl = new URL('./fonts/manifest.json', scriptEl.src).toString();
+  const manifestUrl = new URL('./fonts/fonts-picker.json', scriptEl.src).toString();
   const rootEl = document.documentElement;
   // When data-provider-only="true", only register @font-face rules so fonts
   // are available for canvas/text use. Desktop font selection is not applied

@@ -1144,6 +1144,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1224,7 +1225,7 @@ function getDesktopIconSize(item) {
 const items = {
   // Content-synced root folders are no longer hardcoded here; they are
   // populated at startup by loadDesktopRootsFromManifest() from content/desktop/manifest.json.
-  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['mycomputershortcut', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'echotrailshortcut', 'colormixer95shortcut'], modified: '2026-07-10' },
+  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['mycomputershortcut', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'echotrailshortcut', 'colormixer95shortcut', 'fonts-root'], modified: '2026-07-10' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/desktop/catscans', children: [], modified: '2026-07-08' },
@@ -1265,7 +1266,13 @@ const items = {
   eyes:         { type: 'folder', name: 'pics/vids',       iconType: 'folder',   syncFolder: 'content/desktop/eyes', children: [], modified: '2026-07-08' },
   thoughts:     { type: 'folder', name: 'thoughts',        iconType: 'document', syncFolder: 'content/desktop/thoughts', children: [], modified: '2026-07-08' },
   interface:    { type: 'folder', name: 'I.N.T.E.R.F.A.C.E.', iconType: 'folder', syncFolder: 'content/desktop/interface', children: [], modified: '2026-07-08' },
-  'ui-web-design': { type: 'folder', name: 'ui / web design', iconType: 'folder', syncFolder: 'content/desktop/ui-web-design', children: [], modified: '2026-07-12' }
+  'ui-web-design': { type: 'folder', name: 'ui / web design', iconType: 'folder', syncFolder: 'content/desktop/ui-web-design', children: [], modified: '2026-07-12' },
+
+  // Font collection folder hierarchy: fonts > my fonts > these are my fonts
+  // The innermost folder is a synced folder pointing directly to the fonts asset directory.
+  'fonts-root': { type: 'folder', name: 'fonts', iconType: 'folder', children: ['fonts-myfonts'], modified: '2026-07-12' },
+  'fonts-myfonts': { type: 'folder', name: 'my fonts', iconType: 'folder', children: ['fonts-theseremyfonts'], modified: '2026-07-12' },
+  'fonts-theseremyfonts': { type: 'folder', name: 'these are my fonts', iconType: 'folder', syncFolder: 'content/_assets/private/fonts', children: [], modified: '2026-07-12' }
 };
 
 /* ---------- user-created / copied items + reorganized folder contents ----------
@@ -1809,7 +1816,9 @@ function buildItemContextMenuEntries(itemId, parentId, renameAction) {
   ];
   if (item.type === 'pdf') menuEntries.push({ label: 'Download', onClick: () => downloadItem(itemId) });
   if (item.type === 'shortcut' && item.action === 'browser-url' && item.url) menuEntries.push({ label: 'Download', onClick: () => downloadUrlItem(item.url, item.name) });
+  if (item.type === 'file') menuEntries.push({ label: 'Download', onClick: () => downloadItem(itemId) });
   if (item.type === 'audio') menuEntries.push({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
+  if (item.syncFolder === 'content/_assets/private/fonts') menuEntries.push({ label: 'Download All as ZIP', onClick: () => downloadFontsZip() });
   menuEntries.push({ label: 'Delete', onClick: () => deleteItem(itemId, parentId) });
   return menuEntries;
 }
@@ -3758,7 +3767,7 @@ async function loadDesktopRootsFromManifest() {
     });
     // Always keep the core shortcuts pinned to the desktop even if a stale
     // localStorage children-override removed them.
-    const PINNED_SHORTCUTS = ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'mycomputershortcut'];
+    const PINNED_SHORTCUTS = ['ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'mycomputershortcut', 'fonts-root'];
     const fixedSet = new Set(fixed);
     for (const id of PINNED_SHORTCUTS) {
       if (!fixedSet.has(id)) { fixed.unshift(id); fixedSet.add(id); }
@@ -5089,6 +5098,67 @@ function downloadUrlItem(url, name) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+async function downloadFontsZip() {
+  const FONTS_FOLDER_ID = 'fonts-theseremyfonts';
+  const FONTS_SYNC_FOLDER = 'content/_assets/private/fonts';
+
+  // Ensure the folder children are loaded so we have the full file list.
+  await loadSyncChildren(FONTS_FOLDER_ID);
+  const folder = items[FONTS_FOLDER_ID];
+  if (!folder || !Array.isArray(folder.children) || folder.children.length === 0) {
+    alert('No font files found to download.');
+    return;
+  }
+
+  if (typeof JSZip === 'undefined') {
+    alert('ZIP library not available. Please try again in a moment.');
+    return;
+  }
+
+  const zip = new JSZip();
+  const fontsDir = zip.folder('my fonts');
+  let loaded = 0;
+  const total = folder.children.length;
+
+  // Show a simple status in the title bar area (reuse the desktop status approach).
+  const statusMsg = () => 'Building ZIP... ' + loaded + '/' + total;
+  const toastEl = document.createElement('div');
+  toastEl.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:#000080;color:#fff;font-family:inherit;font-size:12px;padding:4px 12px;z-index:99999;border:2px solid #fff;pointer-events:none;';
+  toastEl.textContent = statusMsg();
+  document.body.appendChild(toastEl);
+
+  try {
+    const fetchPromises = folder.children.map(async childId => {
+      const child = items[childId];
+      if (!child || child.type !== 'file') return;
+      const url = child.file || toAssetUrl(FONTS_SYNC_FOLDER + '/' + child.name);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const blob = await res.blob();
+        fontsDir.file(child.name, blob);
+      } catch (err) {
+        console.warn('Could not fetch font:', child.name, err);
+      }
+      loaded++;
+      toastEl.textContent = statusMsg();
+    });
+    await Promise.all(fetchPromises);
+
+    toastEl.textContent = 'Generating ZIP...';
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = 'my-fonts.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } finally {
+    toastEl.remove();
+  }
 }
 
 function renderPdfContent(id) {

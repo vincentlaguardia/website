@@ -601,9 +601,9 @@
             <span id="fx-glitch-val">50</span>
           </div>
           <div class="control-row" style="--row-color:#A0C0F0;">
-            <button type="button" class="item-toggle" data-target="fx-dissolve" data-off="0">Dissolve</button>
-            <input type="range" id="fx-dissolve" min="0" max="100" value="50">
-            <span id="fx-dissolve-val">50</span>
+            <button type="button" class="item-toggle" data-target="fx-fractile" data-off="0">Fractile</button>
+            <input type="range" id="fx-fractile" min="0" max="100" value="50">
+            <span id="fx-fractile-val">50</span>
           </div>
           <div class="control-row" style="--row-color:#C0A880;">
             <button type="button" class="item-toggle" data-target="fx-txtgrain" data-off="0">Text Grain</button>
@@ -1525,10 +1525,10 @@
   }
 
   // ---------- Text overlay ----------
-  const TEXT_DISTORT_IDS = ['fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain'];
-  const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity', 'fx-glitch':'glitch', 'fx-dissolve':'dissolve', 'fx-txtgrain':'txtgrain' };
-  const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100, glitch:50, dissolve:50, txtgrain:50 };
-  const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true, glitch:false, dissolve:false, txtgrain:false };
+  const TEXT_DISTORT_IDS = ['fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-fractile','fx-txtgrain'];
+  const TEXT_DISTORT_KEYS = { 'fx-stretch':'stretch', 'fx-warp':'warp', 'fx-vtear':'vtear', 'fx-htear':'htear', 'fx-opacity':'opacity', 'fx-glitch':'glitch', 'fx-fractile':'fractile', 'fx-txtgrain':'txtgrain' };
+  const TEXT_DISTORT_DEFAULTS = { stretch:50, warp:50, vtear:50, htear:50, opacity:100, glitch:50, fractile:50, txtgrain:50 };
+  const TEXT_DISTORT_ACTIVE_DEFAULTS = { stretch:false, warp:false, vtear:false, htear:false, opacity:true, glitch:false, fractile:false, txtgrain:false };
   const FONT_UPLOAD_OPTION_VALUE = '__upload__';
   const TEXT_LAYER_DEFAULTS = {
     enabled: false,
@@ -1952,9 +1952,8 @@
       htear: layer.effectActive.htear ? layer.distort.htear : 0,
       opacity: layer.effectActive.opacity ? layer.distort.opacity : 100,
       glitch: layer.effectActive.glitch ? layer.distort.glitch : 0,
-      dissolve: layer.effectActive.dissolve ? layer.distort.dissolve : 0,
+      fractile: layer.effectActive.fractile ? layer.distort.fractile : 0,
       txtgrain: layer.effectActive.txtgrain ? layer.distort.txtgrain : 0
-    };
   }
 
   function updateTextDragCursor(clientX, clientY) {
@@ -2010,33 +2009,110 @@
     }
   }
 
-  // Text Dissolve: noise-based fade that organically eats away at text pixels.
-  // Uses smooth Perlin-style noise so the dissolve has rounded, amoeba-like
-  // edges rather than random salt-and-pepper. Higher amount = more text eaten.
-  function applyTextDissolve(data, width, height, amount) {
+  // Text Fractile: kaleidoscope-meets-broken-glass with chromatic aberration.
+  // The text pixels are mirrored into angular facets (like shattered mirror
+  // shards) and each RGB channel is sampled from a slightly different source
+  // coordinate, producing a prismatic chromatic split across every shard edge.
+  // Higher amount = more/smaller facets and wider channel separation.
+  function applyTextFractile(data, width, height, amount) {
     if (amount <= 0) return;
+    const src = new Uint8ClampedArray(data);
     const t = amount / 100;
-    const freq = 0.04 + t * 0.08;
+
+    // Number of radial mirror axes (2–6); more axes = more kaleidoscope
+    const axes = 2 + Math.floor(t * 4);
+    // Size of each Voronoi-style shard cell in pixels
+    const cellSize = Math.max(4, Math.round(width * (0.35 - t * 0.22)));
+    // Chromatic aberration channel offset (px)
+    const chromaShift = Math.max(1, Math.round(t * Math.max(width, height) * 0.06));
+
+    // Precompute per-cell random rotation angles using a deterministic hash
+    // so the shard pattern is stable across frames.
+    function cellAngle(cx, cy) {
+      const h = (cx * 1664525 + cy * 1013904223) ^ (cx ^ (cy << 16));
+      return ((h >>> 0) % 360) * (Math.PI / 180);
+    }
+
+    function sampleChannel(sx, sy, ch) {
+      const px = clamp(Math.round(sx), 0, width  - 1);
+      const py = clamp(Math.round(sy), 0, height - 1);
+      return src[(py * width + px) * 4 + ch];
+    }
+
+    function sampleAlpha(sx, sy) {
+      const px = clamp(Math.round(sx), 0, width  - 1);
+      const py = clamp(Math.round(sy), 0, height - 1);
+      return src[(py * width + px) * 4 + 3];
+    }
+
     for (let y = 0; y < height; y++) {
-      const fy = y * freq;
-      const iy0 = Math.floor(fy);
-      const ty = fade(fy - iy0);
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        if (data[idx + 3] === 0) continue;
-        const fx = x * freq;
-        const ix0 = Math.floor(fx);
-        const tx = fade(fx - ix0);
-        // noise in [0,1]
-        const n = (bilerpHash(ix0, iy0, tx, ty, 13) + 1) * 0.5;
-        const dropThreshold = t * 0.88;
-        if (n < dropThreshold) {
-          data[idx + 3] = 0;
-        } else {
-          // soft edge: partial transparency near the dissolve boundary
-          const edge = clamp((n - dropThreshold) / Math.max(0.001, 0.18 * (1 - t * 0.5)), 0, 1);
-          data[idx + 3] = Math.round(data[idx + 3] * edge);
+        if (src[idx + 3] === 0) continue;
+
+        // --- Broken-glass shard: find the nearest cell centre ---
+        const cx = Math.floor(x / cellSize);
+        const cy = Math.floor(y / cellSize);
+
+        // Check this cell and its 8 neighbours for closest jittered centre
+        let bestDist = Infinity, bestCx = cx, bestCy = cy;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const ncx = cx + dx;
+            const ncy = cy + dy;
+            // Jitter centre within its grid cell
+            const hx = ((ncx * 1664525 + ncy * 1013904223 + 7) >>> 0) % 1000;
+            const hy = ((ncx * 22695477  + ncy * 6364136223 + 3) >>> 0) % 1000;
+            const jx = (ncx + 0.2 + (hx / 1000) * 0.6) * cellSize;
+            const jy = (ncy + 0.2 + (hy / 1000) * 0.6) * cellSize;
+            const d = (x - jx) * (x - jx) + (y - jy) * (y - jy);
+            if (d < bestDist) { bestDist = d; bestCx = ncx; bestCy = ncy; }
+          }
         }
+
+        // --- Kaleidoscope mirror fold ---
+        const angle = cellAngle(bestCx, bestCy);
+        const hx = ((bestCx * 1664525 + bestCy * 1013904223 + 7) >>> 0) % 1000;
+        const hy = ((bestCx * 22695477  + bestCy * 6364136223 + 3) >>> 0) % 1000;
+        const centreX = (bestCx + 0.2 + (hx / 1000) * 0.6) * cellSize;
+        const centreY = (bestCy + 0.2 + (hy / 1000) * 0.6) * cellSize;
+
+        // Translate to shard-local coords, rotate by shard angle, fold with
+        // abs() along the dominant axis for the mirror effect, then rotate back.
+        let lx = x - centreX;
+        let ly = y - centreY;
+        const cosA = Math.cos(angle), sinA = Math.sin(angle);
+        let rx =  lx * cosA + ly * sinA;
+        let ry = -lx * sinA + ly * cosA;
+
+        // Fold across axes (each fold halves the angular sector)
+        for (let a = 0; a < axes; a++) {
+          const foldAngle = a * (Math.PI / axes);
+          const fc = Math.cos(foldAngle), fs = Math.sin(foldAngle);
+          const frx =  rx * fc + ry * fs;
+          const fry = -rx * fs + ry * fc;
+          rx = Math.abs(frx);
+          ry = fry;
+        }
+
+        // Rotate mirrored coords back to canvas space
+        const fx = rx * cosA - ry * sinA + centreX;
+        const fy = rx * sinA + ry * cosA + centreY;
+
+        // --- Chromatic aberration: R/G/B sampled at different offsets ---
+        const caAngle = angle + Math.PI * 0.5;
+        const caDx = Math.cos(caAngle) * chromaShift;
+        const caDy = Math.sin(caAngle) * chromaShift;
+
+        const r = sampleChannel(fx + caDx,       fy + caDy,       0);
+        const g = sampleChannel(fx,               fy,              1);
+        const b = sampleChannel(fx - caDx * 0.5, fy - caDy * 0.5, 2);
+        const a = sampleAlpha(fx, fy);
+
+        data[idx]     = r;
+        data[idx + 1] = g;
+        data[idx + 2] = b;
+        data[idx + 3] = src[idx + 3] > 0 ? Math.max(src[idx + 3], a > 0 ? Math.round(a * 0.85 + src[idx + 3] * 0.15) : src[idx + 3]) : 0;
       }
     }
   }
@@ -2103,7 +2179,7 @@
     applyHorizontalTear(data, w, h, distort.htear);
     applyImageOpacity(data, w, h, distort.opacity);
     applyTextGlitch(data, w, h, distort.glitch);
-    applyTextDissolve(data, w, h, distort.dissolve);
+    applyTextFractile(data, w, h, distort.fractile);
     applyTextGrain(data, w, h, distort.txtgrain);
     tctx.putImageData(imgData, 0, 0);
     return tmp;
@@ -2610,7 +2686,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(id=>{
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-fractile','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -2840,8 +2916,8 @@
     $('fx-opacity').value = Math.random()>0.5 ? 100 : Math.floor(Math.random()*40)+60;
     setRowActive('fx-glitch', Math.random()>0.72);
     $('fx-glitch').value = Math.floor(Math.random()*80)+10;
-    setRowActive('fx-dissolve', Math.random()>0.72);
-    $('fx-dissolve').value = Math.floor(Math.random()*65)+10;
+    setRowActive('fx-fractile', Math.random()>0.72);
+    $('fx-fractile').value = Math.floor(Math.random()*65)+10;
     setRowActive('fx-txtgrain', Math.random()>0.68);
     $('fx-txtgrain').value = Math.floor(Math.random()*70)+10;
     syncSelectedTextLayerFromControls();
@@ -2864,8 +2940,8 @@
     $('fx-opacity').value = Math.random()>0.4 ? 100 : Math.floor(Math.random()*40)+60;
     setRowActive('fx-glitch', Math.random()>0.6);
     $('fx-glitch').value = Math.floor(Math.random()*80)+10;
-    setRowActive('fx-dissolve', Math.random()>0.6);
-    $('fx-dissolve').value = Math.floor(Math.random()*80)+10;
+    setRowActive('fx-fractile', Math.random()>0.6);
+    $('fx-fractile').value = Math.floor(Math.random()*80)+10;
     setRowActive('fx-txtgrain', Math.random()>0.55);
     $('fx-txtgrain').value = Math.floor(Math.random()*80)+10;
     const blends = ['normal','additive','subtractive','exclusion','division'];
@@ -2974,7 +3050,7 @@
     $('fx-htear').value=50;                   setRowActive('fx-htear', false);
     $('fx-opacity').value=100;                setRowActive('fx-opacity', true);
     $('fx-glitch').value=50;                  setRowActive('fx-glitch', false);
-    $('fx-dissolve').value=50;                setRowActive('fx-dissolve', false);
+    $('fx-fractile').value=50;                setRowActive('fx-fractile', false);
     $('fx-txtgrain').value=50;                setRowActive('fx-txtgrain', false);
 
     resetTextLayers();
@@ -3081,7 +3157,7 @@
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(bindRange);
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-fractile','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
 

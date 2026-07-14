@@ -319,11 +319,6 @@
             <canvas id="dropZonePreview" width="260" height="52" style="display:none;"></canvas>
           </div>
           <input type="file" id="fileInput" accept="image/*" style="display:none;">
-          <div class="pickwrap">
-            <label class="btn95 pickbtn" id="chooseBgBtn" for="bgPicker">Background...</label>
-            <input type="color" id="bgPicker" value="#000000" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
-          </div>
-          <button class="btn95" id="resetBgBtn">Default</button>
           <div class="diary-lastswatch raised" id="diaryLastSwatch" title="Last clicked color — click any Venn diagram to pick a color"></div>
           <button class="btn95" id="diaryAddBtn" title="Add last clicked color to diary">Add to Diary</button>
           <button class="btn95" id="diaryOpenBtn">Diary</button>
@@ -376,7 +371,6 @@
         <div class="imgpickrow">
           <div class="resultswatch raised" id="pickHoverSwatch"></div>
           <button class="btn95" id="imagePickApplyColor"><span class="miniSwatch raised" id="applyColorIndicator"></span>Apply to Color</button>
-          <button class="btn95" id="imagePickApplyBg"><span class="miniSwatch raised" id="applyBgIndicator"></span>Apply to Background</button>
           <button class="btn95" id="imagePickDone">Done</button>
         </div>
       </div>
@@ -435,17 +429,11 @@ function multiply(a,b){ return a*b; }
 function exclusionBlend(a,b){ return a+b-2*a*b; }
 function divideBlend(a,b){ return b<=0 ? a : Math.min(1, a/b); }
 
-/* circles in `subset` (ascending index order) chain-blend together first,
-   then the background blends in last, on top of that result. An empty
-   subset (no circles at this pixel) is just the background, untouched.
-   Applying the background last keeps each mode's neutral background
-   (black for screen/exclusion, white for multiply/divide) a true no-op,
-   so a sampled color still reproduces exactly at center by default —
-   while a background the user actually changes genuinely mixes in. */
-function chainBlend(background, layers, subset, blendFn){
-  const bgN = [background[0]/255, background[1]/255, background[2]/255];
+/* circles in `subset` (ascending index order) chain-blend together.
+   An empty subset (no circles at this pixel) is just the mode's base color. */
+function chainBlend(base, layers, subset, blendFn){
   if(subset.length===0){
-    return background.map(v=>Math.round(Math.min(255,Math.max(0,v))));
+    return base.map(v=>Math.round(Math.min(255,Math.max(0,v))));
   }
   let acc = [layers[subset[0]][0]/255, layers[subset[0]][1]/255, layers[subset[0]][2]/255];
   for(let k=1;k<subset.length;k++){
@@ -456,7 +444,6 @@ function chainBlend(background, layers, subset, blendFn){
       blendFn(acc[2], nxt[2]/255),
     ];
   }
-  acc = [blendFn(acc[0],bgN[0]), blendFn(acc[1],bgN[1]), blendFn(acc[2],bgN[2])];
   return [
     Math.round(Math.min(1,Math.max(0,acc[0]))*255),
     Math.round(Math.min(1,Math.max(0,acc[1]))*255),
@@ -543,7 +530,6 @@ const MODES = {
 const state = {};
 MODE_ORDER.forEach(key=>{
   state[key] = {...MODES[key].defaults};
-  state[key].BG = rgbToHex(MODES[key].base);
 });
 
 /* smaller circles, lighter overlap. Rendered at SCALE-x resolution and
@@ -676,9 +662,8 @@ MODE_ORDER.forEach(key=>{
 function renderPanel(key){
   const def = MODES[key];
   const layerColors = def.layerColors(state[key]);
-  const background = hexToRgb(state[key].BG);
-  drawVenn(document.getElementById('venn_'+key), layerColors, background, def.blend);
-  const rgb = chainBlend(background, layerColors, [0,1,2], def.blend);
+  drawVenn(document.getElementById('venn_'+key), layerColors, def.base, def.blend);
+  const rgb = chainBlend(def.base, layerColors, [0,1,2], def.blend);
   document.getElementById('result_'+key).style.background = rgbCss(rgb);
   document.getElementById('resultRgbBtn_'+key).textContent = rgb.join(', ');
   document.getElementById('resultHexBtn_'+key).textContent = rgbToHex(rgb);
@@ -782,21 +767,6 @@ document.getElementById('colorPicker').addEventListener('input', (e)=>{
   setColorSourceIsImage(false);
 });
 
-/* ---------- background ---------- */
-const bgPicker = document.getElementById('bgPicker');
-
-bgPicker.addEventListener('input', (e)=>{
-  const hex = e.target.value;
-  MODE_ORDER.forEach(key=>{ state[key].BG = hex; });
-  colorizeButton('chooseBgBtn', hex);
-  scheduleRenderAll();
-});
-
-document.getElementById('resetBgBtn').addEventListener('click', ()=>{
-  MODE_ORDER.forEach(key=>{ state[key].BG = rgbToHex(MODES[key].base); });
-  decolorizeButton('chooseBgBtn');
-  scheduleRenderAll();
-});
 
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -927,15 +897,6 @@ document.getElementById('imagePickApplyColor').addEventListener('click', ()=>{
   applySampledColor(lastPickedColor.r, lastPickedColor.g, lastPickedColor.b);
   setColorSourceIsImage(true);
   setMiniSwatch('applyColorIndicator', rgbToHex([lastPickedColor.r, lastPickedColor.g, lastPickedColor.b]));
-});
-document.getElementById('imagePickApplyBg').addEventListener('click', ()=>{
-  if(!lastPickedColor) return;
-  const hex = rgbToHex([lastPickedColor.r, lastPickedColor.g, lastPickedColor.b]);
-  MODE_ORDER.forEach(key=>{ state[key].BG = hex; });
-  document.getElementById('bgPicker').value = hex;
-  colorizeButton('chooseBgBtn', hex);
-  scheduleRenderAll();
-  setMiniSwatch('applyBgIndicator', hex);
 });
 document.getElementById('imagePickX').addEventListener('click', closeImagePicker);
 const imagePickOverlay = document.getElementById('imagePickOverlay');
@@ -1300,7 +1261,7 @@ function resolveDiaryPlusColor(e){
     if(inputColor) return inputColor;
   }
 
-  const colorBtn = target.closest('#chooseColorBtn, #chooseBgBtn');
+  const colorBtn = target.closest('#chooseColorBtn');
   if(colorBtn){
     const buttonColor = elementToDiaryColor(colorBtn, true);
     if(buttonColor) return buttonColor;

@@ -428,6 +428,7 @@ function screen(a,b){ return 1-(1-a)*(1-b); }
 function multiply(a,b){ return a*b; }
 function exclusionBlend(a,b){ return a+b-2*a*b; }
 function divideBlend(a,b){ return b<=0 ? a : Math.min(1, a/b); }
+const EXCLUSION_BLEED_RATIO = 0.25;
 
 /* circles in `subset` (ascending index order) chain-blend together.
    An empty subset (no circles at this pixel) is just the mode's base color. */
@@ -524,8 +525,7 @@ const MODES = {
     ],
     defaults: {R:255, G:255, B:255},
     layerColors(v){
-      const bleed = 0.25;
-      const mix = n => Math.round(n*bleed);
+      const mix = n => Math.round(n*EXCLUSION_BLEED_RATIO);
       return [
         [v.R, mix(v.R), mix(v.R)],
         [mix(v.G), v.G, mix(v.G)],

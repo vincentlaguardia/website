@@ -1364,7 +1364,10 @@
     const dotRadiusG = dotRadius;
     const dotRadiusB = dotRadius - caShift;
     const glowSigmaR = glowSigma + caShift;
-    const glowSigmaB = Math.max(glowSigma - caShift, glowSigma * 0.5);
+    const glowSigmaG = glowSigma;
+    // Clamp blue sigma so it never collapses to less than half the base value.
+    const MIN_GLOW_SIGMA_RATIO = 0.5;
+    const glowSigmaB = Math.max(glowSigma - caShift, glowSigma * MIN_GLOW_SIGMA_RATIO);
 
     const src = new Uint8ClampedArray(data);
 
@@ -1383,7 +1386,7 @@
         const coreFacB = Math.max(0, 1 - dist / dotRadiusB);
         // Gaussian halo with per-channel sigma.
         const haloR = Math.exp(-(dist * dist) / (2 * glowSigmaR * glowSigmaR));
-        const haloG = Math.exp(-(dist * dist) / (2 * glowSigma  * glowSigma));
+        const haloG = Math.exp(-(dist * dist) / (2 * glowSigmaG * glowSigmaG));
         const haloB = Math.exp(-(dist * dist) / (2 * glowSigmaB * glowSigmaB));
         const litR = Math.min(1, coreFacR + glowStrength * haloR * 0.8);
         const litG = Math.min(1, coreFacG + glowStrength * haloG * 0.8);

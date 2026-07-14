@@ -43,6 +43,8 @@ Add editable text on top of the processed image with full compositing controls a
 | Font | dropdown | Built-in font or uploaded custom font |
 | ↑ Font | button | Upload a custom font file |
 | Font Size | 8–200 px | Pixel size at preview resolution; scales proportionally on full-res export |
+| H-Stretch | 10–500 % | Horizontal text scaling relative to the base font width |
+| V-Stretch | 10–500 % | Vertical text scaling relative to the base font height |
 | Color | color picker | Text fill color |
 | X Pos | 0–100 % | Horizontal position as a percentage of canvas width |
 | Y Pos | 0–100 % | Vertical position as a percentage of canvas height |

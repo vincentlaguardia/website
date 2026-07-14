@@ -1112,7 +1112,7 @@
         <div class="menu-item" id="menu-flight">nyc_flight_sim</div>
         <div class="menu-item" id="menu-notes">Notes</div>
         <div class="menu-item" id="menu-echo-trail">Echo Trail</div>
-        <div class="menu-item" id="menu-colormixer95">colormixer95</div>
+        <!-- colormixer95 hidden: <div class="menu-item" id="menu-colormixer95">colormixer95</div> -->
         <div class="menu-item" id="menu-static">static coefficient calculator</div>
         <div class="menu-item" id="menu-mycomputer">My Computer</div>
       </div>
@@ -1225,7 +1225,7 @@ function getDesktopIconSize(item) {
 const items = {
   // Content-synced root folders are no longer hardcoded here; they are
   // populated at startup by loadDesktopRootsFromManifest() from content/desktop/manifest.json.
-  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['mycomputershortcut', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'echotrailshortcut', 'colormixer95shortcut', 'fonts-root'], modified: '2026-07-10' },
+  desktop:      { type: 'folder', name: 'desktop',        iconType: 'folder',  children: ['mycomputershortcut', 'ieshortcut', 'solitaireshortcut', 'paintshortcut', 'chromashortcut', 'echotrailshortcut', /* 'colormixer95shortcut', */ 'fonts-root'], modified: '2026-07-10' },
 
   documents:    { type: 'folder', name: 'Documents',      iconType: 'document', children: ['readme'], modified: '2026-05-14' },
   catscans:     { type: 'folder', name: 'cat scans',      iconType: 'folder',   syncFolder: 'content/desktop/catscans', children: [], modified: '2026-07-08' },
@@ -9135,11 +9135,12 @@ document.getElementById('menu-echo-trail').addEventListener('click', () => {
   document.getElementById('start-button').classList.remove('pressed');
   openEchoTrailWindow();
 });
-document.getElementById('menu-colormixer95').addEventListener('click', () => {
-  document.getElementById('start-menu').style.display = 'none';
-  document.getElementById('start-button').classList.remove('pressed');
-  openColorMixer95Window();
-});
+// colormixer95 menu listener hidden:
+// document.getElementById('menu-colormixer95').addEventListener('click', () => {
+//   document.getElementById('start-menu').style.display = 'none';
+//   document.getElementById('start-button').classList.remove('pressed');
+//   openColorMixer95Window();
+// });
 document.getElementById('menu-static').addEventListener('click', () => {
   document.getElementById('start-menu').style.display = 'none';
   document.getElementById('start-button').classList.remove('pressed');
@@ -9326,7 +9327,7 @@ window.addEventListener('message', function(e) {
     { label: 'nyc_flight_sim',   category: 'App',     keywords: ['flight', 'sim', 'game', 'nyc', 'plane'], action: () => openFlightSimWindow() },
     { label: 'Notes',            category: 'App',     keywords: ['notes', 'notepad', 'text', 'write'],    action: () => openNotepadWindow() },
     { label: 'Echo Trail',       category: 'App',     keywords: ['echo', 'trail', 'draw', 'art'],         action: () => openEchoTrailWindow() },
-    { label: 'colormixer95',     category: 'App',     keywords: ['colormixer95', 'color', 'mixer', 'palette', 'mix'], action: () => openColorMixer95Window() },
+    // { label: 'colormixer95',     category: 'App',     keywords: ['colormixer95', 'color', 'mixer', 'palette', 'mix'], action: () => openColorMixer95Window() }, // hidden
     { label: 'My Computer',      category: 'App',     keywords: ['my computer', 'files', 'repo', 'browse', 'github'], action: () => openMyComputerWindow() },
     // Navigation / destinations
     { label: 'Documents',        category: 'Folder',  keywords: ['documents', 'files', 'folder'],         action: () => openWindow('documents') },

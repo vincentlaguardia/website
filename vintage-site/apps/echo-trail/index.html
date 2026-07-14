@@ -1475,24 +1475,30 @@
 
   const FRIED_NEON = [[255,0,180],[0,255,200],[255,255,0],[180,0,255],[0,255,0],[255,80,0]];
 
-  // Thin neon streaks tinted (not pasted) over the image, like corrupted video
-  // scanlines. Wide/thin + low-alpha + jittered edges so they read as part of
-  // the noise texture instead of opaque stickers sitting on top of it.
+  // Hair-thin neon glitch streaks at 80% opacity, spread densely across the
+  // frame. Lines are mostly 1 px tall with random pixel gaps and strong edge
+  // jitter so they read as corrupted video noise rather than solid bands.
   function applyCorruption(data,width,height,amount){
     if(amount<=0) return;
-    const count = Math.round((amount/100)*10);
+    const strength = amount/100;
+    const count = Math.round(strength*60);
     for(let i=0;i<count;i++){
-      const bw = Math.max(8, Math.round(width*(0.3+Math.random()*0.6)));
-      const bh = Math.max(1, Math.round(height*(0.004+Math.random()*0.02)));
+      // Thin: 1 px, occasionally 2 px
+      const bh = Math.random()<0.15 ? 2 : 1;
+      const bw = Math.max(4, Math.round(width*(0.05+Math.random()*0.55)));
       const bx = Math.floor(Math.random()*Math.max(1,width-bw));
       const by = Math.floor(Math.random()*Math.max(1,height-bh));
       const color = FRIED_NEON[Math.floor(Math.random()*FRIED_NEON.length)];
-      const alpha = 0.075+Math.random()*0.125;
+      const alpha = 0.8;
       for(let y=0;y<bh && by+y<height;y++){
-        const edgeJitter = Math.round((Math.random()*2-1)*bw*0.08);
-        const rowStart = clamp(bx+edgeJitter,0,width-1);
-        const rowEnd = clamp(bx+bw+edgeJitter,0,width);
+        // Strong per-row edge jitter for a glitchy ragged look
+        const jS = Math.round((Math.random()*2-1)*bw*0.25);
+        const jE = Math.round((Math.random()*2-1)*bw*0.25);
+        const rowStart = clamp(bx+jS,0,width-1);
+        const rowEnd   = clamp(bx+bw+jE,0,width);
         for(let x=rowStart;x<rowEnd;x++){
+          // Drop ~12% of pixels for a dashed/glitchy texture
+          if(Math.random()<0.12) continue;
           const idx=((by+y)*width+x)*4;
           data[idx]   = clamp(data[idx]  *(1-alpha)+color[0]*alpha,0,255);
           data[idx+1] = clamp(data[idx+1]*(1-alpha)+color[1]*alpha,0,255);

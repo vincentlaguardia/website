@@ -584,13 +584,13 @@
             <span id="text-size-val">48</span>
           </div>
           <div class="control-row" style="--row-color:#D0E8A8;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">H-Stretch</label>
-            <input type="range" id="text-scale-x" min="10" max="300" value="100">
+            <label style="width:80px;flex-shrink:0;font-size:11px;" id="lbl-scale-x">H-Stretch</label>
+            <input type="range" id="text-scale-x" min="10" max="300" value="100" aria-labelledby="lbl-scale-x">
             <span id="text-scale-x-val">100</span>
           </div>
           <div class="control-row" style="--row-color:#A8D0E8;">
-            <label style="width:80px;flex-shrink:0;font-size:11px;">V-Stretch</label>
-            <input type="range" id="text-scale-y" min="10" max="300" value="100">
+            <label style="width:80px;flex-shrink:0;font-size:11px;" id="lbl-scale-y">V-Stretch</label>
+            <input type="range" id="text-scale-y" min="10" max="300" value="100" aria-labelledby="lbl-scale-y">
             <span id="text-scale-y-val">100</span>
           </div>
           <div class="control-row" style="--row-color:#E8A0C8;">
@@ -2032,8 +2032,8 @@
     return {
       px,
       py,
-      halfW: Math.max(1, maxLineW * 0.5 * sx + pad),
-      halfH: Math.max(1, (lineH * lines.length) * 0.5 * sy + pad),
+      halfW: Math.max(1, (maxLineW * 0.5 + pad) * sx),
+      halfH: Math.max(1, (lineH * lines.length * 0.5 + pad) * sy),
       rot: ts.rotation * Math.PI / 180
     };
   }

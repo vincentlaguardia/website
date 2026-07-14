@@ -523,7 +523,15 @@ const MODES = {
       {key:'B', label:'Blue',  min:0, max:255},
     ],
     defaults: {R:255, G:255, B:255},
-    layerColors(v){ return [[v.R,0,0],[0,v.G,0],[0,0,v.B]]; },
+    layerColors(v){
+      const bleed = 0.25;
+      const mix = n => Math.round(n*bleed);
+      return [
+        [v.R, mix(v.R), mix(v.R)],
+        [mix(v.G), v.G, mix(v.G)],
+        [mix(v.B), mix(v.B), v.B],
+      ];
+    },
   },
 };
 

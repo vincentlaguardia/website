@@ -2781,7 +2781,7 @@
   function setRowActive(id, isActive){
     const btn = document.querySelector('.item-toggle[data-target="'+id+'"]');
     if(btn) btn.classList.toggle('active', isActive);
-    const row = $(id).closest('.control-row');
+    const row = ($(id) || btn)?.closest('.control-row') || null;
     if(row) row.classList.toggle('row-active', isActive);
   }
 

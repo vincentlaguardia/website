@@ -81,4 +81,4 @@ Click **↑ Font** to pick a font file. The font is loaded via the `FontFace` AP
 
 ## Credit
 
-created by dr vincent j laguardia
+created by dr. pastrami

@@ -1357,6 +1357,17 @@
     const glowStrength = glowVal / 100;
     // Darkest value in the opaque vinyl gaps (never fully black so texture reads).
     const darkFloor = 0.06;
+    // Very subtle chromatic aberration: red bleeds slightly wider than green,
+    // blue slightly narrower, mimicking lens dispersion through the diffuser acrylic.
+    const caShift = dotRadius * 0.045;
+    const dotRadiusR = dotRadius + caShift;
+    const dotRadiusG = dotRadius;
+    const dotRadiusB = dotRadius - caShift;
+    const glowSigmaR = glowSigma + caShift;
+    const glowSigmaG = glowSigma;
+    // Clamp blue sigma so it never collapses to less than half the base value.
+    const MIN_GLOW_SIGMA_RATIO = 0.5;
+    const glowSigmaB = Math.max(glowSigma - caShift, glowSigma * MIN_GLOW_SIGMA_RATIO);
 
     const src = new Uint8ClampedArray(data);
 
@@ -1369,28 +1380,34 @@
         const dy = y - gy;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Inside the hole: linear falloff from 1 at centre to 0 at edge.
-        const coreFactor = Math.max(0, 1 - dist / dotRadius);
-        // Gaussian halo for the backlight bloom around each hole.
-        const halo = Math.exp(-(dist * dist) / (2 * glowSigma * glowSigma));
-        // Combined lit factor capped at 1.
-        const litFactor = Math.min(1, coreFactor + glowStrength * halo * 0.8);
+        // Per-channel core factors for chromatic aberration.
+        const coreFacR = Math.max(0, 1 - dist / dotRadiusR);
+        const coreFacG = Math.max(0, 1 - dist / dotRadiusG);
+        const coreFacB = Math.max(0, 1 - dist / dotRadiusB);
+        // Gaussian halo with per-channel sigma.
+        const haloR = Math.exp(-(dist * dist) / (2 * glowSigmaR * glowSigmaR));
+        const haloG = Math.exp(-(dist * dist) / (2 * glowSigmaG * glowSigmaG));
+        const haloB = Math.exp(-(dist * dist) / (2 * glowSigmaB * glowSigmaB));
+        const litR = Math.min(1, coreFacR + glowStrength * haloR * 0.8);
+        const litG = Math.min(1, coreFacG + glowStrength * haloG * 0.8);
+        const litB = Math.min(1, coreFacB + glowStrength * haloB * 0.8);
 
         // Opaque material darkens toward darkFloor; dots stay bright.
-        const brightnessScale = darkFloor + (1 - darkFloor) * litFactor;
+        const bsR = darkFloor + (1 - darkFloor) * litR;
+        const bsG = darkFloor + (1 - darkFloor) * litG;
+        const bsB = darkFloor + (1 - darkFloor) * litB;
 
         const idx = (y * width + x) * 4;
         let r = src[idx], g = src[idx + 1], b = src[idx + 2];
 
-        r *= brightnessScale;
-        g *= brightnessScale;
-        b *= brightnessScale;
+        r *= bsR;
+        g *= bsG;
+        b *= bsB;
 
         // Fluorescent-tube backlight tint: slightly cool white brightening in lit areas.
-        const glowBoost = litFactor * 28;
-        r = Math.min(255, r + glowBoost * 0.88);
-        g = Math.min(255, g + glowBoost * 0.93);
-        b = Math.min(255, b + glowBoost * 1.10);
+        r = Math.min(255, r + litR * 28 * 0.88);
+        g = Math.min(255, g + litG * 28 * 0.93);
+        b = Math.min(255, b + litB * 28 * 1.10);
 
         // Blend effect into original by the overall amount slider.
         data[idx]     = clamp(r * t + src[idx]     * (1 - t), 0, 255);

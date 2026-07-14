@@ -583,6 +583,16 @@
             <input type="range" id="text-size" min="8" max="200" value="48">
             <span id="text-size-val">48</span>
           </div>
+          <div class="control-row" style="--row-color:#D0E8A8;">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">H-Stretch</label>
+            <input type="range" id="text-scale-x" min="10" max="300" value="100">
+            <span id="text-scale-x-val">100</span>
+          </div>
+          <div class="control-row" style="--row-color:#A8D0E8;">
+            <label style="width:80px;flex-shrink:0;font-size:11px;">V-Stretch</label>
+            <input type="range" id="text-scale-y" min="10" max="300" value="100">
+            <span id="text-scale-y-val">100</span>
+          </div>
           <div class="control-row" style="--row-color:#E8A0C8;">
             <label style="width:80px;flex-shrink:0;font-size:11px;">Rotation</label>
             <input type="range" id="text-rotation" min="-180" max="180" value="0">
@@ -1660,7 +1670,9 @@
     y: 50,
     rotation: 0,
     opacity: 100,
-    blendMode: 'normal'
+    blendMode: 'normal',
+    scaleX: 100,
+    scaleY: 100
   };
   // Dedicated offscreen canvas for text metrics; default 300x150 dimensions are
   // sufficient because measureText depends on the active font, not bitmap size.
@@ -1705,6 +1717,8 @@
       rotation: options.rotation ?? (cloneFrom ? cloneFrom.rotation : TEXT_LAYER_DEFAULTS.rotation),
       opacity: options.opacity ?? (cloneFrom ? cloneFrom.opacity : TEXT_LAYER_DEFAULTS.opacity),
       blendMode: options.blendMode ?? (cloneFrom ? cloneFrom.blendMode : TEXT_LAYER_DEFAULTS.blendMode),
+      scaleX: options.scaleX ?? (cloneFrom ? cloneFrom.scaleX : TEXT_LAYER_DEFAULTS.scaleX),
+      scaleY: options.scaleY ?? (cloneFrom ? cloneFrom.scaleY : TEXT_LAYER_DEFAULTS.scaleY),
       distort: {
         ...TEXT_DISTORT_DEFAULTS,
         ...(cloneFrom ? cloneFrom.distort : {}),
@@ -1808,6 +1822,8 @@
     const rotation = $('text-rotation') ? parseInt($('text-rotation').value, 10) : TEXT_LAYER_DEFAULTS.rotation;
     const opacity = $('text-opacity') ? parseInt($('text-opacity').value, 10) : TEXT_LAYER_DEFAULTS.opacity;
     const blendMode = $('text-blend') ? $('text-blend').value : TEXT_LAYER_DEFAULTS.blendMode;
+    const scaleX = $('text-scale-x') ? parseInt($('text-scale-x').value, 10) : TEXT_LAYER_DEFAULTS.scaleX;
+    const scaleY = $('text-scale-y') ? parseInt($('text-scale-y').value, 10) : TEXT_LAYER_DEFAULTS.scaleY;
     const distortVals = {};
     const effectActiveVals = {};
     TEXT_DISTORT_IDS.forEach(id => {
@@ -1824,6 +1840,8 @@
       l.rotation = rotation;
       l.opacity = opacity;
       l.blendMode = blendMode;
+      l.scaleX = scaleX;
+      l.scaleY = scaleY;
       Object.assign(l.distort, distortVals);
       Object.assign(l.effectActive, effectActiveVals);
     });
@@ -1839,6 +1857,8 @@
     setControlValue('text-rotation', layer.rotation);
     setControlValue('text-opacity', layer.opacity);
     setTemplateSelectValue('text-blend', layer.blendMode);
+    setControlValue('text-scale-x', layer.scaleX ?? TEXT_LAYER_DEFAULTS.scaleX);
+    setControlValue('text-scale-y', layer.scaleY ?? TEXT_LAYER_DEFAULTS.scaleY);
     TEXT_DISTORT_IDS.forEach(id => {
       const key = TEXT_DISTORT_KEYS[id];
       setControlValue(id, layer.distort[key]);
@@ -2007,11 +2027,13 @@
       maxLineW = Math.max(maxLineW, textMeasureCtx.measureText(lines[i]).width);
     }
     const pad = Math.max(minTextLayoutPadding, fs * textLayoutPaddingFactor);
+    const sx = (ts.scaleX ?? 100) / 100;
+    const sy = (ts.scaleY ?? 100) / 100;
     return {
       px,
       py,
-      halfW: Math.max(1, maxLineW * 0.5 + pad),
-      halfH: Math.max(1, (lineH * lines.length) * 0.5 + pad),
+      halfW: Math.max(1, maxLineW * 0.5 * sx + pad),
+      halfH: Math.max(1, (lineH * lines.length) * 0.5 * sy + pad),
       rot: ts.rotation * Math.PI / 180
     };
   }
@@ -2050,7 +2072,7 @@
     const key = [
       previewCanvas.width,
       previewCanvas.height,
-      textLayers.map(layer => [layer.id, layer.enabled, layer.content, layer.fontFamily, layer.fontSize, layer.x, layer.y, layer.rotation].join('~')).join('|')
+      textLayers.map(layer => [layer.id, layer.enabled, layer.content, layer.fontFamily, layer.fontSize, layer.x, layer.y, layer.rotation, layer.scaleX ?? 100, layer.scaleY ?? 100].join('~')).join('|')
     ].join('|');
     if (key !== cachedPreviewTextLayoutsKey) {
       cachedPreviewTextLayoutsKey = key;
@@ -2220,6 +2242,7 @@
     tctx.save();
     tctx.translate(px, py);
     tctx.rotate(ts.rotation * Math.PI / 180);
+    tctx.scale((ts.scaleX ?? 100) / 100, (ts.scaleY ?? 100) / 100);
     tctx.globalAlpha = clamp(ts.opacity / 100, 0, 1);
     tctx.font         = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
     // Ensure the font file is loaded; if it isn't yet, a re-render will be
@@ -2766,7 +2789,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(id=>{
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -3259,7 +3282,7 @@
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(bindRange);
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
 
@@ -3374,7 +3397,7 @@
         $('text-color-diary-btn').focus();
       }
     });
-    ['text-size','text-rotation','text-opacity',...TEXT_DISTORT_IDS].forEach(id=>{
+    ['text-size','text-scale-x','text-scale-y','text-rotation','text-opacity',...TEXT_DISTORT_IDS].forEach(id=>{
       $(id).addEventListener('input', ()=>{ syncSelectedTextLayerFromControls(); });
     });
 

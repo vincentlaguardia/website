@@ -1637,6 +1637,10 @@
   let selectedTextLayerIds = new Set();
   let nextTextLayerNumber = 1;
   let pendingFontUploadLayerId = null;
+  // Track which custom font families have already had a load request issued so
+  // we only call document.fonts.load() once per family (system fonts resolve
+  // instantly; site fonts need to be fetched on first canvas use).
+  const requestedFontLoads = new Set();
 
   function setControlValue(id, value) {
     const el = $(id);
@@ -1852,6 +1856,7 @@
           return;
         }
         layer.fontFamily = fontSelect.value;
+        ensureFontLoaded(layer.fontFamily);
         ensureSingleTextLayerSelectedAndSynced(layer.id);
       });
 
@@ -2149,6 +2154,19 @@
     }
   }
 
+  // Trigger a one-time load of fontFamily via the Font Loading API so the
+  // canvas can use it on the next render.  System fonts resolve immediately;
+  // custom @font-face families (SiteFont__*) are fetched on first call.
+  // Once loaded, scheduleRender() fires a re-render with the correct glyph.
+  function ensureFontLoaded(fontFamily) {
+    if (!fontFamily || requestedFontLoads.has(fontFamily)) return;
+    requestedFontLoads.add(fontFamily);
+    if (!document.fonts || typeof document.fonts.load !== 'function') return;
+    document.fonts.load(`bold 12px "${escapeFontFamily(fontFamily)}"`)
+      .then(() => scheduleRender())
+      .catch(() => {});
+  }
+
   function buildTextOverlayCanvas(w, h, ts, distort) {
     if (!ts.enabled || !ts.content.trim()) return null;
     const tmp = document.createElement('canvas');
@@ -2165,6 +2183,9 @@
     tctx.rotate(ts.rotation * Math.PI / 180);
     tctx.globalAlpha = clamp(ts.opacity / 100, 0, 1);
     tctx.font         = `bold ${fs}px "${escapeFontFamily(ts.fontFamily)}", Impact, sans-serif`;
+    // Ensure the font file is loaded; if it isn't yet, a re-render will be
+    // triggered automatically once it becomes available.
+    ensureFontLoaded(ts.fontFamily);
     tctx.textAlign    = 'center';
     tctx.textBaseline = 'middle';
     tctx.fillStyle    = ts.color;
@@ -2290,6 +2311,9 @@
     opt.dataset.uploaded = baseName;
     sel.appendChild(opt);
     sel.value = family;
+    // The font is already loaded via FontFace.load(); mark it in the cache so
+    // ensureFontLoaded skips a redundant load request.
+    requestedFontLoads.add(family);
     renderTextLayerList();
     scheduleRender();
     return family;
@@ -2983,6 +3007,7 @@
     setTemplateSelectValue('text-font', chosen);
     syncSelectedTextLayerFromControls();
     renderTextLayerList();
+    ensureFontLoaded(chosen);
     scheduleRender();
   }
 

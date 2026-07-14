@@ -941,9 +941,10 @@
         ? 1 + ((lum - INFRARED_TONE_PIVOT) / INFRARED_TONE_PIVOT) * INFRARED_HIGHLIGHT_BOOST
         : 1 - ((INFRARED_TONE_PIVOT - lum) / INFRARED_TONE_PIVOT) * INFRARED_SHADOW_CRUSH;
 
+      const tonedR = clamp(srcR * tone, 0, 255);
       const tonedG = clamp(srcG * tone, 0, 255);
       const tonedB = clamp(srcB * tone, 0, 255);
-      const gray = INFRARED_LUMA_G*tonedG + INFRARED_LUMA_B*tonedB;
+      const gray = INFRARED_LUMA_R*tonedR + INFRARED_LUMA_G*tonedG + INFRARED_LUMA_B*tonedB;
       const g = clamp(gray + (tonedG - gray) * INFRARED_GREEN_SATURATION, 0, 255);
       const b = clamp(gray + (tonedB - gray) * INFRARED_BLUE_SATURATION, 0, 255);
 

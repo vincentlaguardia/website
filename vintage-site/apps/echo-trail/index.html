@@ -537,7 +537,7 @@
             <span id="moire-scale-val">50</span>
           </div>
           <div class="control-row" style="--row-color:#F5C518;">
-            <button type="button" class="item-toggle" data-target="vm-amount" data-off="0">Vending Machin</button>
+            <button type="button" class="item-toggle" data-target="vm-amount" data-off="0">Vending Machine</button>
             <input type="range" id="vm-amount" min="0" max="100" value="75">
             <span id="vm-amount-val">75</span>
           </div>
@@ -1299,10 +1299,11 @@
   function applyVendingMachine(data, width, height, amount, dotSizeVal, spacingVal, glowVal) {
     if (amount <= 0) return;
     const t = amount / 100;
-    // Map spacing slider (0-100) to pixel distance between dot centres (4-16 px).
-    const dotSpacing = 4 + (spacingVal / 100) * 12;
-    // Dot radius: 20-50% of the spacing (controlled by dot-size slider).
-    const dotRadius = dotSpacing * (0.20 + (dotSizeVal / 100) * 0.30);
+    // Map spacing slider (0-100) to pixel distance between dot centres.
+    // Inverted so that higher values = finer, denser grid (2–24 px range).
+    const dotSpacing = 2 + (1 - spacingVal / 100) * 22;
+    // Dot radius: 25-55% of the spacing (controlled by dot-size slider).
+    const dotRadius = dotSpacing * (0.25 + (dotSizeVal / 100) * 0.30);
     // Glow sigma: how far the backlight bleeds beyond the dot edge.
     const glowSigma = dotRadius + (glowVal / 100) * dotSpacing * 0.55;
     const glowStrength = glowVal / 100;

@@ -2507,131 +2507,111 @@
     const swatches = getSamSwatches();
     const hexes = swatches.map(function(s){ return s.hex; });
     const swatchRef = function(index){
-      return samSwatchCoordLabel(index) + ' (' + hexes[index] + ')';
+      return samSwatchCoordLabel(index) + '\u00a0(' + hexes[index] + ')';
     };
     const paras = [];
     if(importedMode){
-      paras.push('this palette came from a photo you imported. the app scanned the image, pulled out the most common color groups, and spread them across the 16 swatches you see here. each swatch represents a color that was meaningfully present in that photo.');
-      paras.push(swatchRef(0) + ' and ' + swatchRef(15) + ' sit at opposite ends of that range. if those two swatches look very different, the photo had a wide variety of colors. if they look similar, the image had a tight, consistent palette. the swatches in between fill in the steps along that journey.');
+      paras.push('this palette was extracted from an imported image. the app analyzed the pixel distribution, identified the dominant color clusters, and mapped the most distinct centroids to these 16 swatches. each swatch represents a color region that was statistically significant in the source \u2014 distinct enough from every other cluster to earn its own slot.');
+      paras.push(swatchRef(0) + ' and ' + swatchRef(15) + ' mark the two poles of the extracted range. the angular distance between their hues measures how chromatically varied the source image was. a wide gap means the image contained multiple distinct color families; a narrow gap means it was near-monochromatic. every swatch between them is a cluster centroid pulled from along that distribution.');
     } else if(pastramiMode){
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
-      paras.push('techno mode is active, running on a ' + philoName + ' base with its starting hue at ' + Math.round(baseHue) + '\u00b0. techno mode throws out predictable brightness and vividness rules, randomly pushing each zone toward either a washed-out pastel or a full-blast neon. no middle ground.');
+      paras.push('techno mode is active on a ' + philoName + ' base at ' + Math.round(baseHue) + '\u00b0. techno mode applies a bimodal state model to each zone: every zone is independently forced into either a pastel state (high lightness, low saturation) or a neon state (low lightness, high saturation). there is no middle ground \u2014 the binary split is the defining property of the mode. the base harmony sets the hue lane structure; the pastel/neon model overrides the vividness and brightness dimensions entirely.');
       const pastramiHsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
       const neonIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s > pastramiHsls[best].s ? i : best; }, 0);
       const pastelIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s < pastramiHsls[best].s ? i : best; }, 0);
       if(neonIdx !== pastelIdx){
-        paras.push('compare ' + samSwatchCoordLabel(neonIdx) + ' (' + hexes[neonIdx] + '), which landed on the neon end, against ' + samSwatchCoordLabel(pastelIdx) + ' (' + hexes[pastelIdx] + '), which landed on the pastel end, to see that split in action. despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+        paras.push(samSwatchCoordLabel(neonIdx) + '\u00a0(' + hexes[neonIdx] + ') is the neon extreme \u2014 maximum saturation, compressed lightness. ' + samSwatchCoordLabel(pastelIdx) + '\u00a0(' + hexes[pastelIdx] + ') is the pastel extreme \u2014 maximum lightness, depleted saturation. both zones follow the same underlying band layout and share the same hue lane assignment; the state model is what splits them to opposite ends of the tonal axis. that shared hue structure is what gives the grid spatial coherence even as the colors diverge in intensity.');
       } else {
-        paras.push('despite how unpredictable the colors look, every zone still follows the same underlying band layout. that shared structure is what gives the grid its charged, unstable energy rather than pure chaos.');
+        paras.push('every zone in this render landed in the same tonal state. the underlying band layout still governs hue lane assignment and spatial ordering \u2014 the state model simply collapsed to one end of its distribution this run.');
       }
     } else {
-      const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
       let philoDesc = '';
       let philoExtra = '';
       switch(philoIdx){
         case 0:
-          philoDesc = 'this is a monochromatic palette. all 16 swatches come from the same color family, centered at hue ' + Math.round(baseHue) + '\u00b0. the only things changing are how light or dark each swatch is, and how vivid or muted it appears. think of it like looking at one color through different kinds of light.';
-          philoExtra = 'look at ' + swatchRef(0) + ' versus ' + swatchRef(15) + '. that gap shows just how far a single hue can travel when you adjust its brightness and intensity. this kind of palette tends to feel calm and cohesive since no competing color is fighting for attention.';
+          philoDesc = 'this is a monochromatic palette anchored at hue ' + Math.round(baseHue) + '\u00b0. every swatch draws from the same hue lane \u2014 only lightness (L) and saturation (S) shift across zone positions. the hue dimension is held constant while the band structure sweeps the brightness and vividness range. because no competing hue enters the field, the palette reads as a single coherent identity: one color examined across its full tonal space.';
+          philoExtra = swatchRef(0) + ' and ' + swatchRef(15) + ' define the poles of that range. the perceptual gap between them shows how far one hue stretches when L and S are pushed to their limits. everything between is a coordinate on that axis \u2014 the color does not change; only its context does.';
           break;
         case 1: {
           const h = ((baseHue % 360) + 360) % 360;
           const hueNatureRanges = [
-            [20,  'a sunset sky full of deep reds and crimsons'],
-            [50,  'an autumn forest at golden hour'],
-            [75,  'a sun-lit wheat field in late afternoon'],
-            [105, 'a meadow in early spring'],
-            [150, 'a dense green forest canopy'],
-            [195, 'a shallow coastal bay at midday'],
-            [250, 'a clear open sky over the ocean'],
-            [285, 'the deep blue hour just before dawn'],
-            [320, 'a twilight sky fading from purple to indigo'],
-            [345, 'a field of wildflowers at dusk'],
+            [20,  'deep reds and crimsons'],
+            [50,  'amber and rust'],
+            [75,  'gold and warm yellow'],
+            [105, 'yellow-green and chartreuse'],
+            [150, 'green and forest'],
+            [195, 'teal and shallow water'],
+            [250, 'sky and ocean blue'],
+            [285, 'deep blue and violet'],
+            [320, 'purple and magenta'],
+            [345, 'rose and pink'],
           ];
-          const natureAnalogy = (hueNatureRanges.find(([max]) => h < max) || hueNatureRanges[0])[1];
-          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses colors that sit close together on the color wheel, within about 30\u00b0 of each other. because they are neighbors, they feel naturally harmonious, almost like the colors you would see together in ' + natureAnalogy + '.';
-          philoExtra = 'look across the top row from ' + swatchRef(0) + ' to ' + swatchRef(3) + ' to trace that gentle shift. the variation you notice here comes mostly from differences in brightness and intensity rather than big hue changes, which is what keeps the whole palette feeling like it belongs together.';
+          const hueFamily = (hueNatureRanges.find(([max]) => h < max) || hueNatureRanges[0])[1];
+          philoDesc = 'this is an analogous palette centered at hue ' + Math.round(baseHue) + '\u00b0, spanning approximately \u00b130\u00b0 across the color wheel \u2014 a band in the ' + hueFamily + ' range. colors within that arc occupy adjacent wavelength territory. the visual system categorizes them as the same thermal zone (warm or cool), which is why they coexist without tension: they are related enough to feel cohesive, distinct enough to carry individual character.';
+          philoExtra = 'the shift from ' + swatchRef(0) + ' to ' + swatchRef(3) + ' traces that 30\u00b0 arc. what reads as variety within that row is mostly a change in zone position, not a change in hue \u2014 the same narrow angular window spreads across different brightness and saturation coordinates.';
           break;
         }
         case 2:
-          philoDesc = 'this is a complementary palette centered at hue ' + Math.round(baseHue) + '\u00b0. it uses two colors that sit directly across from each other on the color wheel, as far apart as any two colors can be. when placed next to each other, they make each other look more vivid and intense. it is a high-energy combination.';
-          philoExtra = 'compare ' + swatchRef(0) + ' against ' + swatchRef(15) + ' to feel that push and pull. the contrast between them is the whole point. complementary palettes are designed to create visual tension, which can feel bold or even a little aggressive.';
+          philoDesc = 'this is a complementary palette. hue ' + Math.round(baseHue) + '\u00b0 and its opposite at ' + Math.round((baseHue + 180) % 360) + '\u00b0 sit exactly 180\u00b0 apart on the color wheel \u2014 the maximum angular distance any two hues achieve. when placed adjacent, each amplifies the perceived vividness of the other through simultaneous contrast: the eye\u2019s opponent-process channels (red\u2013green, blue\u2013yellow) activate simultaneously, making both colors appear more intense than they would in isolation.';
+          philoExtra = swatchRef(0) + ' and ' + swatchRef(15) + ' represent the two poles. the visual tension between them is the palette\u2019s defining property, a high-contrast structure by design. the rest of the swatches mediate between those poles across the band structure, distributing that tension spatially across the grid.';
           break;
-        case 3:
-          philoDesc = 'this is a split-complementary palette centered at hue ' + Math.round(baseHue) + '\u00b0. instead of using a color\'s direct opposite, it picks the two colors sitting just beside that opposite, about 30\u00b0 on either side. you still get strong contrast, but it\'s a little less intense than a straight complementary pair.';
-          philoExtra = 'compare ' + swatchRef(3) + ' against ' + swatchRef(12) + ' to feel that balance. the slight angle away from a direct complement is what gives this palette its visual interest. enough tension to be exciting, but not so much that it feels aggressive.';
+        case 3: {
+          const splitA = Math.round((baseHue + 150 + 3600) % 360);
+          const splitB = Math.round((baseHue + 210 + 3600) % 360);
+          philoDesc = 'this is a split-complementary palette centered at hue ' + Math.round(baseHue) + '\u00b0. instead of the direct opposite at ' + Math.round((baseHue + 180) % 360) + '\u00b0, it uses two flanking hues at ' + splitA + '\u00b0 and ' + splitB + '\u00b0 \u2014 each 30\u00b0 away from the true complement. this preserves most of the contrast energy of a full complement while introducing asymmetry. the 30\u00b0 offset reduces the opponent-channel response just enough that the eye reads the palette as interesting rather than aggressive.';
+          philoExtra = swatchRef(3) + ' and ' + swatchRef(12) + ' carry the split pair. the measurable difference from a pure complementary palette is those 30\u00b0 buffers: each split hue is that much closer to the dominant, which the visual system resolves as softened tension instead of direct opposition.';
           break;
-        case 4:
-          philoDesc = 'this is a triadic palette centered at hue ' + Math.round(baseHue) + '\u00b0. three colors are placed exactly 120\u00b0 apart around the color wheel, like the points of a triangle. the result is colorful and lively while staying balanced, because no single hue dominates the others.';
-          philoExtra = 'the swatches here are sampled from a triadic system with fixed target hues at ' + Math.round(baseHue) + '\u00b0, ' + Math.round((baseHue + 120 + 3600) % 360) + '\u00b0, and ' + Math.round((baseHue + 240 + 3600) % 360) + '\u00b0. that exact 120\u00b0 spacing defines the scheme mathematically.';
+        }
+        case 4: {
+          const t1 = Math.round((baseHue + 120 + 3600) % 360);
+          const t2 = Math.round((baseHue + 240 + 3600) % 360);
+          philoDesc = 'this is a triadic palette. three hue lanes are placed at exactly 120\u00b0 intervals: ' + Math.round(baseHue) + '\u00b0, ' + t1 + '\u00b0, and ' + t2 + '\u00b0. those three points form an equilateral triangle inscribed in the color wheel. each hue is equidistant from both others, so no single hue dominates. the geometry enforces equal weight across all three \u2014 the palette is colorful and spatially active, but balanced by the symmetry of the triangle.';
+          philoExtra = 'the grid distributes zone positions across all three lanes. swatches that appear brighter or more saturated land there because their zone coordinates place them in high-contrast band positions, not because of a different hue assignment.';
           break;
-        case 5:
-          philoDesc = 'this is a tetradic palette centered at hue ' + Math.round(baseHue) + '\u00b0. four colors are placed at 90\u00b0 intervals around the color wheel, forming a square. it gives you the most color variety of any palette type while still following a clear, geometric structure.';
-          philoExtra = swatchRef(0) + ' and ' + swatchRef(1) + ' show how two adjacent zones can feel related but still carry their own distinct character. with four different hues in play there is a lot of movement across the grid. the underlying geometry is what holds it all together.';
+        }
+        case 5: {
+          const q1 = Math.round((baseHue + 90 + 3600) % 360);
+          const q2 = Math.round((baseHue + 180 + 3600) % 360);
+          const q3 = Math.round((baseHue + 270 + 3600) % 360);
+          philoDesc = 'this is a tetradic palette. four hue lanes sit at 90\u00b0 intervals: ' + Math.round(baseHue) + '\u00b0, ' + q1 + '\u00b0, ' + q2 + '\u00b0, and ' + q3 + '\u00b0 \u2014 a square inscribed in the color wheel. it covers more angular ground than any other palette structure, touching four distinct spectral regions simultaneously. with four active hues the grid carries maximum variety; the tradeoff is that the geometric rule is what holds it together, not tonal similarity.';
+          philoExtra = swatchRef(0) + ' and ' + swatchRef(1) + ' show two adjacent zone positions drawn from different hue lanes. the 90\u00b0 gap between their lane assignments is what produces contrast without opposition \u2014 related enough to coexist, different enough to generate movement.';
           break;
+        }
       }
       paras.push(philoDesc);
       paras.push(philoExtra);
     }
-    paras.push(buildSamPaletteMathParagraph());
+    buildSamPaletteMathParagraph().forEach(function(p){ paras.push(p); });
     const w = strange;
     if(w <= 20){
-      paras.push('strange is set low (' + w + '). each zone sticks close to its assigned color, so the palette feels tight and consistent. think of it as the algorithm following its rules strictly. the grid looks clean and orderly. notice how ' + swatchRef(0) + ' and ' + swatchRef(1) + ' feel like they were picked from the same set.');
+      paras.push('strange is at ' + w + '. the hue jitter radius is narrow \u2014 each zone stays within a few degrees of its band-assigned lane. the palette reads as structurally clean because the deviation budget is too small to produce visible outliers. ' + swatchRef(0) + ' and ' + swatchRef(1) + ' land close together because their band assignments are adjacent and neither has the jitter range to escape.');
     } else if(w <= 55){
-      paras.push('strange is at a moderate level (' + w + '). most zones follow the palette, but every now and then one drifts somewhere unexpected. the result is a grid with a few surprises in it, interesting but not chaotic. ' + swatchRef(5) + ' might be one of those wanderers.');
+      paras.push('strange is at ' + w + '. the jitter radius is wide enough for occasional zones to pull noticeably off their lane assignment, but the majority still conform to the band structure. those conforming zones define what the palette \u201cis\u201d; the deviating zones are the palette\u2019s readable irregularities. the outlier analysis below identifies which zones crossed that threshold.');
     } else {
-      paras.push('strange is cranked up high (' + w + '). individual zones can wander far from where the palette says they should be. the grid\'s underlying structure still holds it together, but the colors themselves start to feel unpredictable and surprising. look at ' + swatchRef(15) + ' to see how far a zone can stray.');
+      paras.push('strange is at ' + w + '. the jitter radius can reach up to 280\u00b0 \u2014 any zone can land anywhere on the wheel. the band structure still determines zone ordering and spatial distribution, so the grid retains geometric coherence even when the colors themselves are unpredictable. what you see is not chaos; it is the structural skeleton of the harmony operating beneath fully destabilized hue assignments.');
     }
     const satPct = Math.round(globalSatMul * 100);
     if(satPct < 100){
-      paras.push('the saturation slider is pulled below 100% (currently at ' + satPct + '%), which means all colors have been toned down toward gray. think of it like turning down the vividness on a TV. the shapes stay, but the colors go softer. compare ' + swatchRef(0) + ' against ' + swatchRef(15) + ' to see how muted the range becomes.');
+      paras.push('the saturation multiplier is at ' + satPct + '%. every swatch\u2019s S value has been scaled down by that factor, pushing all colors toward gray. the hue lane assignments and zone relationships are unchanged \u2014 only the chromatic intensity is reduced. ' + swatchRef(0) + ' and ' + swatchRef(15) + ' still occupy the same structural positions; they are just less vivid versions of what they would be at full saturation.');
     } else if(satPct > 100){
-      paras.push('the saturation slider is pushed above 100% (currently at ' + satPct + '%), making every color more vivid and intense than it would normally be. think of it like turning the vividness dial past its default. colors feel louder. ' + swatchRef(5) + ' is a good example of what that boost looks like.');
+      paras.push('the saturation multiplier is at ' + satPct + '%. every swatch\u2019s S value has been scaled up, pushing all colors toward their maximum vividness. this is a global transform: it does not alter hue lane assignments or zone relationships, only the intensity at which each color renders. ' + swatchRef(5) + ' shows what the boost looks like on a mid-range zone.');
     }
     if(skewActive && skewColor !== null){
-      paras.push('skew is on, biased toward hue ' + Math.round(skewColor.h) + '\u00b0. every color in the grid is being nudged ' + Math.round(SKEW_STRENGTH * 100) + '% of the way toward that hue. the relationships between colors stay the same, but the whole palette shifts in temperature together, like putting a warm or cool filter over the entire grid. look at ' + swatchRef(0) + ' and ' + swatchRef(15) + ' and notice how they share a similar color temperature.');
+      paras.push('skew is active, biased toward hue ' + Math.round(skewColor.h) + '\u00b0. every color in the grid is interpolated ' + Math.round(SKEW_STRENGTH * 100) + '% of the way toward that hue on the hue channel. the internal relationships between zones are preserved \u2014 the angular gaps between them remain proportional \u2014 but the entire palette shifts together in temperature. ' + swatchRef(0) + ' and ' + swatchRef(15) + ' still sit at opposite structural ends, but both are pulled in the same direction.');
     }
     if(focusActive){
-      paras.push('focus mode is on. one diagonal stripe across the grid is locked to a fixed color (' + focusHex + '), repeating at regular intervals. everything else can still change, but that anchor color stays put. it gives the eye a consistent resting point as the rest of the grid shifts around it. ' + swatchRef(3) + ' or ' + swatchRef(12) + ' may be one of those locked focus swatches.');
+      paras.push('focus mode is on. one diagonal band across the grid is locked to ' + focusHex + ', repeating at regular intervals set by the modular band structure. locked zones do not respond to strange, saturation, or hue changes \u2014 they are fixed reference anchors. every other zone continues to vary. the effect is a spatial rhythm: a repeating constant that the eye can locate as the surrounding field shifts around it.');
     }
     if(matchSatActive){
-      paras.push('match sat is turned on. the saturation of the entire grid is being synced to match the vividness of a specific source color you selected. instead of letting each zone set its own intensity, they are all held to that shared level. ' + swatchRef(0) + ' and ' + swatchRef(15) + ' should feel similarly vivid or similarly muted as a result.');
+      paras.push('match sat is on. every swatch\u2019s saturation has been normalized to a single source value. instead of each zone computing its own S from its band position, all zones converge on the same saturation level. hue and lightness relationships remain intact; only the intensity dimension is homogenized across the grid.');
     }
-    paras.push('it works because every swatch is generated from the same core rule set, but each one gets a different mix of hue, vividness, and brightness. your eye picks up that shared structure while also noticing the differences between positions, so the palette feels unified and varied at the same time. that mix of consistency and contrast is what makes the result feel intentional instead of random.');
+    paras.push('every swatch is the output of the same rule set applied to a different zone coordinate. zone position determines band index \u2014 band index determines hue lane \u2014 hue lane sets the color\u2019s angular position on the wheel \u2014 and lightness and saturation are resolved within that zone\u2019s specific coordinates. the eye reads the shared rule beneath the variation and interprets the whole grid as intentional.');
     return paras.map(function(p){ return '<p>' + p + '</p>'; }).join('');
   }
 
-  function hueDist(a, b){ const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
-  function hueColorName(h){
-    h = ((h % 360) + 360) % 360;
-    if(h < 15 || h >= 345) return 'red';
-    if(h < 45) return 'orange';
-    if(h < 75) return 'yellow';
-    if(h < 105) return 'yellow-green';
-    if(h < 150) return 'green';
-    if(h < 195) return 'cyan';
-    if(h < 255) return 'blue';
-    if(h < 285) return 'violet';
-    if(h < 315) return 'magenta';
-    return 'pink';
-  }
-  function samSwatchCoordLabel(index){
-    const row = Math.floor(index / SAM_COORD_COLUMNS);
-    const col = index % SAM_COORD_COLUMNS;
-    return samRowLabel(row) + (col + 1);
-  }
-  function samRowLabel(rowIndex){
-    let label = '';
-    let n = rowIndex + 1;
-    while(n > 0){
-      const rem = (n - 1) % 26;
-      label = String.fromCharCode(65 + rem) + label;
-      n = Math.floor((n - 1) / 26);
-    }
-    return label;
-  }
   function buildSamPaletteMathParagraph(){
     const swatches = getSamSwatches();
-    if(!swatches.length) return '';
+    if(!swatches.length) return [];
     const expectedHues = getSamExpectedHues(swatches);
     const analyzed = swatches.map(function(item, index){
       const minDist = expectedHues.reduce(function(best, eh){ return Math.min(best, hueDist(item.hsl.h, eh)); }, 360);
@@ -2667,27 +2647,90 @@
     const satMin = analyzed.reduce(function(best, item){ return item.hsl.s < best.hsl.s ? item : best; }, analyzed[0]);
     const lightMax = analyzed.reduce(function(best, item){ return item.hsl.l > best.hsl.l ? item : best; }, analyzed[0]);
     const lightMin = analyzed.reduce(function(best, item){ return item.hsl.l < best.hsl.l ? item : best; }, analyzed[0]);
+    function zoneRegion(zone){
+      const v = zone.row <= 2 ? 'top' : zone.row >= 4 ? 'bottom' : 'middle';
+      const h = zone.col <= 2 ? 'left' : zone.col >= 4 ? 'right' : 'center';
+      if(h === 'center' && v === 'middle') return 'center';
+      if(h === 'center') return v;
+      if(v === 'middle') return h + ' edge';
+      return v + '-' + h;
+    }
+    function zoneLane(zone){
+      if(importedMode) return null;
+      const philo = PHILOSOPHIES[philoIdx];
+      const bandIdx = bandIndexFor(zone, philo.pattern.length, seed);
+      const assignedHue = (baseHue + philo.hueOffsets[philo.pattern[bandIdx]] + 3600) % 360;
+      return { bandIdx: bandIdx, assignedHue: Math.round(assignedHue) };
+    }
+    const parts = [];
     const coreText = uniqueCoreAnchors.map(function(anchor){
       const expected = Math.round(anchor.expectedHue);
       const actual = Math.round(anchor.item.hsl.h);
       const dist = Math.round(anchor.dist);
-      return samSwatchCoordLabel(anchor.item.index) + ' ' + anchor.item.hex + ' sits almost right on the ' + expected + '\u00b0 lane at ' + actual + '\u00b0 (' + dist + '\u00b0 off)';
-    }).join('; ');
-    let text = 'looking across all ' + analyzed.length + ' swatches, the grid mostly settles into a few clear color lanes. the closest matches are ' + coreText + '. ';
-    text += 'the biggest wild card is ' + samSwatchCoordLabel(top.index) + ' ' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0), which sits ' + Math.round(top.minDist) + '\u00b0 away from the nearest target hue. ';
-    if(second){
-      text += 'the next biggest wild card is ' + samSwatchCoordLabel(second.index) + ' ' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 away. ';
+      const region = zoneRegion(anchor.item.zone);
+      return samSwatchCoordLabel(anchor.item.index) + '\u00a0' + anchor.item.hex + ' (' + hueColorName(actual) + ') anchors the ' + expected + '\u00b0 lane at ' + actual + '\u00b0 \u2014 ' + dist + '\u00b0 from target, ' + region + ' of the grid';
+    });
+    parts.push('across ' + analyzed.length + ' swatches, the hue distribution resolves into ' + uniqueCoreAnchors.length + ' structural lane' + (uniqueCoreAnchors.length !== 1 ? 's' : '') + '. ' + coreText.join('; ') + '.');
+    if(!importedMode && top){
+      let outlierText = 'the primary outlier is ' + samSwatchCoordLabel(top.index) + '\u00a0' + top.hex + ' (' + hueColorName(top.hsl.h) + ', ' + Math.round(top.hsl.h) + '\u00b0). ';
+      const lane = zoneLane(top.zone);
+      if(lane){
+        outlierText += 'this zone sits in the ' + zoneRegion(top.zone) + ' of the grid and was assigned to band\u00a0' + lane.bandIdx + ', targeting the ' + lane.assignedHue + '\u00b0 lane. the actual color landed ' + Math.round(top.minDist) + '\u00b0 away from that target \u2014 strange-induced jitter displaced the zone into ' + hueColorName(top.hsl.h) + ' range. ';
+      } else {
+        outlierText += 'it sits ' + Math.round(top.minDist) + '\u00b0 from the nearest palette target. ';
+      }
+      outlierText += 'the outlier score (' + Math.round(top.score) + ') weights hue deviation by saturation: a vivid color 30\u00b0 off scores higher than a desaturated color 60\u00b0 off. visual impact is the metric, not raw angular distance.';
+      if(second && second.minDist > 5){
+        const lane2 = zoneLane(second.zone);
+        outlierText += ' the secondary outlier is ' + samSwatchCoordLabel(second.index) + '\u00a0' + second.hex + ' (' + hueColorName(second.hsl.h) + ', ' + Math.round(second.hsl.h) + '\u00b0), ' + Math.round(second.minDist) + '\u00b0 from its ';
+        if(lane2){
+          outlierText += lane2.assignedHue + '\u00b0 band\u00a0' + lane2.bandIdx + ' assignment in the ' + zoneRegion(second.zone) + ' of the grid';
+        } else {
+          outlierText += 'nearest target';
+        }
+        outlierText += '.';
+      }
+      parts.push(outlierText);
     }
     const extremes = [
-      samSwatchCoordLabel(satMax.index) + ' ' + satMax.hex + ' is the most vivid at ' + Math.round(satMax.hsl.s) + '% saturation',
-      samSwatchCoordLabel(satMin.index) + ' ' + satMin.hex + ' is the most muted at ' + Math.round(satMin.hsl.s) + '% saturation',
-      samSwatchCoordLabel(lightMax.index) + ' ' + lightMax.hex + ' is the lightest at ' + Math.round(lightMax.hsl.l) + '% lightness',
-      samSwatchCoordLabel(lightMin.index) + ' ' + lightMin.hex + ' is the darkest at ' + Math.round(lightMin.hsl.l) + '% lightness'
+      samSwatchCoordLabel(satMax.index) + '\u00a0' + satMax.hex + ' is the most vivid (S\u00a0=\u00a0' + Math.round(satMax.hsl.s) + '%)',
+      samSwatchCoordLabel(satMin.index) + '\u00a0' + satMin.hex + ' is the most muted (S\u00a0=\u00a0' + Math.round(satMin.hsl.s) + '%)',
+      samSwatchCoordLabel(lightMax.index) + '\u00a0' + lightMax.hex + ' is the lightest (L\u00a0=\u00a0' + Math.round(lightMax.hsl.l) + '%)',
+      samSwatchCoordLabel(lightMin.index) + '\u00a0' + lightMin.hex + ' is the darkest (L\u00a0=\u00a0' + Math.round(lightMin.hsl.l) + '%)'
     ];
-    text += 'at the extremes, ' + extremes.join(', ') + '.';
-    return text;
+    parts.push('dynamic range: ' + extremes.join(', ') + '. these four coordinates define the full perceptual space the palette occupies.');
+    return parts;
   }
 
+  function hueDist(a, b){ const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; }
+  function hueColorName(h){
+    h = ((h % 360) + 360) % 360;
+    if(h < 15 || h >= 345) return 'red';
+    if(h < 45) return 'orange';
+    if(h < 75) return 'yellow';
+    if(h < 105) return 'yellow-green';
+    if(h < 150) return 'green';
+    if(h < 195) return 'cyan';
+    if(h < 255) return 'blue';
+    if(h < 285) return 'violet';
+    if(h < 315) return 'magenta';
+    return 'pink';
+  }
+  function samSwatchCoordLabel(index){
+    const row = Math.floor(index / SAM_COORD_COLUMNS);
+    const col = index % SAM_COORD_COLUMNS;
+    return samRowLabel(row) + (col + 1);
+  }
+  function samRowLabel(rowIndex){
+    let label = '';
+    let n = rowIndex + 1;
+    while(n > 0){
+      const rem = (n - 1) % 26;
+      label = String.fromCharCode(65 + rem) + label;
+      n = Math.floor((n - 1) / 26);
+    }
+    return label;
+  }
   function buildSamFullCanvas(){
     const COLS = SAM_SWATCH_COLUMNS, ROWS = SAM_SWATCH_ROWS;
     const SW = 110, SH = 110, GAP = 6, PAD = 16, HEADER = 36;

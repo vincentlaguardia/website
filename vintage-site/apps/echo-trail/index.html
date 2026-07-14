@@ -536,6 +536,26 @@
             <input type="range" id="moire-scale" min="0" max="100" value="50">
             <span id="moire-scale-val">50</span>
           </div>
+          <div class="control-row" style="--row-color:#F5C518;">
+            <button type="button" class="item-toggle" data-target="vm-amount" data-off="0">Vending Machin</button>
+            <input type="range" id="vm-amount" min="0" max="100" value="75">
+            <span id="vm-amount-val">75</span>
+          </div>
+          <div class="control-row" style="--row-color:#E8A800;">
+            <button type="button" class="item-toggle active" data-target="vm-dot-size" data-off="40">Dot Size</button>
+            <input type="range" id="vm-dot-size" min="0" max="100" value="40">
+            <span id="vm-dot-size-val">40</span>
+          </div>
+          <div class="control-row" style="--row-color:#D48800;">
+            <button type="button" class="item-toggle active" data-target="vm-spacing" data-off="50">Dot Spacing</button>
+            <input type="range" id="vm-spacing" min="0" max="100" value="50">
+            <span id="vm-spacing-val">50</span>
+          </div>
+          <div class="control-row" style="--row-color:#B86A00;">
+            <button type="button" class="item-toggle" data-target="vm-glow" data-off="0">Backlight</button>
+            <input type="range" id="vm-glow" min="0" max="100" value="55">
+            <span id="vm-glow-val">55</span>
+          </div>
         </div>
 
         <div class="controls-col">
@@ -1266,6 +1286,67 @@
         data[idx]   = clamp(data[idx]  *(1-darken),0,255);
         data[idx+1] = clamp(data[idx+1]*(1-darken),0,255);
         data[idx+2] = clamp(data[idx+2]*(1-darken),0,255);
+      }
+    }
+  }
+
+  // ---------- Vending Machine ----------
+  // Simulates 90s backlit vending machine displays: perforated one-way vinyl,
+  // Duratrans-style translucent film, and microprismatic dot-diffuser acrylic.
+  // A regular dot grid lets light through the holes; the opaque material between
+  // them goes dark. A soft Gaussian halo bleeds light around each dot like the
+  // fluorescent tube glow visible through the perforations up close.
+  function applyVendingMachine(data, width, height, amount, dotSizeVal, spacingVal, glowVal) {
+    if (amount <= 0) return;
+    const t = amount / 100;
+    // Map spacing slider (0-100) to pixel distance between dot centres (4-16 px).
+    const dotSpacing = 4 + (spacingVal / 100) * 12;
+    // Dot radius: 20-50% of the spacing (controlled by dot-size slider).
+    const dotRadius = dotSpacing * (0.20 + (dotSizeVal / 100) * 0.30);
+    // Glow sigma: how far the backlight bleeds beyond the dot edge.
+    const glowSigma = dotRadius + (glowVal / 100) * dotSpacing * 0.55;
+    const glowStrength = glowVal / 100;
+    // Darkest value in the opaque vinyl gaps (never fully black so texture reads).
+    const darkFloor = 0.06;
+
+    const src = new Uint8ClampedArray(data);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // Nearest dot centre on the regular grid.
+        const gx = Math.round(x / dotSpacing) * dotSpacing;
+        const gy = Math.round(y / dotSpacing) * dotSpacing;
+        const dx = x - gx;
+        const dy = y - gy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Inside the hole: linear falloff from 1 at centre to 0 at edge.
+        const coreFactor = Math.max(0, 1 - dist / dotRadius);
+        // Gaussian halo for the backlight bloom around each hole.
+        const halo = Math.exp(-(dist * dist) / (2 * glowSigma * glowSigma));
+        // Combined lit factor capped at 1.
+        const litFactor = Math.min(1, coreFactor + glowStrength * halo * 0.8);
+
+        // Opaque material darkens toward darkFloor; dots stay bright.
+        const brightnessScale = darkFloor + (1 - darkFloor) * litFactor;
+
+        const idx = (y * width + x) * 4;
+        let r = src[idx], g = src[idx + 1], b = src[idx + 2];
+
+        r *= brightnessScale;
+        g *= brightnessScale;
+        b *= brightnessScale;
+
+        // Fluorescent-tube backlight tint: slightly cool white brightening in lit areas.
+        const glowBoost = litFactor * 28;
+        r = Math.min(255, r + glowBoost * 0.88);
+        g = Math.min(255, g + glowBoost * 0.93);
+        b = Math.min(255, b + glowBoost * 1.10);
+
+        // Blend effect into original by the overall amount slider.
+        data[idx]     = clamp(r * t + src[idx]     * (1 - t), 0, 255);
+        data[idx + 1] = clamp(g * t + src[idx + 1] * (1 - t), 0, 255);
+        data[idx + 2] = clamp(b * t + src[idx + 2] * (1 - t), 0, 255);
       }
     }
   }
@@ -2309,6 +2390,12 @@
         amount: rowVal('moire-amount'),
         scale: rowVal('moire-scale')
       },
+      vm:{
+        amount: rowVal('vm-amount'),
+        dotSize: rowVal('vm-dot-size'),
+        spacing: rowVal('vm-spacing'),
+        glow: rowVal('vm-glow')
+      },
       distort:{
         stretch: rowVal('fx-stretch'),
         warp:    rowVal('fx-warp'),
@@ -2343,6 +2430,8 @@
     applyCorruption(data,w,h,opts.fried.corruption);
     // Moire runs last, like a print/scan texture over the finished composite
     applyMoire(data,w,h,opts.moire.amount,opts.moire.scale);
+    // Vending Machine dot-grid overlay applied after all other effects.
+    applyVendingMachine(data,w,h,opts.vm.amount,opts.vm.dotSize,opts.vm.spacing,opts.vm.glow);
     dctx.putImageData(imgData,0,0);
     // Text overlays render after the image stack so each layer can keep its own settings.
     textLayers.forEach(layer => {
@@ -2610,7 +2699,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(id=>{
+    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -2827,6 +2916,16 @@
     setRowActive('moire-scale', Math.random()>0.15);
     $('moire-scale').value = Math.floor(Math.random()*100);
 
+    // Vending Machine
+    setRowActive('vm-amount', Math.random()>0.7);
+    $('vm-amount').value = Math.floor(Math.random()*60)+40;
+    setRowActive('vm-dot-size', true);
+    $('vm-dot-size').value = Math.floor(Math.random()*70)+15;
+    setRowActive('vm-spacing', true);
+    $('vm-spacing').value = Math.floor(Math.random()*80)+10;
+    setRowActive('vm-glow', Math.random()>0.4);
+    $('vm-glow').value = Math.floor(Math.random()*80)+10;
+
     // New distortions — applied sparingly so they don't swamp every randomize
     setRowActive('fx-stretch', Math.random()>0.7);
     $('fx-stretch').value = Math.floor(Math.random()*70)+15;
@@ -2962,6 +3061,11 @@
 
     $('moire-amount').value=45;               setRowActive('moire-amount', false);
     $('moire-scale').value=50;                setRowActive('moire-scale', true);
+
+    $('vm-amount').value=75;                  setRowActive('vm-amount', false);
+    $('vm-dot-size').value=40;                setRowActive('vm-dot-size', true);
+    $('vm-spacing').value=50;                 setRowActive('vm-spacing', true);
+    $('vm-glow').value=55;                    setRowActive('vm-glow', false);
 
     $('fried-duplicate').value=50;            setRowActive('fried-duplicate', false);
     $('fried-offset').value=40;               setRowActive('fried-offset', true);

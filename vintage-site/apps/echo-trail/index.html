@@ -950,9 +950,9 @@
       const g = clamp(gray + (tonedG - gray) * INFRARED_GREEN_SATURATION, 0, INFRARED_COLOR_MAX);
       const b = clamp(gray + (tonedB - gray) * INFRARED_BLUE_SATURATION, 0, INFRARED_COLOR_MAX);
 
-      data[i] = tonedR;
-      data[i+1] = g;
-      data[i+2] = b;
+      data[i] = 0;
+      data[i+1] = clamp(g * 1.15, 0, INFRARED_COLOR_MAX);
+      data[i+2] = clamp(b * 1.15, 0, INFRARED_COLOR_MAX);
     }
   }
 

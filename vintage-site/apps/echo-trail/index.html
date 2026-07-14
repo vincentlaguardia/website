@@ -1048,10 +1048,11 @@
   // rounded organic grain instead of angular diamond facets between lattice points.
   function fade(t){ return t*t*t*(t*(t*6-15)+10); }
 
-  function applyGrain(data,width,height,intensity,size,monochrome){
+  function applyGrain(data,width,height,intensity,size,monochrome,seed){
     if(intensity<=0) return;
     const amp = intensity/100*80;
     const invSize = 1/Math.max(0.01,size);
+    const s = (seed||0)*3;
 
     for(let y=0;y<height;y++){
       const fy = y*invSize;
@@ -1062,9 +1063,9 @@
         const ix0 = Math.floor(fx);
         const tx = fade(fx-ix0);
         const idx = (y*width+x)*4;
-        const nr = bilerpHash(ix0,iy0,tx,ty,1)*amp;
-        const ng = monochrome ? nr : bilerpHash(ix0,iy0,tx,ty,2)*amp;
-        const nb = monochrome ? nr : bilerpHash(ix0,iy0,tx,ty,3)*amp;
+        const nr = bilerpHash(ix0,iy0,tx,ty,1+s)*amp;
+        const ng = monochrome ? nr : bilerpHash(ix0,iy0,tx,ty,2+s)*amp;
+        const nb = monochrome ? nr : bilerpHash(ix0,iy0,tx,ty,3+s)*amp;
         data[idx]   = clamp(data[idx]+nr,0,255);
         data[idx+1] = clamp(data[idx+1]+ng,0,255);
         data[idx+2] = clamp(data[idx+2]+nb,0,255);
@@ -2425,7 +2426,8 @@
       },
       grain:{
         intensity: rowVal('grain-intensity'),
-        size: grainSizeFromSlider(rowVal('grain-size'))
+        size: grainSizeFromSlider(rowVal('grain-size')),
+        seed: grainSeed
       },
       scan:{
         lineIntensity: rowVal('scan-intensity'),
@@ -2485,7 +2487,7 @@
       if(opts.dither.type==='fs') applyFloydSteinberg(data,w,h,opts.dither.levels,opts.dither.grayscale);
       else applyOrderedDither(data,w,h,opts.dither.matrixSize,opts.dither.levels,opts.dither.grayscale);
     }
-    applyGrain(data,w,h,opts.grain.intensity,opts.grain.size,true);
+    applyGrain(data,w,h,opts.grain.intensity,opts.grain.size,true,opts.grain.seed);
     applyScanlines(data,w,h,opts.scan);
     applyMotionEcho(data,w,h,opts.echo.amount,opts.echo.trail);
     // Fried mode runs last, on top of everything else
@@ -2504,6 +2506,7 @@
   }
 
   let renderPending=false;
+  let grainSeed=0;
   function scheduleRender(){
     if(renderPending) return;
     renderPending=true;
@@ -3012,6 +3015,7 @@
     $('fx-txtgrain').value = Math.floor(Math.random()*70)+10;
     syncSelectedTextLayerFromControls();
 
+    grainSeed = Math.floor(Math.random() * 65536);
     updateAllSpans();
     updateRandomizeButtonGradient();
     scheduleRender();

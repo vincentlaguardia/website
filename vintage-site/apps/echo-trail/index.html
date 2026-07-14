@@ -1377,8 +1377,10 @@
         const coreFac = Math.max(0, 1 - dist / dotRadius);
         const halo = Math.exp(-(dist * dist) / (2 * glowSigma * glowSigma));
         const litBase = Math.min(1, coreFac + glowStrength * halo * 0.8);
-        const innerEdge = Math.exp(-((dist - (dotRadius - caShift)) ** 2) / (2 * edgeSigma * edgeSigma));
-        const outerEdge = Math.exp(-((dist - (dotRadius + caShift)) ** 2) / (2 * edgeSigma * edgeSigma));
+        const innerDist = dist - (dotRadius - caShift);
+        const outerDist = dist - (dotRadius + caShift);
+        const innerEdge = Math.exp(-(innerDist * innerDist) / (2 * edgeSigma * edgeSigma));
+        const outerEdge = Math.exp(-(outerDist * outerDist) / (2 * edgeSigma * edgeSigma));
         const fringeCyan = innerEdge * fringeStrength;
         const fringeMagenta = outerEdge * fringeStrength;
         const litR = Math.min(1, litBase + fringeMagenta * 0.95);

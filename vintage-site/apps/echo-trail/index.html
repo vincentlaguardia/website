@@ -531,6 +531,9 @@
             <input type="range" id="echo-trail" min="0" max="100" value="40">
             <span id="echo-trail-val">40</span>
           </div>
+          <div class="control-row" style="--row-color:#3A7A4A;">
+            <button type="button" class="item-toggle" data-target="infrared" id="infrared-toggle">Infrared</button>
+          </div>
           <div class="control-row" style="--row-color:#CC3F9E;">
             <button type="button" class="item-toggle active" data-target="moire-scale" data-off="50">Moire Scale</button>
             <input type="range" id="moire-scale" min="0" max="100" value="50">
@@ -916,6 +919,12 @@
       data[i]   = r*(1-s)+nr*s;
       data[i+1] = g*(1-s)+ng*s;
       data[i+2] = b*(1-s)+nb*s;
+    }
+  }
+
+  function applyInfrared(data){
+    for(let i=0;i<data.length;i+=4){
+      data[i] = 0;
     }
   }
 
@@ -2427,7 +2436,8 @@
         vtear:   rowVal('fx-vtear'),
         htear:   rowVal('fx-htear'),
         opacity: rowVal('fx-opacity')
-      }
+      },
+      infrared: rowActive('infrared')
     };
   }
 
@@ -2441,6 +2451,7 @@
     const data = imgData.data;
     // Topo/Grain/Scanlines all have internal no-op guards (0 = do nothing),
     // so they can just always run; Dither needs an explicit mode gate.
+    if(opts.infrared) applyInfrared(data);
     applyTopographic(data,w,h,opts.topo);
     if(opts.dither.active){
       if(opts.dither.type==='fs') applyFloydSteinberg(data,w,h,opts.dither.levels,opts.dither.grayscale);
@@ -2925,6 +2936,9 @@
     setRowActive('echo-trail', Math.random()>0.15);
     $('echo-trail').value = Math.floor(Math.random()*90)+10;
 
+    // Infrared
+    setRowActive('infrared', Math.random()>0.85);
+
     // Fried mode
     setRowActive('fried-duplicate', Math.random()>0.7);
     $('fried-duplicate').value = Math.floor(Math.random()*80);
@@ -3084,6 +3098,8 @@
 
     $('echo-amount').value=50;                setRowActive('echo-amount', true);
     $('echo-trail').value=40;                 setRowActive('echo-trail', true);
+
+    setRowActive('infrared', false);
 
     $('moire-amount').value=45;               setRowActive('moire-amount', false);
     $('moire-scale').value=50;                setRowActive('moire-scale', true);

@@ -1166,6 +1166,15 @@
   function canvasToBlob(canvasEl, type, quality){
     return new Promise(resolve=> canvasEl.toBlob(resolve, type, quality));
   }
+  async function createCanvasBlob(canvasEl, type, quality){
+    const blob = await canvasToBlob(canvasEl, type, quality);
+    if(!blob) throw new Error('Canvas export returned no data.');
+    return blob;
+  }
+  function alertSaveFailure(message, err){
+    if(err) console.warn(message, err);
+    alert('Save failed. Please try again.');
+  }
   function desktopSaveFormatForName(name){
     const wantsJpeg = /\.jpe?g$/i.test(name);
     return {
@@ -1177,20 +1186,17 @@
   function promptForPhotoImport(){
     document.getElementById('cc-photo-import').click();
   }
-  function saveCanvasAsPng(canvasEl){
+  async function saveCanvasAsPng(canvasEl){
     try{
-      canvasEl.toBlob(function(blob){
-        if(!blob){ alert('Save failed. Please try again.'); return; }
-        downloadBlob('chroma-palette-' + timestampTag() + '.png', blob);
-      }, 'image/png');
+      const blob = await createCanvasBlob(canvasEl, 'image/png');
+      downloadBlob('chroma-palette-' + timestampTag() + '.png', blob);
     } catch(err){
-      console.warn('chroma: save failed', err);
-      alert('Save failed. Please try again.');
+      alertSaveFailure('chroma: save failed', err);
     }
   }
   async function saveCanvasToDesktop(canvasEl){
     const defaultName = 'chroma-palette-' + timestampTag() + '.png';
-    if(typeof window.showSaveFilePicker === 'function' && window.isSecureContext){
+    if(window.isSecureContext && typeof window.showSaveFilePicker === 'function'){
       try{
         const handle = await window.showSaveFilePicker({
           suggestedName: defaultName,
@@ -1200,9 +1206,9 @@
             { description: 'JPEG image', accept: { 'image/jpeg': ['.jpg', '.jpeg'] } }
           ]
         });
+        if(typeof handle.createWritable !== 'function') throw new Error('File handle is not writable.');
         const selectedFormat = desktopSaveFormatForName(handle.name || defaultName);
-        const blob = await canvasToBlob(canvasEl, selectedFormat.type, selectedFormat.quality);
-        if(!blob){ alert('Save failed. Please try again.'); return; }
+        const blob = await createCanvasBlob(canvasEl, selectedFormat.type, selectedFormat.quality);
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
@@ -1213,9 +1219,12 @@
       }
     }
     const fallbackFormat = desktopSaveFormatForName(defaultName);
-    const blob = await canvasToBlob(canvasEl, fallbackFormat.type, fallbackFormat.quality);
-    if(!blob){ alert('Save failed. Please try again.'); return; }
-    downloadBlob(fallbackFormat.filename, blob);
+    try{
+      const blob = await createCanvasBlob(canvasEl, fallbackFormat.type, fallbackFormat.quality);
+      downloadBlob(fallbackFormat.filename, blob);
+    } catch(err){
+      alertSaveFailure('chroma: desktop download fallback failed', err);
+    }
   }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
   const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };

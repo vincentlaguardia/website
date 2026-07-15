@@ -1112,7 +1112,7 @@
         <div class="menu-item" id="menu-flight">nyc_flight_sim</div>
         <div class="menu-item" id="menu-notes">Notes</div>
         <div class="menu-item" id="menu-echo-trail">Echo Trail</div>
-        <div class="menu-item" id="menu-macro-diary">Macro Diary</div>
+        <div class="menu-item" id="menu-macro-diary">Color Diary</div>
         <!-- colormixer95 hidden: <div class="menu-item" id="menu-colormixer95">colormixer95</div> -->
         <div class="menu-item" id="menu-static">static coefficient calculator</div>
         <div class="menu-item" id="menu-mycomputer">My Computer</div>
@@ -7708,7 +7708,7 @@ function openChromaDiaryWindow() {
   bringToFront(id);
 }
 
-// ── Macro Diary ───────────────────────────────────────────────────────────────
+// ── Color Diary ───────────────────────────────────────────────────────────────
 const MACRO_DIARY_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAADZJREFUOI1jYGBg+M9AAWAiVgMjIyOBmoYiMFIbiJGRkaCBGIbgNQCXIXgNwGUIMoGBgQEAEAwEAtF4RJEAAAAASUVORK5CYII=';
 
 function openMacroDiaryWindow() {
@@ -7731,7 +7731,7 @@ function openMacroDiaryWindow() {
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
   titlebar.innerHTML = `
-    <span class="title-text">Macro Diary</span>
+    <span class="title-text">Color Diary</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
       <div class="win-btn" data-action="close">&times;</div>
@@ -7741,7 +7741,7 @@ function openMacroDiaryWindow() {
   const content = document.createElement('div');
   content.className = 'win98-content';
   content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
-  content.innerHTML = `<iframe class="macro-diary-frame" src="apps/macro-diary/index.html" title="Macro Diary"></iframe>`;
+  content.innerHTML = `<iframe class="macro-diary-frame" src="apps/macro-diary/index.html" title="Color Diary"></iframe>`;
 
   win.appendChild(titlebar);
   win.appendChild(content);
@@ -7753,7 +7753,7 @@ function openMacroDiaryWindow() {
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
-  addTaskbarEntry(id, 'Macro Diary', '📔');
+  addTaskbarEntry(id, 'Color Diary', '📔');
   bringToFront(id);
 }
 
@@ -7771,7 +7771,7 @@ function addColorToDiary(hex, r, g, b) {
   let arr;
   try { arr = JSON.parse(localStorage.getItem(key)) || []; } catch(e) { arr = []; }
   if (arr.length >= MAX) {
-    alert('Desktop diary is full (100 colors). Open the Macro Diary and delete some to make room.');
+    alert('Desktop diary is full (100 colors). Open the Color Diary and delete some to make room.');
     return;
   }
   // Avoid exact duplicates
@@ -9491,7 +9491,7 @@ window.addEventListener('message', function(e) {
     { label: 'nyc_flight_sim',   category: 'App',     keywords: ['flight', 'sim', 'game', 'nyc', 'plane'], action: () => openFlightSimWindow() },
     { label: 'Notes',            category: 'App',     keywords: ['notes', 'notepad', 'text', 'write'],    action: () => openNotepadWindow() },
     { label: 'Echo Trail',       category: 'App',     keywords: ['echo', 'trail', 'draw', 'art'],         action: () => openEchoTrailWindow() },
-    { label: 'Macro Diary',      category: 'App',     keywords: ['macro', 'diary', 'color', 'palette', 'swatches'], action: () => openMacroDiaryWindow() },
+    { label: 'Color Diary',      category: 'App',     keywords: ['macro', 'diary', 'color', 'palette', 'swatches'], action: () => openMacroDiaryWindow() },
     // { label: 'colormixer95',     category: 'App',     keywords: ['colormixer95', 'color', 'mixer', 'palette', 'mix'], action: () => openColorMixer95Window() }, // hidden
     { label: 'My Computer',      category: 'App',     keywords: ['my computer', 'files', 'repo', 'browse', 'github'], action: () => openMyComputerWindow() },
     // Navigation / destinations

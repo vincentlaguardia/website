@@ -1362,10 +1362,10 @@
     const CA_SHIFT_RATIO = 0.065;
     // Radial offset for the inner/outer fringe rings on either side of the dot edge.
     const caShift = dotRadius * CA_SHIFT_RATIO;
-    const MIN_EDGE_SIGMA = 0.45;
+    const EDGE_SIGMA_MIN = 0.45;
     const EDGE_SIGMA_RATIO = 0.22;
-    const edgeSigma = Math.max(MIN_EDGE_SIGMA, glowSigma * EDGE_SIGMA_RATIO);
-    const edgeSigmaDenom = 2 * edgeSigma * edgeSigma;
+    const edgeSigma = Math.max(EDGE_SIGMA_MIN, glowSigma * EDGE_SIGMA_RATIO);
+    const edgeSigmaDenominator = 2 * edgeSigma * edgeSigma;
     const fringeStrength = glowStrength * 0.18;
     const FRINGE_MAGENTA_FACTOR = 0.95;
     const FRINGE_CYAN_FACTOR = 0.90;
@@ -1388,10 +1388,11 @@
         const coreFac = Math.max(0, 1 - dist / dotRadius);
         const halo = Math.exp(-(dist * dist) / (2 * glowSigma * glowSigma));
         const litBase = Math.min(1, coreFac + glowStrength * halo * HALO_BLEND_FACTOR);
-        const innerDist = dist - (dotRadius - caShift);
-        const outerDist = dist - (dotRadius + caShift);
-        const innerEdge = Math.exp(-(innerDist * innerDist) / edgeSigmaDenom);
-        const outerEdge = Math.exp(-(outerDist * outerDist) / edgeSigmaDenom);
+        const distFromEdge = dist - dotRadius;
+        const innerDist = distFromEdge + caShift;
+        const outerDist = distFromEdge - caShift;
+        const innerEdge = Math.exp(-(innerDist * innerDist) / edgeSigmaDenominator);
+        const outerEdge = Math.exp(-(outerDist * outerDist) / edgeSigmaDenominator);
         const fringeCyan = innerEdge * fringeStrength;
         const fringeMagenta = outerEdge * fringeStrength;
         // Blue carries both rings so cyan and magenta stay visually balanced.

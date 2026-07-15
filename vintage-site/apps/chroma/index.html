@@ -659,7 +659,7 @@
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
-      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="140" value="20"></div>
+      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="280" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -1396,8 +1396,8 @@
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
-  const STRANGE_INTENSITY_BASE = 100; // Preserve original 0-100 scaling so max=140 yields 40% more intensity.
-  const STRANGE_MAX = 140;
+  const STRANGE_INTENSITY_BASE = 100; // Preserve original 0-100 scaling so max values can extend intensity above legacy range.
+  const STRANGE_MAX = 280;
   const PHILOSOPHIES = [
     { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
     { name:'Analogous', hueOffsets:[-30,0,30], pattern:[0,1,2,1] },

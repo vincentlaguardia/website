@@ -531,7 +531,10 @@
     if(!e.data || e.data.type !== 'macro-diary-add') return;
     const { hex, r, g, b, target } = e.data;
     if(!hex) return;
-    const key = (target === 'echo') ? ECHO_KEY : (target === 'chroma') ? CHROMA_KEY : DESKTOP_KEY;
+    let key;
+    if(target === 'echo')   key = ECHO_KEY;
+    else if(target === 'chroma') key = CHROMA_KEY;
+    else                    key = DESKTOP_KEY;
     const arr = load(key);
     if(arr.length >= MAX_SWATCHES){
       console.warn('macro-diary: diary is full (' + MAX_SWATCHES + ' colors max)');

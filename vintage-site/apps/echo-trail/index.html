@@ -543,8 +543,8 @@
           </div>
           <div class="control-row" style="--row-color:#B86A00;">
             <button type="button" class="item-toggle" data-target="vm-glow" data-off="0">Backlight</button>
-            <input type="range" id="vm-glow" min="40" max="100" value="55">
-            <span id="vm-glow-val">55</span>
+            <input type="range" id="vm-glow" min="0" max="100" value="25">
+            <span id="vm-glow-val">25</span>
           </div>
           <div class="control-row" style="--row-color:#9A5200;">
             <button type="button" class="item-toggle" data-target="vm-chroma" data-off="0">Chroma</button>
@@ -3013,7 +3013,7 @@
     $('vm-amount').value=75;                  setRowActive('vm-amount', false);
     $('vm-dot-size').value=40;                setRowActive('vm-dot-size', true);
     $('vm-spacing').value=90;                 setRowActive('vm-spacing', true);
-    $('vm-glow').value=55;                    setRowActive('vm-glow', false);
+    $('vm-glow').value=25;                    setRowActive('vm-glow', false);
     $('vm-chroma').value=50;                  setRowActive('vm-chroma', false);
 
     $('fx-stretch').value=50;                 setRowActive('fx-stretch', false);
@@ -3144,6 +3144,9 @@
         if(TEXT_DISTORT_KEYS[targetId]){
           const layer = getSelectedTextLayer();
           if(layer) layer.effectActive[TEXT_DISTORT_KEYS[targetId]] = isActive;
+        }
+        if(targetId === 'vm-amount' && isActive){
+          ['vm-dot-size','vm-spacing','vm-glow','vm-chroma'].forEach(id => setRowActive(id, true));
         }
         scheduleRender();
       });

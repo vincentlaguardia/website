@@ -1164,12 +1164,16 @@
     setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_TIMEOUT);
   }
   function canvasToBlob(canvasEl, type, quality){
-    return new Promise(resolve=> canvasEl.toBlob(resolve, type, quality));
-  }
-  async function createCanvasBlob(canvasEl, type, quality){
-    const blob = await canvasToBlob(canvasEl, type, quality);
-    if(!blob) throw new Error('Canvas export returned no data.');
-    return blob;
+    return new Promise((resolve, reject)=>{
+      try{
+        canvasEl.toBlob(blob=>{
+          if(blob) resolve(blob);
+          else reject(new Error('Canvas export returned no data.'));
+        }, type, quality);
+      } catch(err){
+        reject(err);
+      }
+    });
   }
   function alertSaveFailure(message, err){
     if(err) console.warn(message, err);
@@ -1188,7 +1192,7 @@
   }
   async function saveCanvasAsPng(canvasEl){
     try{
-      const blob = await createCanvasBlob(canvasEl, 'image/png');
+      const blob = await canvasToBlob(canvasEl, 'image/png');
       downloadBlob('chroma-palette-' + timestampTag() + '.png', blob);
     } catch(err){
       alertSaveFailure('chroma: save failed', err);
@@ -1206,21 +1210,20 @@
             { description: 'JPEG image', accept: { 'image/jpeg': ['.jpg', '.jpeg'] } }
           ]
         });
-        if(typeof handle.createWritable !== 'function') throw new Error('File handle is not writable.');
         const selectedFormat = desktopSaveFormatForName(handle.name || defaultName);
-        const blob = await createCanvasBlob(canvasEl, selectedFormat.type, selectedFormat.quality);
+        const blob = await canvasToBlob(canvasEl, selectedFormat.type, selectedFormat.quality);
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
         return;
       } catch(err){
-        if(err && err.name === 'AbortError') return;
+        if(err?.name === 'AbortError') return;
         console.warn('chroma: desktop save failed, falling back to download.', err);
       }
     }
     const fallbackFormat = desktopSaveFormatForName(defaultName);
     try{
-      const blob = await createCanvasBlob(canvasEl, fallbackFormat.type, fallbackFormat.quality);
+      const blob = await canvasToBlob(canvasEl, fallbackFormat.type, fallbackFormat.quality);
       downloadBlob(fallbackFormat.filename, blob);
     } catch(err){
       alertSaveFailure('chroma: desktop download fallback failed', err);

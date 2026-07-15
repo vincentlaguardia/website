@@ -1385,9 +1385,10 @@
         const outerEdge = Math.exp(-(outerDist * outerDist) / edgeSigmaDenom);
         const fringeCyan = innerEdge * fringeStrength;
         const fringeMagenta = outerEdge * fringeStrength;
+        const fringeBlueContribution = (fringeCyan + fringeMagenta) * FRINGE_BLUE_FACTOR;
         const litR = Math.min(1, litBase + fringeMagenta * 0.95);
         const litG = Math.min(1, litBase + fringeCyan * 0.90);
-        const litB = Math.min(1, litBase + fringeCyan * FRINGE_BLUE_FACTOR + fringeMagenta * FRINGE_BLUE_FACTOR);
+        const litB = Math.min(1, litBase + fringeBlueContribution);
 
         // Opaque material darkens toward darkFloor; dots stay bright.
         const bsR = darkFloor + (1 - darkFloor) * litR;

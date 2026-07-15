@@ -7773,7 +7773,7 @@ function addColorToDiary(hex, r, g, b) {
   let arr;
   try { arr = JSON.parse(localStorage.getItem(key)) || []; } catch(e) { arr = []; }
   if (arr.length >= MAX) {
-    alert('Diary is full (100 colors). Open Macro Diary and delete some to make room.');
+    alert('Diary is full (100 colors). Open Color Diary and delete some to make room.');
     return;
   }
   // Avoid exact duplicates
@@ -9072,14 +9072,11 @@ function buildDesktopIcons() {
         { label: 'Change Background', onClick: openBackgroundPickerWindow },
         { label: 'Palette', onClick: openSchemeWindow }
       );
-      // "Add [#hex] to Diary" — read colour of the element at the click point
+      // "Add to Diary" — read colour of the element at the click point
       const clickX = e.clientX, clickY = e.clientY;
       const detectedColor = getColorAtPoint(clickX, clickY);
-      const addLabel = detectedColor
-        ? 'Add ' + detectedColor.hex + ' to Diary'
-        : 'Add Color to Diary...';
       menuEntries.push({
-        label: addLabel,
+        label: 'Add to Diary',
         color: detectedColor ? detectedColor.hex : null,
         onClick: () => {
           if (detectedColor) {
@@ -9093,7 +9090,7 @@ function buildDesktopIcons() {
           }
         }
       });
-      menuEntries.push({ label: 'Open Macro Diary', onClick: openMacroDiaryWindow });
+      menuEntries.push({ label: 'Color Diary', onClick: openMacroDiaryWindow });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
   }

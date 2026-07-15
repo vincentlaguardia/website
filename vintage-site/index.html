@@ -9315,9 +9315,9 @@ async function tryLogin() {
     updateClock();
     setInterval(updateClock, 30000);
     // Open order controls stacking (last opened ends up on top): browser
-    // furthest back, then Solitaire, and media player on top.
+    // starts minimized in the taskbar, media player on top.
     openBrowserWindow('https://en.wikipedia.org/wiki/United_States_involvement_in_regime_change');
-    openSolitaireWindow(true);
+    toggleMinimize('browser');
     openMediaPlayerWindow();
   } else {
     err.textContent = 'Incorrect password. Please try again.';

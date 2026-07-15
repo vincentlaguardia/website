@@ -404,6 +404,11 @@
 
       <div class="controls-panel">
         <div class="controls-col">
+          <div class="control-row row-active" style="--row-color:#F5C842;">
+            <label for="image-exposure">Exposure</label>
+            <input type="range" id="image-exposure" min="0" max="100" value="50">
+            <span id="image-exposure-val">50</span>
+          </div>
           <div class="control-row palette-system" style="--row-color:#E8834E;">
             <button type="button" class="item-toggle active" data-target="topo-palette" data-off="survey">Palette</button>
             <select id="topo-palette">
@@ -941,6 +946,17 @@
   const INFRARED_SHADOW_CRUSH = 0.40;
   const INFRARED_GREEN_SATURATION = 0.20;
   const INFRARED_BLUE_SATURATION = 1.55;
+
+  function applyExposure(data, exposure){
+    // exposure 0–100; 50 = no change (multiplier 1.0), 0 = black, 100 = 2× bright
+    if(exposure === 50) return;
+    const m = exposure / 50;
+    for(let i = 0; i < data.length; i += 4){
+      data[i]   = Math.min(255, data[i]   * m);
+      data[i+1] = Math.min(255, data[i+1] * m);
+      data[i+2] = Math.min(255, data[i+2] * m);
+    }
+  }
 
   function applyInfrared(data, w, h){
     // Pass 1: compute infrared tone-mapping into a temp buffer.
@@ -2541,7 +2557,8 @@
         htear:   rowVal('fx-htear'),
         opacity: rowVal('fx-opacity')
       },
-      infrared: rowActive('infrared')
+      infrared: rowActive('infrared'),
+      exposure: rowVal('image-exposure')
     };
   }
 
@@ -2555,6 +2572,7 @@
     const data = imgData.data;
     // Topo/Grain/Scanlines all have internal no-op guards (0 = do nothing),
     // so they can just always run; Dither needs an explicit mode gate.
+    applyExposure(data, opts.exposure);
     if(opts.infrared) applyInfrared(data, w, h);
     applyTopographic(data,w,h,opts.topo);
     if(opts.dither.active){
@@ -2840,7 +2858,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
+    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -3181,6 +3199,7 @@
   }
 
   function resetAll(){
+    $('image-exposure').value=50;
     $('topo-palette').value='survey';        setRowActive('topo-palette', true);
     $('topo-levels').value=4;                setRowActive('topo-levels', true);
     $('topo-spacing').value=14;               setRowActive('topo-spacing', true);
@@ -3333,7 +3352,7 @@
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
-    ['topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
+    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
 

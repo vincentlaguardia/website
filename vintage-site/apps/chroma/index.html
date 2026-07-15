@@ -564,7 +564,7 @@
     padding:2px;
     display:none;
   }
-  /* techno mode */
+  /* technocolor */
   #pastrami-btn{
     background:var(--face);
     font-weight:400;
@@ -642,7 +642,7 @@
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
-      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Techno</div>
+      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Technocolor</div>
       <div class="menu-item" id="menu-sam" tabindex="0" aria-haspopup="dialog">Sam Mode</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
@@ -720,7 +720,7 @@
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Techno Mode" aria-pressed="false">Techno Mode</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technocolor" aria-pressed="false">Technocolor</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <div class="picker-with-hex">
             <div class="color-swatch-wrap">
@@ -750,16 +750,16 @@
   </div>
   <div class="winbody">
     <div class="content-panel sunken">
-      <div id="help-content"><p class="lead" style="margin-top:0;"><strong>techno mode and strange</strong></p>
+      <div id="help-content"><p class="lead" style="margin-top:0;"><strong>technocolor and strange</strong></p>
       <p class="lead"><strong>the central idea</strong></p>
-      <p class="lead">techno mode treats a palette as a beginning rather than a finished answer. traditional harmony systems describe which colors have been selected and how their hues relate. techno mode asks what happens after selection, when those colors are assigned positions, states, probabilities, freedoms, and contexts inside a repeatable field. color is therefore understood not only as a value but as a participant with an origin, an address, a role, and a history of change.</p>
+      <p class="lead">technocolor treats a palette as a beginning rather than a finished answer. traditional harmony systems describe which colors have been selected and how their hues relate. technocolor asks what happens after selection, when those colors are assigned positions, states, probabilities, freedoms, and contexts inside a repeatable field. color is therefore understood not only as a value but as a participant with an origin, an address, a role, and a history of change.</p>
       <p class="lead"><strong>how the system works</strong></p>
       <p class="lead">a source grammar supplies the initial hue families. a modular diagonal field distributes those families through recurring positions. each position enters a pastel or neon state, allowing colors with different hue ancestry to cooperate through shared behavior. pastel tends toward atmosphere, continuity, and rest. neon tends toward emphasis, interruption, and visual anchoring. skew can change how often a category appears, while constant circles reveal how an unchanged color seems to change inside different surrounds. a fixed seed preserves a comparable sequence of outcomes when the controls are adjusted.</p>
       <p class="lead"><strong>what strange means</strong></p>
       <p class="lead">strange is the parameter that controls permitted hue departure. it does not erase the field or release every variable at once. it widens the region within which a color may move away from its assigned source while other relations remain active. strange is therefore different from randomness. randomness concerns how a result is selected. strange concerns the range of results that are allowed.</p>
       <p class="lead">at low strange, source families remain easy to recover and an unusual cell becomes conspicuous through scarcity. at middle strange, obedience and departure remain visible together, often producing the greatest tension. at high strange, palette ancestry may weaken while state, placement, recurrence, and context carry more of the system's identity. the work can remain organized even when its displayed hues no longer resemble the original palette closely.</p>
       <p class="lead"><strong>why it matters</strong></p>
-      <p class="lead">techno mode proposes controlled conflict as a form of coherence. a color can disobey its expected hue while continuing to obey its position, state, scale, and structural role. authorship shifts from choosing every final swatch toward designing permissions, protecting invariants, selecting outcomes, and locating the useful edge. the useful edge is the greatest departure that still preserves the identity, function, or accessibility required by a particular use. the theory does not define harmony as sameness. it asks how much visible difference an organized field can hold while still remembering what its changes mean.</p></div>
+      <p class="lead">technocolor proposes controlled conflict as a form of coherence. a color can disobey its expected hue while continuing to obey its position, state, scale, and structural role. authorship shifts from choosing every final swatch toward designing permissions, protecting invariants, selecting outcomes, and locating the useful edge. the useful edge is the greatest departure that still preserves the identity, function, or accessibility required by a particular use. the theory does not define harmony as sameness. it asks how much visible difference an organized field can hold while still remembering what its changes mean.</p></div>
       <div class="controls" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="win-btn" id="help-edit">Edit</button>
         <button class="win-btn" id="help-save" style="display:none;">Save</button>
@@ -783,22 +783,22 @@
 </div>
 <div id="techno-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Technocolor</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="techno-close">X</div></div>
   </div>
   <div class="winbody">
     <div class="content-panel sunken">
       <div id="theory-plus-content">
-        <p class="lead"><strong>techno mode and strange</strong></p>
+        <p class="lead"><strong>technocolor and strange</strong></p>
         <p class="lead"><strong>the central idea</strong></p>
-        <p class="lead">techno mode treats a palette as a beginning rather than a finished answer. traditional harmony systems describe which colors have been selected and how their hues relate. techno mode asks what happens after selection, when those colors are assigned positions, states, probabilities, freedoms, and contexts inside a repeatable field. color is therefore understood not only as a value but as a participant with an origin, an address, a role, and a history of change.</p>
+        <p class="lead">technocolor treats a palette as a beginning rather than a finished answer. traditional harmony systems describe which colors have been selected and how their hues relate. technocolor asks what happens after selection, when those colors are assigned positions, states, probabilities, freedoms, and contexts inside a repeatable field. color is therefore understood not only as a value but as a participant with an origin, an address, a role, and a history of change.</p>
         <p class="lead"><strong>how the system works</strong></p>
         <p class="lead">a source grammar supplies the initial hue families. a modular diagonal field distributes those families through recurring positions. each position enters a pastel or neon state, allowing colors with different hue ancestry to cooperate through shared behavior. pastel tends toward atmosphere, continuity, and rest. neon tends toward emphasis, interruption, and visual anchoring. skew can change how often a category appears, while constant circles reveal how an unchanged color seems to change inside different surrounds. a fixed seed preserves a comparable sequence of outcomes when the controls are adjusted.</p>
         <p class="lead"><strong>what strange means</strong></p>
         <p class="lead">strange is the parameter that controls permitted hue departure. it does not erase the field or release every variable at once. it widens the region within which a color may move away from its assigned source while other relations remain active. strange is therefore different from randomness. randomness concerns how a result is selected. strange concerns the range of results that are allowed.</p>
         <p class="lead">at low strange, source families remain easy to recover and an unusual cell becomes conspicuous through scarcity. at middle strange, obedience and departure remain visible together, often producing the greatest tension. at high strange, palette ancestry may weaken while state, placement, recurrence, and context carry more of the system's identity. the work can remain organized even when its displayed hues no longer resemble the original palette closely.</p>
         <p class="lead"><strong>why it matters</strong></p>
-        <p class="lead">techno mode proposes controlled conflict as a form of coherence. a color can disobey its expected hue while continuing to obey its position, state, scale, and structural role. authorship shifts from choosing every final swatch toward designing permissions, protecting invariants, selecting outcomes, and locating the useful edge. the useful edge is the greatest departure that still preserves the identity, function, or accessibility required by a particular use. the theory does not define harmony as sameness. it asks how much visible difference an organized field can hold while still remembering what its changes mean.</p>
+        <p class="lead">technocolor proposes controlled conflict as a form of coherence. a color can disobey its expected hue while continuing to obey its position, state, scale, and structural role. authorship shifts from choosing every final swatch toward designing permissions, protecting invariants, selecting outcomes, and locating the useful edge. the useful edge is the greatest departure that still preserves the identity, function, or accessibility required by a particular use. the theory does not define harmony as sameness. it asks how much visible difference an organized field can hold while still remembering what its changes mean.</p>
       </div>
       <div class="controls" style="margin-top:16px; display:flex; justify-content:flex-end;">
         <button class="win-btn" id="techno-ok">OK</button>
@@ -856,7 +856,7 @@
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Theory</div>
-  <div class="sm-item" id="sm-techno">Techno</div>
+  <div class="sm-item" id="sm-techno">Technocolor</div>
   <div class="sm-item" id="sm-sam">Sam Mode</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
@@ -1672,7 +1672,7 @@
     pastramiMode = !pastramiMode;
     syncPastramiButtonState();
     applyPastramiDropdown();
-    // If current philosophy is not allowed in Techno mode, switch it
+    // If current philosophy is not allowed in Technocolor, switch it
     if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){
       philoIdx = randomPastramiPhiloIdx();
       styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
@@ -2366,7 +2366,7 @@
       paras.push(swatchRef(0) + ' and ' + swatchRef(15) + ' sit at opposite ends of the color range. the gap between their hue angles tells you how colorful the source image was. a big gap means the image had many different color families; a small gap means it leaned toward a single color. every swatch between them is a color that lived somewhere along that spread.');
     } else if(pastramiMode){
       const philoName = PHILOSOPHIES[philoIdx].name.toLowerCase();
-      paras.push('techno mode is running on a ' + philoName + ' base starting at ' + Math.round(baseHue) + '\u00b0. in techno mode, every zone gets pushed hard into one of two states: pastel (light and washed out) or neon (dark and electric). nothing lands in between \u2014 that forced two-way split is the whole point of this mode. the base harmony sets which hue neighborhoods are used; the pastel and neon model takes over how vivid and bright each zone looks.');
+      paras.push('technocolor is running on a ' + philoName + ' base starting at ' + Math.round(baseHue) + '\u00b0. in technocolor, every zone gets pushed hard into one of two states: pastel (light and washed out) or neon (dark and electric). nothing lands in between \u2014 that forced two-way split is the whole point of this mode. the base harmony sets which hue neighborhoods are used; the pastel and neon model takes over how vivid and bright each zone looks.');
       const pastramiHsls = hexes.map(function(h){ const rgb = hexToRgbObj(h); return rgbToHsl(rgb.r, rgb.g, rgb.b); });
       const neonIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s > pastramiHsls[best].s ? i : best; }, 0);
       const pastelIdx = pastramiHsls.reduce(function(best, hsl, i){ return hsl.s < pastramiHsls[best].s ? i : best; }, 0);

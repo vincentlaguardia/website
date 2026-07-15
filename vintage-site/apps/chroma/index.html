@@ -636,6 +636,23 @@
           </div>
         </div>
       </div>
+      <div class="field">
+        <div class="cc-style-wrap">
+          <button class="ctrl-btn" id="cc-palette-limit-btn" type="button">Limit Palette: Off &#9662;</button>
+          <div class="style-dropdown raised" id="cc-palette-limit-dropdown">
+            <div class="menu-option active" data-limit="0">Off</div>
+            <div class="menu-option" data-limit="1">1</div>
+            <div class="menu-option" data-limit="2">2</div>
+            <div class="menu-option" data-limit="3">3</div>
+            <div class="menu-option" data-limit="4">4</div>
+            <div class="menu-option" data-limit="5">5</div>
+            <div class="menu-option" data-limit="6">6</div>
+            <div class="menu-option" data-limit="7">7</div>
+            <div class="menu-option" data-limit="8">8</div>
+            <div class="menu-option" data-limit="9">9</div>
+          </div>
+        </div>
+      </div>
       <button class="ctrl-btn" id="cc-toggle-dots">Dots Off</button>
       <div class="picker-with-hex">
         <input type="color" id="cc-target-color" value="#a8a8a8">
@@ -1053,6 +1070,7 @@
   const MAX_IMPORTED_PALETTE_SIZE = 12;
   const DEFAULT_LIGHTNESS = 50;
   const DEFAULT_DOT_SIZE_MODE = 'medium';
+  const DISTANCE_EPSILON = 1e-9;
   const DOT_SIZE_CONFIG = {
     small: { radiusRatio: 0.15 },
     medium: { radiusRatio: 0.25 },
@@ -1137,6 +1155,27 @@
         return { r, g, b, h: hsl.h, s: hsl.s, l: hsl.l, hex: rgbToHex(r,g,b).toUpperCase() };
       })
       .sort((a,b)=>a.h-b.h || a.l-b.l);
+  }
+  function lchToLabPoint(lch){
+    const hRad = lch.H * Math.PI / 180;
+    return { L: lch.L, a: lch.C * Math.cos(hRad), b: lch.C * Math.sin(hRad) };
+  }
+  function hexToLabPoint(hex){
+    const rgb = hexToRgbObj(hex);
+    return lchToLabPoint(rgbToLch(rgb.r, rgb.g, rgb.b));
+  }
+  function colorPointDistance(a, b){
+    const dL = a.L - b.L;
+    const da = a.a - b.a;
+    const db = a.b - b.b;
+    return Math.sqrt(dL*dL + da*da + db*db);
+  }
+  function shouldPreferPaletteEntry(candidateEntry, candidateDistance, bestEntry, bestDistance){
+    if(candidateDistance > bestDistance) return true;
+    if(Math.abs(candidateDistance - bestDistance) > DISTANCE_EPSILON) return false;
+    if(bestEntry === null) return true;
+    return candidateEntry.count > bestEntry.count
+      || (candidateEntry.count === bestEntry.count && candidateEntry.hex.localeCompare(bestEntry.hex) < 0);
   }
   function copyText(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1235,6 +1274,7 @@
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
     document.getElementById('cc-style-dropdown').classList.remove('show');
+    document.getElementById('cc-palette-limit-dropdown').classList.remove('show');
     document.getElementById('cc-match-source-dropdown').classList.remove('show');
   }
   menuItems.forEach(item=>{
@@ -1461,6 +1501,9 @@
   const styleBtn = document.getElementById('cc-style-btn');
   const styleDropdown = document.getElementById('cc-style-dropdown');
   const styleOptions = styleDropdown.querySelectorAll('.menu-option');
+  const paletteLimitBtn = document.getElementById('cc-palette-limit-btn');
+  const paletteLimitDropdown = document.getElementById('cc-palette-limit-dropdown');
+  const paletteLimitOptions = paletteLimitDropdown.querySelectorAll('.menu-option');
   const rerollHueBtn = document.getElementById('cc-reroll-hue');
   const shuffleBtn = document.getElementById('cc-shuffle');
   const lastSwatchEl = document.getElementById('cc-lastswatch');
@@ -1588,7 +1631,7 @@
   function shuffledSourceZone(zone){
     return zones[zoneShuffleOrder[zone.idx]];
   }
-  function computedZoneHex(zone){
+  function rawZoneHex(zone){
     if(focusActive && isInFocusBand(zone)){
       return focusHex;
     }
@@ -1606,8 +1649,67 @@
     }
     return baseHex.toUpperCase();
   }
+  function buildLimitedPaletteMap(rawHexes, limit){
+    const counts = new Map();
+    rawHexes.forEach(hex=>{
+      counts.set(hex, (counts.get(hex) || 0) + 1);
+    });
+    const entries = [...counts.entries()]
+      .map(([hex, count])=>({ hex, count, point: hexToLabPoint(hex) }))
+      .sort((a, b)=>b.count - a.count || a.hex.localeCompare(b.hex));
+    if(limit <= 0 || entries.length <= limit) return null;
+    const selected = [entries[0]];
+    while(selected.length < limit && selected.length < entries.length){
+      let bestEntry = null;
+      let bestDistance = -1;
+      entries.forEach(entry=>{
+        if(selected.some(chosen=>chosen.hex === entry.hex)) return;
+        const nearestDistance = selected.reduce((minDistance, chosen)=>{
+          return Math.min(minDistance, colorPointDistance(entry.point, chosen.point));
+        }, Infinity);
+        if(shouldPreferPaletteEntry(entry, nearestDistance, bestEntry, bestDistance)){
+          bestEntry = entry;
+          bestDistance = nearestDistance;
+        }
+      });
+      if(!bestEntry) break;
+      selected.push(bestEntry);
+    }
+    const mapping = new Map();
+    entries.forEach(entry=>{
+      let closestHex = selected[0].hex;
+      let closestDistance = colorPointDistance(entry.point, selected[0].point);
+      for(let i=1; i<selected.length; i++){
+        const candidate = selected[i];
+        const nextDistance = colorPointDistance(entry.point, candidate.point);
+        if(nextDistance < closestDistance){
+          closestDistance = nextDistance;
+          closestHex = candidate.hex;
+        }
+      }
+      mapping.set(entry.hex, closestHex);
+    });
+    return mapping;
+  }
+  function getPaletteLimitMap(){
+    if(paletteLimit <= 0){
+      paletteLimitCacheKey = '';
+      paletteLimitCacheMap = null;
+      return null;
+    }
+    const rawHexes = zones.map(zone=>rawZoneHex(shuffledSourceZone(zone)));
+    const cacheKey = paletteLimit + '|' + rawHexes.join(',');
+    if(cacheKey === paletteLimitCacheKey){
+      return paletteLimitCacheMap;
+    }
+    paletteLimitCacheKey = cacheKey;
+    paletteLimitCacheMap = buildLimitedPaletteMap(rawHexes, paletteLimit);
+    return paletteLimitCacheMap;
+  }
   function zoneHex(zone){
-    return computedZoneHex(shuffledSourceZone(zone));
+    const rawHex = rawZoneHex(shuffledSourceZone(zone));
+    const limitedPaletteMap = getPaletteLimitMap();
+    return limitedPaletteMap?.get(rawHex) || rawHex;
   }
   function exportPaletteText(){
     const unique = [];
@@ -1668,6 +1770,7 @@
   let strange = +weirdSlider.value;
   let showDots = true;
   let dotSizeMode = DEFAULT_DOT_SIZE_MODE;
+  let paletteLimit = 0;
   let zoneShuffleOrder = createDefaultZoneShuffleOrder();
   let importedPalette = [];
   let importedMode = false;
@@ -1683,6 +1786,8 @@
   let matchSatSource = 'dot'; // 'dot' | 'skew' | 'focus' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
   let matchSatValue = null; // LCH chroma (C) of the source color when active
+  let paletteLimitCacheKey = '';
+  let paletteLimitCacheMap = null;
   function syncDotsToggleUI(){
     toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
     toggleDotsBtn.classList.toggle('is-active', showDots);
@@ -1774,12 +1879,38 @@
     });
   }
   function closeStyleDropdown(){ styleDropdown.classList.remove('show'); }
+  function closePaletteLimitDropdown(){ paletteLimitDropdown.classList.remove('show'); }
+  function syncPaletteLimitUI(){
+    const label = paletteLimit <= 0 ? 'Off' : String(paletteLimit);
+    paletteLimitBtn.innerHTML = 'Limit Palette: ' + label + ' &#9662;';
+    paletteLimitOptions.forEach(option=>{
+      option.classList.toggle('active', Number(option.dataset.limit) === paletteLimit);
+    });
+  }
   styleBtn.addEventListener('click', e=>{
     e.stopPropagation();
     const isOpen = styleDropdown.classList.contains('show');
     closeAllMenus();
     closeStyleDropdown();
+    closePaletteLimitDropdown();
     if(!isOpen) styleDropdown.classList.add('show');
+  });
+  paletteLimitBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const isOpen = paletteLimitDropdown.classList.contains('show');
+    closeAllMenus();
+    closeStyleDropdown();
+    closePaletteLimitDropdown();
+    if(!isOpen) paletteLimitDropdown.classList.add('show');
+  });
+  paletteLimitOptions.forEach(option=>{
+    option.addEventListener('click', e=>{
+      e.stopPropagation();
+      paletteLimit = Number(option.dataset.limit) || 0;
+      syncPaletteLimitUI();
+      closePaletteLimitDropdown();
+      drawScene();
+    });
   });
   styleOptions.forEach(opt=>{
     opt.addEventListener('click', e=>{
@@ -1843,6 +1974,7 @@
       roundedBaseHue,
       roundedGlobalSatMul,
       strange,
+      paletteLimit,
       shufflePart,
       seed.repeats,
       seed.angle.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
@@ -1982,6 +2114,7 @@
     }
   });
   syncMatchSatUI();
+  syncPaletteLimitUI();
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);

@@ -937,32 +937,56 @@
   const INFRARED_LUMA_B = 0.114;
   const INFRARED_COLOR_MAX = 255;
   const INFRARED_TONE_PIVOT = 0.5;
-  const INFRARED_HIGHLIGHT_BOOST = 0.30;
-  const INFRARED_SHADOW_CRUSH = 0.15;
-  const INFRARED_GREEN_SATURATION = 0.80;
-  const INFRARED_BLUE_SATURATION = 1.15;
+  const INFRARED_HIGHLIGHT_BOOST = 0.75;
+  const INFRARED_SHADOW_CRUSH = 0.40;
+  const INFRARED_GREEN_SATURATION = 0.20;
+  const INFRARED_BLUE_SATURATION = 1.55;
 
-  function applyInfrared(data){
+  function applyInfrared(data, w, h){
+    // Pass 1: compute infrared tone-mapping into a temp buffer.
+    const toned = new Uint8ClampedArray(data.length);
     for(let i=0;i<data.length;i+=4){
-      const srcR = data[i];
-      const srcG = data[i+1];
-      const srcB = data[i+2];
-      const lum = (INFRARED_LUMA_R*srcR + INFRARED_LUMA_G*srcG + INFRARED_LUMA_B*srcB) / INFRARED_COLOR_MAX;
-      const normalizedDist = Math.abs(lum - INFRARED_TONE_PIVOT) / INFRARED_TONE_PIVOT;
-      const tone = lum >= INFRARED_TONE_PIVOT
-        ? 1 + normalizedDist * INFRARED_HIGHLIGHT_BOOST
-        : 1 - normalizedDist * INFRARED_SHADOW_CRUSH;
-
-      const tonedR = clamp(srcR * tone, 0, INFRARED_COLOR_MAX);
-      const tonedG = clamp(srcG * tone, 0, INFRARED_COLOR_MAX);
-      const tonedB = clamp(srcB * tone, 0, INFRARED_COLOR_MAX);
-      const gray = INFRARED_LUMA_R*tonedR + INFRARED_LUMA_G*tonedG + INFRARED_LUMA_B*tonedB;
-      const g = clamp(gray + (tonedG - gray) * INFRARED_GREEN_SATURATION, 0, INFRARED_COLOR_MAX);
-      const b = clamp(gray + (tonedB - gray) * INFRARED_BLUE_SATURATION, 0, INFRARED_COLOR_MAX);
-
-      data[i] = 0;
-      data[i+1] = clamp(g * 1.15, 0, INFRARED_COLOR_MAX);
-      data[i+2] = clamp(b * 1.15, 0, INFRARED_COLOR_MAX);
+      const srcR=data[i], srcG=data[i+1], srcB=data[i+2];
+      const lum=(INFRARED_LUMA_R*srcR+INFRARED_LUMA_G*srcG+INFRARED_LUMA_B*srcB)/INFRARED_COLOR_MAX;
+      const nd=Math.abs(lum-INFRARED_TONE_PIVOT)/INFRARED_TONE_PIVOT;
+      const tone=lum>=INFRARED_TONE_PIVOT
+        ?1+nd*INFRARED_HIGHLIGHT_BOOST
+        :1-nd*INFRARED_SHADOW_CRUSH;
+      const tR=clamp(srcR*tone,0,INFRARED_COLOR_MAX);
+      const tG=clamp(srcG*tone,0,INFRARED_COLOR_MAX);
+      const tB=clamp(srcB*tone,0,INFRARED_COLOR_MAX);
+      const gray=INFRARED_LUMA_R*tR+INFRARED_LUMA_G*tG+INFRARED_LUMA_B*tB;
+      const g=clamp(gray+(tG-gray)*INFRARED_GREEN_SATURATION,0,INFRARED_COLOR_MAX);
+      const b=clamp(gray+(tB-gray)*INFRARED_BLUE_SATURATION,0,INFRARED_COLOR_MAX);
+      toned[i]=0;
+      toned[i+1]=clamp(g*1.15,0,INFRARED_COLOR_MAX);
+      toned[i+2]=clamp(b*1.15,0,INFRARED_COLOR_MAX);
+      toned[i+3]=data[i+3];
+    }
+    // Pass 2: chromatic aberration at high-contrast edges.
+    // Gradient is computed from the toned luminance; G shifts right, B shifts left.
+    const CA_THRESHOLD=35, CA_MAX=3;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const idx=(y*w+x)*4;
+        const xm=Math.max(0,x-1), xp=Math.min(w-1,x+1);
+        const ym=Math.max(0,y-1), yp=Math.min(h-1,y+1);
+        const getL=(px,py)=>{const ii=(py*w+px)*4; return 0.587*toned[ii+1]+0.114*toned[ii+2];};
+        const gx=getL(xp,y)-getL(xm,y), gy=getL(x,yp)-getL(x,ym);
+        const edge=Math.min(Math.sqrt(gx*gx+gy*gy),255);
+        if(edge>CA_THRESHOLD){
+          const shift=Math.round((edge-CA_THRESHOLD)/(255-CA_THRESHOLD)*CA_MAX);
+          const gx2=clamp(x+shift,0,w-1), bx2=clamp(x-shift,0,w-1);
+          data[idx]=0;
+          data[idx+1]=toned[(y*w+gx2)*4+1];
+          data[idx+2]=toned[(y*w+bx2)*4+2];
+        } else {
+          data[idx]=toned[idx];
+          data[idx+1]=toned[idx+1];
+          data[idx+2]=toned[idx+2];
+        }
+        data[idx+3]=toned[idx+3];
+      }
     }
   }
 
@@ -2521,7 +2545,7 @@
     const data = imgData.data;
     // Topo/Grain/Scanlines all have internal no-op guards (0 = do nothing),
     // so they can just always run; Dither needs an explicit mode gate.
-    if(opts.infrared) applyInfrared(data);
+    if(opts.infrared) applyInfrared(data, w, h);
     applyTopographic(data,w,h,opts.topo);
     if(opts.dither.active){
       if(opts.dither.type==='fs') applyFloydSteinberg(data,w,h,opts.dither.levels,opts.dither.grayscale);

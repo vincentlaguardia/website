@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>chroma.exe</title>
+<title>:technochromia</title>
 <script src="../../content/_assets/private/site-fonts.js" data-provider-only="true"></script>
 <style>
   :root{
@@ -564,7 +564,7 @@
     padding:2px;
     display:none;
   }
-  /* technocolor */
+  /* technochromia */
   #pastrami-btn{
     background:var(--face);
     font-weight:400;
@@ -589,7 +589,7 @@
     <div class="titlebar">
       <div class="titlebar-left">
         <span class="titlebar-icon"></span>
-        <span id="win-title">chroma.exe</span>
+        <span id="win-title">:technochromia</span>
       </div>
       <div class="titlebar-btns">
         <div class="tbtn" id="btn-min" title="Minimize">_</div>
@@ -601,8 +601,8 @@
       <div class="menu-item" data-menu="file" tabindex="0" aria-haspopup="menu">File</div>
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
-      <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Theory</div>
-      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Technocolor</div>
+      <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Techno</div>
+      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Technochromia</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
@@ -676,7 +676,7 @@
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
-      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="196" value="20"></div>
+      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="245" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -696,7 +696,7 @@
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technocolor" aria-pressed="false">Technocolor</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochromia" aria-pressed="false">Technochromia</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
           <div class="picker-with-hex">
@@ -722,7 +722,7 @@
 </div>
 <div id="help-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Theory</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Techno</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="help-close">X</div></div>
   </div>
   <div class="winbody">
@@ -845,7 +845,7 @@
 </div>
 <div id="techno-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Technocolor</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Technochromia</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="techno-close">X</div></div>
   </div>
   <div class="winbody">
@@ -955,7 +955,7 @@
 </div>
 <div id="diary-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary — chroma.exe</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary — :technochromia</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="diary-close" title="Close">X</div></div>
   </div>
   <div class="winbody">
@@ -979,14 +979,14 @@
 </div>
 <div id="taskbar">
   <div id="start-btn"><span class="flag"></span>Start</div>
-  <div class="task-item raised"><span class="task-icon"></span>chroma.exe</div>
+  <div class="task-item raised"><span class="task-icon"></span>:technochromia</div>
   <div class="tray" id="tray-clock">--:-- --</div>
 </div>
 <div id="start-menu" class="raised">
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
-  <div class="sm-item" id="sm-help">Theory</div>
-  <div class="sm-item" id="sm-techno">Technocolor</div>
+  <div class="sm-item" id="sm-help">Techno</div>
+  <div class="sm-item" id="sm-techno">Technochromia</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
   <div class="sm-item" id="sm-shutdown">Shut Down...</div>
@@ -994,7 +994,7 @@
 <div id="shutdown-overlay">
   <div>
     <div id="shutdown-text">It is now safe to close this browser tab.</div>
-    <button class="win-btn" id="restart-btn">Restart chroma.exe</button>
+    <button class="win-btn" id="restart-btn">Restart :technochromia</button>
   </div>
 </div>
 <input type="file" id="cc-photo-import" accept="image/*" style="display:none;">
@@ -2033,7 +2033,7 @@
     pastramiMode = !pastramiMode;
     syncPastramiButtonState();
     applyPastramiDropdown();
-    // If current philosophy is not allowed in Technocolor, switch it
+    // If current philosophy is not allowed in Technochromia, switch it
     if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){
       philoIdx = randomPastramiPhiloIdx();
       styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
@@ -2557,7 +2557,7 @@
     cx.fillStyle = '#000000';
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
-    cx.fillText('chroma.exe — Color Diary', DIARY_EXPORT_CANVAS_PADDING, DIARY_EXPORT_CANVAS_PADDING + 14);
+    cx.fillText(':technochromia — Color Diary', DIARY_EXPORT_CANVAS_PADDING, DIARY_EXPORT_CANVAS_PADDING + 14);
     diaryColors.forEach((color, i)=>{
       const col = i % gridColumns;
       const row = Math.floor(i / gridColumns);

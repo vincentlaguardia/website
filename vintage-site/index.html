@@ -1107,7 +1107,7 @@
         <div class="menu-item" id="menu-mediaplayer">Songs Player</div>
         <div class="menu-item" id="menu-browser">Internet Explorer</div>
         <div class="menu-item" id="menu-paint">Paint</div>
-        <div class="menu-item" id="menu-chroma">chroma.exe</div>
+        <div class="menu-item" id="menu-chroma">:technochromia</div>
         <div class="menu-item" id="menu-spectrum">Off The Spectrum</div>
         <div class="menu-item" id="menu-flight">nyc_flight_sim</div>
         <div class="menu-item" id="menu-notes">Notes</div>
@@ -1239,7 +1239,7 @@ const items = {
   ieshortcut:   { type: 'shortcut', name: 'Internet Explorer', customIcon: 'ieshortcut', action: 'browser', modified: '2026-07-07' },
   solitaireshortcut: { type: 'shortcut', name: 'Solitaire', customIcon: 'solitaireshortcut', action: 'solitaire', modified: '2026-07-07' },
   paintshortcut: { type: 'shortcut', name: 'Paint', customIcon: 'paintshortcut', action: 'paint', modified: '2026-07-07' },
-  chromashortcut: { type: 'shortcut', name: 'chroma.exe', customIcon: 'chromashortcut', action: 'chroma', iconSize: 96, defaultDesktopPosition: 'rightOfTrash', modified: '2026-07-09' },
+  chromashortcut: { type: 'shortcut', name: ':technochromia', customIcon: 'chromashortcut', action: 'chroma', iconSize: 96, defaultDesktopPosition: 'rightOfTrash', modified: '2026-07-09' },
   notepadshortcut: { type: 'shortcut', name: 'Notes', customIcon: 'notepadshortcut', action: 'notepad', modified: '2026-07-09' },
   echotrailshortcut: { type: 'shortcut', name: 'Echo Trail', customIcon: 'echotrailshortcut', action: 'echotrail', iconSize: 96, modified: '2026-07-10' },
   mycomputershortcut: { type: 'shortcut', name: 'My Computer', customIcon: 'mycomputershortcut', action: 'mycomputer', iconSize: 96, modified: '2026-07-10' },
@@ -6790,7 +6790,7 @@ function openChromaWindow() {
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
   titlebar.innerHTML = `
-    <span class="title-text">chroma.exe</span>
+    <span class="title-text">:technochromia</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
       <div class="win-btn" data-action="max" role="button" tabindex="0" aria-label="Maximize"><span aria-hidden="true">&#9633;</span></div>
@@ -6801,7 +6801,7 @@ function openChromaWindow() {
   const content = document.createElement('div');
   content.className = 'win98-content';
   content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
-  content.innerHTML = `<iframe class="chroma-frame" src="apps/chroma/" title="chroma.exe"></iframe>`;
+  content.innerHTML = `<iframe class="chroma-frame" src="apps/chroma/" title=":technochromia"></iframe>`;
 
   win.appendChild(titlebar);
   win.appendChild(content);
@@ -6814,7 +6814,7 @@ function openChromaWindow() {
   makeDraggable(win, titlebar);
 
   openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
-  addTaskbarEntry(id, 'chroma.exe', imgIcon(CHROMA_SHORTCUT_ICON, 14));
+  addTaskbarEntry(id, ':technochromia', imgIcon(CHROMA_SHORTCUT_ICON, 14));
   bringToFront(id);
 }
 
@@ -7682,7 +7682,7 @@ function openChromaDiaryWindow() {
   const titlebar = document.createElement('div');
   titlebar.className = 'win98-titlebar';
   titlebar.innerHTML = `
-    <span class="title-text">Color Diary — chroma.exe</span>
+    <span class="title-text">Color Diary — :technochromia</span>
     <div class="win-buttons">
       <div class="win-btn" data-action="min">_</div>
       <div class="win-btn" data-action="close">&times;</div>
@@ -7692,7 +7692,7 @@ function openChromaDiaryWindow() {
   const content = document.createElement('div');
   content.className = 'win98-content';
   content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
-  content.innerHTML = `<iframe class="chroma-diary-frame" src="apps/chroma/diary.html" title="Color Diary — chroma.exe"></iframe>`;
+  content.innerHTML = `<iframe class="chroma-diary-frame" src="apps/chroma/diary.html" title="Color Diary — :technochromia"></iframe>`;
 
   win.appendChild(titlebar);
   win.appendChild(content);
@@ -8490,7 +8490,7 @@ async function openMediaPlayerWindow(trackId) {
 const DESKTOP_LEFT_GRID_JITTER = 0;
 const DESKTOP_DEFAULT_LAYOUT_SEED = 'desktop-default-v3';
 const DESKTOP_LEFT_REQUIRED_IDS = ['chromashortcut', 'solitaireshortcut', 'ieshortcut', 'paintshortcut', 'echotrailshortcut'];
-const DESKTOP_LEFT_REQUIRED_LABELS = new Set(['applications', 'chroma.exe', 'solitaire', 'internet', 'internet explorer', 'paint']);
+const DESKTOP_LEFT_REQUIRED_LABELS = new Set(['applications', ':technochromia', 'solitaire', 'internet', 'internet explorer', 'paint']);
 
 function hashString32(seed) {
   let h = 2166136261;
@@ -9486,7 +9486,7 @@ window.addEventListener('message', function(e) {
     { label: 'Songs Player',     category: 'App',     keywords: ['songs', 'music', 'player', 'media', 'wmp'], action: () => openMediaPlayerWindow() },
     { label: 'Internet Explorer',category: 'App',     keywords: ['browser', 'internet', 'explorer', 'ie', 'web'], action: () => openBrowserWindow() },
     { label: 'Paint',            category: 'App',     keywords: ['paint', 'draw', 'art'],                 action: () => openPaintWindow() },
-    { label: 'chroma.exe',       category: 'App',     keywords: ['chroma', 'color', 'colour', 'palette'], action: () => openChromaWindow() },
+    { label: ':technochromia',       category: 'App',     keywords: ['chroma', 'color', 'colour', 'palette'], action: () => openChromaWindow() },
     { label: 'Off The Spectrum', category: 'App',     keywords: ['spectrum', 'frequency', 'music', 'sound'], action: () => openSpectrumWindow() },
     { label: 'nyc_flight_sim',   category: 'App',     keywords: ['flight', 'sim', 'game', 'nyc', 'plane'], action: () => openFlightSimWindow() },
     { label: 'Notes',            category: 'App',     keywords: ['notes', 'notepad', 'text', 'write'],    action: () => openNotepadWindow() },

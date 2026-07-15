@@ -659,7 +659,7 @@
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
-      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="100" value="20"></div>
+      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="140" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -1396,6 +1396,7 @@
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
+  const STRANGE_MAX = 140;
   const PHILOSOPHIES = [
     { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
     { name:'Analogous', hueOffsets:[-30,0,30], pattern:[0,1,2,1] },
@@ -1428,7 +1429,7 @@
     const jitterB = hashZone(zone.col+91, zone.row+37);
     const jitterC = hashZone(zone.col+53, zone.row+17);
     const outlierRoll = hashZone(zone.col+13, zone.row+29);
-    const w = Math.max(0, Math.min(100, strange)) / 100;
+    const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / 100;
     let hueRange = w * 40;
     const wildcardChance = w * 0.65;
     if(outlierRoll < wildcardChance){ hueRange = 50 + w*280; }
@@ -1447,7 +1448,7 @@
     const jitterC = hashZone(zone.col+53, zone.row+17);
     const jitterD = hashZone(zone.col+7, zone.row+61);
     const jitterE = hashZone(zone.col+19, zone.row+83);
-    const w = Math.max(0, Math.min(100, strange)) / 100;
+    const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / 100;
     // Zone flips between deeply unsaturated pastel and extreme neon/fluorescent
     const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
     // Hue: use philosophy hue but allow wild shifts — juxtaposition is the point
@@ -1472,7 +1473,7 @@
     const jitterC = hashZone(zone.col+97, zone.row+7);
     const jitterD = hashZone(zone.col+29, zone.row+47);
     const jitterE = hashZone(zone.col+71, zone.row+13);
-    const w = clamp(strange, 0, 100) / 100;
+    const w = clamp(strange, 0, STRANGE_MAX) / 100;
     if(pastramiMode){
       const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
       const hue = applySkewToHue((src.h + (jitterC-0.5)*(80 + w*220) + 3600) % 360);

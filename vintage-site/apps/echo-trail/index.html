@@ -537,13 +537,13 @@
             <span id="vm-dot-size-val">40</span>
           </div>
           <div class="control-row" style="--row-color:#D48800;">
-            <button type="button" class="item-toggle active" data-target="vm-spacing" data-off="50">Dot Spacing</button>
-            <input type="range" id="vm-spacing" min="0" max="100" value="50">
-            <span id="vm-spacing-val">50</span>
+            <button type="button" class="item-toggle active" data-target="vm-spacing" data-off="80">Dot Spacing</button>
+            <input type="range" id="vm-spacing" min="80" max="100" value="90">
+            <span id="vm-spacing-val">90</span>
           </div>
           <div class="control-row" style="--row-color:#B86A00;">
             <button type="button" class="item-toggle" data-target="vm-glow" data-off="0">Backlight</button>
-            <input type="range" id="vm-glow" min="0" max="100" value="55">
+            <input type="range" id="vm-glow" min="40" max="100" value="55">
             <span id="vm-glow-val">55</span>
           </div>
           <div class="control-row" style="--row-color:#9A5200;">
@@ -2885,12 +2885,12 @@
     $('moire-scale').value = Math.floor(Math.random()*100);
 
     // Vending Machine
-    setRowActive('vm-amount', Math.random()>0.7);
+    setRowActive('vm-amount', Math.random()>0.25);
     $('vm-amount').value = Math.floor(Math.random()*60)+40;
     setRowActive('vm-dot-size', true);
     $('vm-dot-size').value = Math.floor(Math.random()*70)+15;
     setRowActive('vm-spacing', true);
-    $('vm-spacing').value = Math.floor(Math.random()*80)+10;
+    $('vm-spacing').value = Math.floor(Math.random()*21)+80;
     setRowActive('vm-glow', true);
     $('vm-glow').value = Math.floor(Math.random()*16)+85;
     setRowActive('vm-chroma', Math.random()>0.3);
@@ -3012,7 +3012,7 @@
 
     $('vm-amount').value=75;                  setRowActive('vm-amount', false);
     $('vm-dot-size').value=40;                setRowActive('vm-dot-size', true);
-    $('vm-spacing').value=50;                 setRowActive('vm-spacing', true);
+    $('vm-spacing').value=90;                 setRowActive('vm-spacing', true);
     $('vm-glow').value=55;                    setRowActive('vm-glow', false);
     $('vm-chroma').value=50;                  setRowActive('vm-chroma', false);
 

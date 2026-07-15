@@ -608,7 +608,7 @@
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
         <div class="menu-sep"></div>
-        <div class="menu-option" data-action="save-to-desktop">Save to Desktop (.jpg)...</div>
+        <div class="menu-option" data-action="save-to-desktop">Save to Desktop (PNG/JPG)...</div>
         <div class="menu-sep"></div>
         <div class="menu-option" data-action="save">Save As PNG...</div>
         <div class="menu-option" data-action="save-as">Save As JPG...</div>
@@ -680,6 +680,7 @@
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
+          <button class="ctrl-btn" id="cc-save-desktop" type="button" title="Save PNG or JPG to your computer" aria-label="Save to Desktop">Save to Desktop</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technocolor" aria-pressed="false">Technocolor</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
@@ -1151,6 +1152,19 @@
     try{ document.execCommand('copy'); }catch(e){}
     document.body.removeChild(ta);
   }
+  function downloadBlob(filename, blob){
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_TIMEOUT);
+  }
+  function canvasToBlob(canvasEl, type, quality){
+    return new Promise(resolve=> canvasEl.toBlob(resolve, type, quality));
+  }
   function promptForPhotoImport(){
     document.getElementById('cc-photo-import').click();
   }
@@ -1158,19 +1172,41 @@
     try{
       canvasEl.toBlob(function(blob){
         if(!blob){ alert('Save failed. Please try again.'); return; }
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = 'chroma-palette-' + timestampTag() + '.png';
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_TIMEOUT);
+        downloadBlob('chroma-palette-' + timestampTag() + '.png', blob);
       }, 'image/png');
     } catch(err){
       console.warn('chroma: save failed', err);
       alert('Save failed. Please try again.');
     }
+  }
+  async function saveCanvasToDesktop(canvasEl){
+    const defaultName = 'chroma-palette-' + timestampTag() + '.png';
+    if(window.showSaveFilePicker && window.isSecureContext){
+      try{
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultName,
+          startIn: 'desktop',
+          types: [
+            { description: 'PNG image', accept: { 'image/png': ['.png'] } },
+            { description: 'JPEG image', accept: { 'image/jpeg': ['.jpg', '.jpeg'] } }
+          ]
+        });
+        const chosenName = String(handle.name || defaultName);
+        const wantsJpeg = /\.jpe?g$/i.test(chosenName);
+        const blob = await canvasToBlob(canvasEl, wantsJpeg ? 'image/jpeg' : 'image/png', wantsJpeg ? 0.92 : undefined);
+        if(!blob){ alert('Save failed. Please try again.'); return; }
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      } catch(err){
+        if(err && err.name === 'AbortError') return;
+        console.warn('chroma: desktop save failed, falling back to download.', err);
+      }
+    }
+    const blob = await canvasToBlob(canvasEl, 'image/png');
+    if(!blob){ alert('Save failed. Please try again.'); return; }
+    downloadBlob(defaultName, blob);
   }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
   const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };
@@ -1296,7 +1332,7 @@
   document.querySelector('[data-action="save-to-desktop"]').addEventListener('click', e=>{
     e.stopPropagation();
     closeAllMenus();
-    doSaveToVirtualDesktop();
+    saveCanvasToDesktop(canvas);
   });
   document.querySelector('[data-action="exit"]').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   document.querySelector('[data-action="save"]').addEventListener('click', e=>{
@@ -1412,6 +1448,7 @@
   const exportPaletteBtn = document.getElementById('cc-export-palette');
   const loadImageBtn = document.getElementById('cc-load-image');
   const saveImageBtn = document.getElementById('cc-save-image');
+  const saveDesktopBtn = document.getElementById('cc-save-desktop');
   const importInput = document.getElementById('cc-photo-import');
   const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
@@ -1570,19 +1607,6 @@
     const unique = [], seen = new Set();
     zones.forEach(z=>{ const hex = zoneHex(z); if(!seen.has(hex)){ seen.add(hex); unique.push(hex); } });
     return unique.join('\n') + '\n';
-  }
-  function doSaveToVirtualDesktop(){
-    if(window.self === window.top){
-      alert('Save to Desktop is only available when chroma.exe is open inside the virtual desktop.');
-      return;
-    }
-    const defaultName = 'chroma-' + timestampTag() + '.jpg';
-    const raw = window.prompt('Save palette image to virtual desktop as:', defaultName);
-    if(raw === null) return;
-    let fname = raw.trim() || defaultName;
-    if(!/\.[a-zA-Z]+$/.test(fname)) fname += '.jpg';
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl }, window.location.origin);
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
   const MAX_SHUFFLE_RETRIES = 4; // Retry up to 4 times before forcing a visibly different permutation.
@@ -1939,6 +1963,7 @@
   exportPaletteBtn.addEventListener('click', exportPaletteText);
   loadImageBtn.addEventListener('click', promptForPhotoImport);
   saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));
+  saveDesktopBtn.addEventListener('click', ()=> saveCanvasToDesktop(canvas));
   async function processImportedPhotoFile(file){
     if(!file || !file.type.startsWith('image/')) return;
     const img = await readImageFile(file);

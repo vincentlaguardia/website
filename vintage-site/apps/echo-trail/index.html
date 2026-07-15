@@ -111,14 +111,6 @@
   #btn-randomize:active{
     background:var(--rnd-bg-active, linear-gradient(180deg, #f3d250 0%, #e0bb35 100%));
   }
-  #btn-fried{
-    background:var(--frd-bg, linear-gradient(180deg, #ffe58a 0%, #f3d250 100%));
-    color:var(--frd-color, #3f2a00);
-    font-weight:bold;
-  }
-  #btn-fried:active{
-    background:var(--frd-bg-active, linear-gradient(180deg, #f3d250 0%, #e0bb35 100%));
-  }
 
   .main-area{ display:flex; flex-direction:row; gap:8px; padding:8px; flex:1; min-height:0; overflow:auto; }
   .canvas-panel{
@@ -361,7 +353,6 @@
       <button class="btn95" id="btn-load">Load Image</button>
       <button class="btn95" id="btn-save">Save</button>
       <button class="btn95" id="btn-randomize">Randomize</button>
-      <button class="btn95" id="btn-fried">Dr. Pastrami Mode</button>
       <button class="btn95" id="btn-reset">Reset</button>
       <button class="btn95" id="btn-off">Off</button>
       <div class="diary-lastswatch sunken" id="diary-last-swatch" title="Last clicked color" role="img" aria-label="Last clicked color swatch"></div>
@@ -511,26 +502,6 @@
             <input type="range" id="scan-vmisalign" min="0" max="100" value="55">
             <span id="scan-vmisalign-val">55</span>
           </div>
-          <div class="control-row" style="--row-color:#8FD97E;">
-            <button type="button" class="item-toggle" data-target="fried-duplicate" data-off="0">Duplicate</button>
-            <input type="range" id="fried-duplicate" min="0" max="100" value="50">
-            <span id="fried-duplicate-val">50</span>
-          </div>
-          <div class="control-row" style="--row-color:#E8A8D0;">
-            <button type="button" class="item-toggle active" data-target="fried-offset" data-off="40">Ghost Offset</button>
-            <input type="range" id="fried-offset" min="0" max="100" value="40">
-            <span id="fried-offset-val">40</span>
-          </div>
-          <div class="control-row" style="--row-color:#8F6ECC;">
-            <button type="button" class="item-toggle" data-target="fried-fluorescent" data-off="0">Fluorescent</button>
-            <input type="range" id="fried-fluorescent" min="0" max="100" value="50">
-            <span id="fried-fluorescent-val">50</span>
-          </div>
-          <div class="control-row" style="--row-color:#C4A8E0;">
-            <button type="button" class="item-toggle" data-target="fried-corruption" data-off="0">Corruption</button>
-            <input type="range" id="fried-corruption" min="0" max="100" value="30">
-            <span id="fried-corruption-val">30</span>
-          </div>
           <div class="control-row" style="--row-color:#A9781F;">
             <button type="button" class="item-toggle active" data-target="echo-trail" data-off="40">Echo Trail</button>
             <input type="range" id="echo-trail" min="0" max="100" value="40">
@@ -672,7 +643,6 @@
     <div class="window modal">
       <div class="modal-body">
         <div class="modal-text">
-          <p>created by dr. pastrami</p>
         </div>
       </div>
       <div class="modal-actions"><button class="btn95" id="about-ok">OK</button></div>
@@ -1487,91 +1457,6 @@
         data[idx]     = clamp(r * t + src[idx]     * (1 - t), 0, 255);
         data[idx + 1] = clamp(g * t + src[idx + 1] * (1 - t), 0, 255);
         data[idx + 2] = clamp(b * t + src[idx + 2] * (1 - t), 0, 255);
-      }
-    }
-  }
-
-  // ---------- Fried mode ----------
-  // Saturation/contrast blowout + unstable per-block hue-cycling for a
-  // fluorescent, deep-fried-meme color skew.
-  function applyFluorescent(data,width,height,amount){
-    if(amount<=0) return;
-    const t = amount/100;
-    const satBoost = 1+t*2.2;
-    const contrast = 1+t*0.8;
-    const cycleAmt = t*0.9;
-    for(let y=0;y<height;y++){
-      for(let x=0;x<width;x++){
-        const idx=(y*width+x)*4;
-        let r=data[idx], g=data[idx+1], b=data[idx+2];
-        r = clamp((r-128)*contrast+128,0,255);
-        g = clamp((g-128)*contrast+128,0,255);
-        b = clamp((b-128)*contrast+128,0,255);
-        const lum = 0.299*r+0.587*g+0.114*b;
-        r = clamp(lum+(r-lum)*satBoost,0,255);
-        g = clamp(lum+(g-lum)*satBoost,0,255);
-        b = clamp(lum+(b-lum)*satBoost,0,255);
-        const jitter = cycleAmt*(0.55+0.45*hash2D(x>>3,y>>3,9));
-        const nr = r*(1-jitter)+g*jitter;
-        const ng = g*(1-jitter)+b*jitter;
-        const nb = b*(1-jitter)+r*jitter;
-        data[idx]=clamp(nr,0,255); data[idx+1]=clamp(ng,0,255); data[idx+2]=clamp(nb,0,255);
-      }
-    }
-  }
-
-  // Crops random patches and re-blends them at offset positions, like a
-  // double-exposure ghost/echo of parts of the image.
-  function applyDuplicate(data,width,height,amount,offsetPercent){
-    if(amount<=0) return;
-    const src = new Uint8ClampedArray(data);
-    const count = 1+Math.round((amount/100)*4);
-    const maxOff = Math.max(2, Math.round(Math.max(width,height)*((offsetPercent||0)/100)));
-    for(let i=0;i<count;i++){
-      const pw = Math.max(4, Math.min(width,  Math.round(width *(0.15+Math.random()*0.25))));
-      const ph = Math.max(4, Math.min(height, Math.round(height*(0.15+Math.random()*0.25))));
-      const sx = Math.floor(Math.random()*Math.max(1,width-pw));
-      const sy = Math.floor(Math.random()*Math.max(1,height-ph));
-      const dx = clamp(sx+Math.round((Math.random()*2-1)*maxOff), 0, Math.max(0,width-pw));
-      const dy = clamp(sy+Math.round((Math.random()*2-1)*maxOff), 0, Math.max(0,height-ph));
-      const alpha = 0.35+Math.random()*0.35;
-      for(let y=0;y<ph;y++){
-        for(let x=0;x<pw;x++){
-          const srcIdx = ((sy+y)*width+(sx+x))*4;
-          const dstIdx = ((dy+y)*width+(dx+x))*4;
-          data[dstIdx]   = clamp(data[dstIdx]  *(1-alpha)+src[srcIdx]  *alpha,0,255);
-          data[dstIdx+1] = clamp(data[dstIdx+1]*(1-alpha)+src[srcIdx+1]*alpha,0,255);
-          data[dstIdx+2] = clamp(data[dstIdx+2]*(1-alpha)+src[srcIdx+2]*alpha,0,255);
-        }
-      }
-    }
-  }
-
-  const FRIED_NEON = [[255,0,180],[0,255,200],[255,255,0],[180,0,255],[0,255,0],[255,80,0]];
-
-  // Thin neon streaks tinted (not pasted) over the image, like corrupted video
-  // scanlines. Wide/thin + low-alpha + jittered edges so they read as part of
-  // the noise texture instead of opaque stickers sitting on top of it.
-  function applyCorruption(data,width,height,amount){
-    if(amount<=0) return;
-    const count = Math.round((amount/100)*10);
-    for(let i=0;i<count;i++){
-      const bw = Math.max(8, Math.round(width*(0.3+Math.random()*0.6)));
-      const bh = Math.max(1, Math.round(height*(0.004+Math.random()*0.02)));
-      const bx = Math.floor(Math.random()*Math.max(1,width-bw));
-      const by = Math.floor(Math.random()*Math.max(1,height-bh));
-      const color = FRIED_NEON[Math.floor(Math.random()*FRIED_NEON.length)];
-      const alpha = 0.075+Math.random()*0.125;
-      for(let y=0;y<bh && by+y<height;y++){
-        const edgeJitter = Math.round((Math.random()*2-1)*bw*0.08);
-        const rowStart = clamp(bx+edgeJitter,0,width-1);
-        const rowEnd = clamp(bx+bw+edgeJitter,0,width);
-        for(let x=rowStart;x<rowEnd;x++){
-          const idx=((by+y)*width+x)*4;
-          data[idx]   = clamp(data[idx]  *(1-alpha)+color[0]*alpha,0,255);
-          data[idx+1] = clamp(data[idx+1]*(1-alpha)+color[1]*alpha,0,255);
-          data[idx+2] = clamp(data[idx+2]*(1-alpha)+color[2]*alpha,0,255);
-        }
       }
     }
   }
@@ -2558,12 +2443,6 @@
         amount: rowVal('echo-amount'),
         trail: rowVal('echo-trail')
       },
-      fried:{
-        duplicate: rowVal('fried-duplicate'),
-        offset: rowVal('fried-offset'),
-        fluorescent: rowVal('fried-fluorescent'),
-        corruption: rowVal('fried-corruption')
-      },
       moire:{
         amount: rowVal('moire-amount'),
         scale: rowVal('moire-scale')
@@ -2607,10 +2486,6 @@
     applyGrain(data,w,h,opts.grain.intensity,opts.grain.size,true,opts.grain.seed);
     applyScanlines(data,w,h,opts.scan);
     applyMotionEcho(data,w,h,opts.echo.amount,opts.echo.trail);
-    // Fried mode runs last, on top of everything else
-    applyFluorescent(data,w,h,opts.fried.fluorescent);
-    applyDuplicate(data,w,h,opts.fried.duplicate,opts.fried.offset);
-    applyCorruption(data,w,h,opts.fried.corruption);
     // Moire runs last, like a print/scan texture over the finished composite
     applyMoire(data,w,h,opts.moire.amount,opts.moire.scale);
     // Vending Machine dot-grid overlay applied after all other effects.
@@ -2631,7 +2506,6 @@
   }
   function doRender(){
     renderToCanvas(workingCanvas, previewCanvas, getOpts());
-    updatePastramiButtonGradient();
   }
 
   function clearOnboardingState(){
@@ -2883,7 +2757,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','vm-chroma','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
+    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','vm-chroma','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -2917,97 +2791,6 @@
     toRgb: ({r,g,b}) => `rgb(${r},${g},${b})`
   };
   const LUMINANCE_TEXT_SWITCH = 140;
-  const FLUORESCENT_SATURATION_MULTIPLIER = 1.7;
-  const FLUORESCENT_SATURATION_OFFSET = 0.08;
-  const FLUORESCENT_LIGHTNESS_MULTIPLIER = 1.08;
-  const FLUORESCENT_LIGHTNESS_OFFSET = 0.05;
-  const FLUORESCENT_LIGHTNESS_CEILING = 0.74;
-  // These normalized points sample separate frame regions (upper-left, mid-right, lower-mid)
-  // so the Pastrami gradient tracks the rendered image without flickering on every render.
-  const PREVIEW_SAMPLE_POINTS = [[0.18,0.24],[0.68,0.42],[0.37,0.79]];
-  let pastramiGradientReadWarningShown = false;
-
-  function clearFriedButtonGradient(){
-    const btnFried = $('btn-fried');
-    btnFried.style.removeProperty('--frd-bg');
-    btnFried.style.removeProperty('--frd-bg-active');
-    btnFried.style.removeProperty('--frd-color');
-  }
-
-  // Converts sampled preview RGB to HSL, boosts saturation/lightness with the fluorescent
-  // tuning constants above, then converts back to RGB for the Dr. Pastrami button gradient.
-  function boostFluorescentColor({r,g,b}){
-    const normalizedR = r/255, normalizedG = g/255, normalizedB = b/255;
-    const max = Math.max(normalizedR, normalizedG, normalizedB);
-    const min = Math.min(normalizedR, normalizedG, normalizedB);
-    let h = 0, s = 0;
-    const l = (max + min) / 2;
-    if(max !== min){
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch(max){
-        case normalizedR: h = (normalizedG - normalizedB) / d + (normalizedG < normalizedB ? 6 : 0); break;
-        case normalizedG: h = (normalizedB - normalizedR) / d + 2; break;
-        default: h = (normalizedR - normalizedG) / d + 4;
-      }
-      h /= 6;
-    }
-    const sat = Math.min(1, s * FLUORESCENT_SATURATION_MULTIPLIER + FLUORESCENT_SATURATION_OFFSET);
-    const light = Math.min(FLUORESCENT_LIGHTNESS_CEILING, l * FLUORESCENT_LIGHTNESS_MULTIPLIER + FLUORESCENT_LIGHTNESS_OFFSET);
-    const hueToRgb = (p, q, t) => {
-      if(t < 0) t += 1;
-      if(t > 1) t -= 1;
-      if(t < 1/6) return p + (q - p) * 6 * t;
-      if(t < 1/2) return q;
-      if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-      return p;
-    };
-    let outputR;
-    let outputG;
-    let outputB;
-    if(sat === 0){
-      outputR = outputG = outputB = light;
-    } else {
-      const q = light < 0.5 ? light * (1 + sat) : light + sat - light * sat;
-      const p = 2 * light - q;
-      outputR = hueToRgb(p, q, h + 1/3);
-      outputG = hueToRgb(p, q, h);
-      outputB = hueToRgb(p, q, h - 1/3);
-    }
-    return {r:Math.round(outputR*255), g:Math.round(outputG*255), b:Math.round(outputB*255)};
-  }
-
-  function updatePastramiButtonGradient(){
-    const btnFried = $('btn-fried');
-    if(!originalCanvas.width || !originalCanvas.height || !previewCanvas.width || !previewCanvas.height){
-      clearFriedButtonGradient();
-      return;
-    }
-    try{
-      const pctx = previewCanvas.getContext('2d');
-      const pw = previewCanvas.width;
-      const ph = previewCanvas.height;
-      // Stable sampling points keep the Pastrami button tied to the current frame without flickering.
-      const colors = PREVIEW_SAMPLE_POINTS.map(([nx, ny])=>{
-        const x = Math.max(0, Math.min(pw - 1, Math.round((pw - 1) * nx)));
-        const y = Math.max(0, Math.min(ph - 1, Math.round((ph - 1) * ny)));
-        const px = pctx.getImageData(x, y, 1, 1).data;
-        return boostFluorescentColor({r:px[0], g:px[1], b:px[2]});
-      });
-      const averageLuminance = (ColorUtils.getLuminance(colors[0]) + ColorUtils.getLuminance(colors[1]) + ColorUtils.getLuminance(colors[2])) / 3;
-      const gradF = `linear-gradient(135deg, ${ColorUtils.toRgb(colors[0])} 0%, ${ColorUtils.toRgb(colors[1])} 50%, ${ColorUtils.toRgb(colors[2])} 100%)`;
-      const gradFActive = `linear-gradient(135deg, ${ColorUtils.darkenRgb(colors[0])} 0%, ${ColorUtils.darkenRgb(colors[1])} 50%, ${ColorUtils.darkenRgb(colors[2])} 100%)`;
-      btnFried.style.setProperty('--frd-bg', gradF);
-      btnFried.style.setProperty('--frd-bg-active', gradFActive);
-      btnFried.style.setProperty('--frd-color', averageLuminance > LUMINANCE_TEXT_SWITCH ? '#000' : '#fff');
-    } catch(err) {
-      clearFriedButtonGradient();
-      if(!pastramiGradientReadWarningShown){
-        pastramiGradientReadWarningShown = true;
-        console.warn('Echo Trail: unable to sample preview canvas for Dr. Pastrami button colors (possible cross-origin canvas taint).', err);
-      }
-    }
-  }
 
   function updateRandomizeButtonGradient(){
     const btn = $('btn-randomize');
@@ -3015,7 +2798,6 @@
       btn.style.removeProperty('--rnd-bg');
       btn.style.removeProperty('--rnd-bg-active');
       btn.style.removeProperty('--rnd-color');
-      clearFriedButtonGradient();
       return;
     }
     // Sample 3 random pixels to get varied color stops from the image's palette
@@ -3083,16 +2865,6 @@
 
     // Infrared
     setRowActive('infrared', Math.random()>0.85);
-
-    // Fried mode
-    setRowActive('fried-duplicate', Math.random()>0.7);
-    $('fried-duplicate').value = Math.floor(Math.random()*80);
-    setRowActive('fried-offset', Math.random()>0.15);
-    $('fried-offset').value = Math.floor(Math.random()*100);
-    setRowActive('fried-fluorescent', Math.random()>0.7);
-    $('fried-fluorescent').value = Math.floor(Math.random()*80);
-    setRowActive('fried-corruption', Math.random()>0.75);
-    $('fried-corruption').value = Math.floor(Math.random()*70);
 
     // Moire
     setRowActive('moire-amount', Math.random()>0.5);
@@ -3174,33 +2946,6 @@
     scheduleRender();
   }
 
-  function friedMode(){
-    setRowActive('fried-duplicate', true);
-    $('fried-duplicate').value = 55+Math.floor(Math.random()*45);
-    setRowActive('fried-offset', true);
-    $('fried-offset').value = 30+Math.floor(Math.random()*60);
-    setRowActive('fried-fluorescent', true);
-    $('fried-fluorescent').value = 60+Math.floor(Math.random()*40);
-    setRowActive('fried-corruption', true);
-    $('fried-corruption').value = 40+Math.floor(Math.random()*50);
-
-    // Lean into existing chaos knobs too, for compounding "goes insane" energy
-    setRowActive('scan-chroma', true);
-    $('scan-chroma').value = 5+Math.floor(Math.random()*5);
-    setRowActive('scan-tracking', true);
-    $('scan-tracking').value = 40+Math.floor(Math.random()*40);
-    setRowActive('scan-tear', true);
-    $('scan-tear').value = 50+Math.floor(Math.random()*50);
-    setRowActive('scan-tear-shift', true);
-    $('scan-tear-shift').value = 30+Math.floor(Math.random()*30);
-    setRowActive('scan-vmisalign', Math.random()<0.20);
-    $('scan-vmisalign').value = 65+Math.floor(Math.random()*35);
-    setRowActive('grain-intensity', true);
-    $('grain-intensity').value = 50+Math.floor(Math.random()*40);
-
-    updateAllSpans();
-    scheduleRender();
-  }
 
   function setZoom(pct){
     previewCanvas.style.transform = 'scale(' + (pct/100) + ')';
@@ -3258,11 +3003,6 @@
     $('vm-spacing').value=50;                 setRowActive('vm-spacing', true);
     $('vm-glow').value=55;                    setRowActive('vm-glow', false);
     $('vm-chroma').value=50;                  setRowActive('vm-chroma', false);
-
-    $('fried-duplicate').value=50;            setRowActive('fried-duplicate', false);
-    $('fried-offset').value=40;               setRowActive('fried-offset', true);
-    $('fried-fluorescent').value=50;          setRowActive('fried-fluorescent', false);
-    $('fried-corruption').value=30;           setRowActive('fried-corruption', false);
 
     $('fx-stretch').value=50;                 setRowActive('fx-stretch', false);
     $('fx-warp').value=50;                    setRowActive('fx-warp', false);
@@ -3377,7 +3117,7 @@
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
-    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','fried-duplicate','fried-offset','fried-fluorescent','fried-corruption','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','vm-chroma','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
+    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','vm-chroma','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
 
@@ -3401,7 +3141,6 @@
     // Toolbar
     $('btn-load').addEventListener('click', promptForImageFile);
     $('btn-randomize').addEventListener('click', randomize);
-    $('btn-fried').addEventListener('click', friedMode);
     $('btn-reset').addEventListener('click', resetAll);
     $('btn-off').addEventListener('click', turnAllOff);
     $('btn-save').addEventListener('click', savePNGToDisk);

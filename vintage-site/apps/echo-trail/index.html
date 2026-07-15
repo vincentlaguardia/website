@@ -1357,17 +1357,23 @@
     const glowStrength = glowVal / 100;
     // Darkest value in the opaque vinyl gaps (never fully black so texture reads).
     const darkFloor = 0.06;
-    // Very subtle chromatic aberration: red bleeds slightly wider than green,
-    // blue slightly narrower, mimicking lens dispersion through the diffuser acrylic.
-    const caShift = dotRadius * 0.045;
-    const dotRadiusR = dotRadius + caShift;
-    const dotRadiusG = dotRadius;
-    const dotRadiusB = dotRadius - caShift;
-    const glowSigmaR = glowSigma + caShift;
-    const glowSigmaG = glowSigma;
-    // Clamp blue sigma so it never collapses to less than half the base value.
-    const MIN_GLOW_SIGMA_RATIO = 0.5;
-    const glowSigmaB = Math.max(glowSigma - caShift, glowSigma * MIN_GLOW_SIGMA_RATIO);
+    // Symmetric, faint chromatic fringe around the softened dot boundary only.
+    // Inner ring leans cyan and outer ring leans magenta, matching the reference.
+    const CA_SHIFT_RATIO = 0.065;
+    // Radial offset for the inner/outer fringe rings on either side of the dot edge.
+    const caShift = dotRadius * CA_SHIFT_RATIO;
+    const EDGE_SIGMA_MIN = 0.45;
+    const EDGE_SIGMA_RATIO = 0.22;
+    const edgeSigma = Math.max(EDGE_SIGMA_MIN, glowSigma * EDGE_SIGMA_RATIO);
+    const edgeSigmaDenominator = 2 * edgeSigma * edgeSigma;
+    const FRINGE_BASE_MULTIPLIER = 0.18;
+    const fringeStrength = glowStrength * FRINGE_BASE_MULTIPLIER;
+    const FRINGE_MAGENTA_STRENGTH = 0.95;
+    const FRINGE_CYAN_STRENGTH = 0.90;
+    const HALO_BLEND_FACTOR = 0.8;
+    // Keep blue present in both rings so cyan/magenta fringes stay luminous purple/teal,
+    // instead of splitting into harsh red/green outlines.
+    const FRINGE_BLUE_FACTOR = 0.82;
 
     const src = new Uint8ClampedArray(data);
 
@@ -1380,17 +1386,21 @@
         const dy = y - gy;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Per-channel core factors for chromatic aberration.
-        const coreFacR = Math.max(0, 1 - dist / dotRadiusR);
-        const coreFacG = Math.max(0, 1 - dist / dotRadiusG);
-        const coreFacB = Math.max(0, 1 - dist / dotRadiusB);
-        // Gaussian halo with per-channel sigma.
-        const haloR = Math.exp(-(dist * dist) / (2 * glowSigmaR * glowSigmaR));
-        const haloG = Math.exp(-(dist * dist) / (2 * glowSigmaG * glowSigmaG));
-        const haloB = Math.exp(-(dist * dist) / (2 * glowSigmaB * glowSigmaB));
-        const litR = Math.min(1, coreFacR + glowStrength * haloR * 0.8);
-        const litG = Math.min(1, coreFacG + glowStrength * haloG * 0.8);
-        const litB = Math.min(1, coreFacB + glowStrength * haloB * 0.8);
+        const coreFac = Math.max(0, 1 - dist / dotRadius);
+        const halo = Math.exp(-(dist * dist) / (2 * glowSigma * glowSigma));
+        const litBase = Math.min(1, coreFac + glowStrength * halo * HALO_BLEND_FACTOR);
+        const distFromEdge = dist - dotRadius;
+        const innerRingDist = distFromEdge + caShift;
+        const outerRingDist = distFromEdge - caShift;
+        const innerEdge = Math.exp(-(innerRingDist * innerRingDist) / edgeSigmaDenominator);
+        const outerEdge = Math.exp(-(outerRingDist * outerRingDist) / edgeSigmaDenominator);
+        const fringeCyan = innerEdge * fringeStrength;
+        const fringeMagenta = outerEdge * fringeStrength;
+        // Blue carries both rings so cyan and magenta stay visually balanced.
+        const fringeBlueContribution = (fringeCyan + fringeMagenta) * FRINGE_BLUE_FACTOR;
+        const litR = Math.min(1, litBase + fringeMagenta * FRINGE_MAGENTA_STRENGTH);
+        const litG = Math.min(1, litBase + fringeCyan * FRINGE_CYAN_STRENGTH);
+        const litB = Math.min(1, litBase + fringeBlueContribution);
 
         // Opaque material darkens toward darkFloor; dots stay bright.
         const bsR = darkFloor + (1 - darkFloor) * litR;

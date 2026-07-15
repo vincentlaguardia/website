@@ -1453,7 +1453,7 @@
     // Zone flips between deeply unsaturated pastel and extreme neon/fluorescent
     const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
     // Hue: use philosophy hue but allow wild shifts — juxtaposition is the point
-    const hueJitter = (jitterC - 0.5) * (80 + w * 220);
+    const hueJitter = (jitterC - 0.5) * (50 + w * 250);
     const hue = applySkewToHue((hues[role] + hueJitter + 3600) % 360);
     let sat, light;
     if(isPastel){

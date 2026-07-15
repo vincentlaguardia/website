@@ -643,9 +643,9 @@
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
       <div class="match-sat-control">
-        <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Sat: continuously lock Saturation to the selected source color" aria-pressed="false">Match Sat</button>
+        <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Chroma: continuously lock Chroma (LCH absolute intensity) to the selected source color" aria-pressed="false">Match Chroma</button>
         <div class="match-source-wrap">
-          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select saturation match source">Dot &#9662;</button>
+          <button class="ctrl-btn" id="cc-match-source-btn" type="button" title="Select chroma match source">Dot &#9662;</button>
           <div class="match-source-dropdown raised" id="cc-match-source-dropdown">
             <div class="menu-option active" data-source="dot">Dot</div>
             <div class="menu-option" data-source="skew">Skew</div>
@@ -654,8 +654,8 @@
           </div>
         </div>
         <div class="color-swatch-wrap">
-          <button class="color-swatch-btn" id="cc-match-sat-swatch" type="button" title="Color being matched. Click to pick a custom color (sets source to User). Right-click to clear." aria-label="Match sat color swatch"><span class="color-icon" id="match-sat-icon"></span></button>
-          <input type="color" id="cc-match-sat-color" value="#fbf432" aria-label="Pick custom saturation source color">
+          <button class="color-swatch-btn" id="cc-match-sat-swatch" type="button" title="Color being matched. Click to pick a custom color (sets source to User). Right-click to clear." aria-label="Match chroma color swatch"><span class="color-icon" id="match-sat-icon"></span></button>
+          <input type="color" id="cc-match-sat-color" value="#fbf432" aria-label="Pick custom chroma source color">
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
@@ -1017,6 +1017,29 @@
     return { h, s: s*100, l: l*100 };
   }
   function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+  // --- LCH (CIE L*C*h°) conversion helpers ---
+  function srgbLinear(c){ c/=255; return c<=0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055,2.4); }
+  function linearSrgb(c){ c=Math.max(0,Math.min(1,c)); return Math.round(255*(c<=0.0031308 ? 12.92*c : 1.055*Math.pow(c,1/2.4)-0.055)); }
+  function rgbToLch(r,g,b){
+    const rl=srgbLinear(r), gl=srgbLinear(g), bl=srgbLinear(b);
+    const x=(rl*0.4124564+gl*0.3575761+bl*0.1804375)/0.95047;
+    const y=(rl*0.2126729+gl*0.7151522+bl*0.0721750)/1.00000;
+    const z=(rl*0.0193339+gl*0.1191920+bl*0.9503041)/1.08883;
+    const f=t=> t>0.008856 ? Math.cbrt(t) : 7.787*t+16/116;
+    const fx=f(x), fy=f(y), fz=f(z);
+    const L=116*fy-16, a=500*(fx-fy), bv=200*(fy-fz);
+    return { L, C:Math.sqrt(a*a+bv*bv), H:Math.atan2(bv,a)*180/Math.PI };
+  }
+  function lchToRgb(L,C,H){
+    const hRad=H*Math.PI/180, a=C*Math.cos(hRad), bv=C*Math.sin(hRad);
+    const fy=(L+16)/116, fx=a/500+fy, fz=fy-bv/200;
+    const fi=t=> t*t*t>0.008856 ? t*t*t : (t-16/116)/7.787;
+    const x=fi(fx)*0.95047, y=fi(fy)*1.00000, z=fi(fz)*1.08883;
+    const rl= x*3.2404542-y*1.5371385-z*0.4985314;
+    const gl=-x*0.9692660+y*1.8760108+z*0.0415560;
+    const bl= x*0.0556434-y*0.2040259+z*1.0572252;
+    return { r:linearSrgb(rl), g:linearSrgb(gl), b:linearSrgb(bl) };
+  }
   const DOWNLOAD_REVOKE_TIMEOUT = 1000;
   const MAX_SAMPLE_DIMENSION = 180;
   const MIN_ALPHA_THRESHOLD = 24;
@@ -1131,10 +1154,17 @@
   }
   function saveCanvasAsPng(canvasEl){
     try{
-      const link = document.createElement('a');
-      link.download = 'chroma-camouflage.png';
-      link.href = canvasEl.toDataURL('image/png');
-      link.click();
+      canvasEl.toBlob(function(blob){
+        if(!blob){ alert('Save failed. Please try again.'); return; }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = 'chroma-palette-' + timestampTag() + '.png';
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(()=> URL.revokeObjectURL(url), 10000);
+      }, 'image/png');
     } catch(err){
       console.warn('chroma: save failed', err);
       alert('Save failed. Please try again.');
@@ -1503,7 +1533,14 @@
       : pastramiMode
         ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
         : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
-    return hslToHex(sourceColor.h, clamp(matchSatActive && matchSatValue !== null ? matchSatValue : sourceColor.s * globalSatMul, 0, 100), sourceColor.l).toUpperCase();
+    const baseHex = hslToHex(sourceColor.h, clamp(sourceColor.s * globalSatMul, 0, 100), sourceColor.l);
+    if(matchSatActive && matchSatValue !== null){
+      const rgb = hexToRgbObj(baseHex);
+      const lch = rgbToLch(rgb.r, rgb.g, rgb.b);
+      const matched = lchToRgb(lch.L, matchSatValue, lch.H);
+      return rgbToHex(matched.r, matched.g, matched.b).toUpperCase();
+    }
+    return baseHex.toUpperCase();
   }
   function exportPaletteText(){
     const unique = [];
@@ -1564,7 +1601,7 @@
   let matchSatActive = false;
   let matchSatSource = 'dot'; // 'dot' | 'skew' | 'focus' | 'user'
   let matchSatUserColor = null; // { r, g, b, hex } when source = 'user'
-  let matchSatValue = null; // raw HSL saturation (0–100) of the source color when active
+  let matchSatValue = null; // LCH chroma (C) of the source color when active
   function syncDotsToggleUI(){
     toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
     toggleDotsBtn.classList.toggle('is-active', showDots);
@@ -1573,7 +1610,7 @@
   function isInFocusBand(zone){
     return ((zone.row + zone.col) % FOCUS_BAND_COUNT) === FOCUS_BAND_INDEX;
   }
-  // --- Match Sat helpers ---
+  // --- Match Chroma helpers ---
   function getMatchSatSourceRgb(){
     switch(matchSatSource){
       case 'dot': return TARGET;
@@ -1586,7 +1623,7 @@
   function applyMatchSat(){
     const rgb = getMatchSatSourceRgb();
     if(!rgb){ matchSatValue = null; return; }
-    matchSatValue = rgbToHsl(rgb.r, rgb.g, rgb.b).s;
+    matchSatValue = rgbToLch(rgb.r, rgb.g, rgb.b).C;
   }
   function syncMatchSatUI(){
     const rgb = getMatchSatSourceRgb();

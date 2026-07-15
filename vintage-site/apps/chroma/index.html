@@ -608,8 +608,6 @@
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
         <div class="menu-option" data-action="export-palette">Export Palette (.txt)...</div>
         <div class="menu-sep"></div>
-        <div class="menu-option" data-action="save-to-desktop">Save to Desktop...</div>
-        <div class="menu-sep"></div>
         <div class="menu-option" data-action="save">Save As PNG...</div>
         <div class="menu-option" data-action="save-as">Save As JPG...</div>
         <div class="menu-sep"></div>
@@ -698,7 +696,6 @@
           <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-          <button class="ctrl-btn" id="cc-save-desktop" type="button" title="Save PNG or JPG to your computer" aria-label="Save to Desktop">Save to Desktop</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technocolor" aria-pressed="false">Technocolor</button>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
@@ -1395,11 +1392,6 @@
     closeAllMenus();
     document.getElementById('cc-export-palette').click();
   });
-  document.querySelector('[data-action="save-to-desktop"]').addEventListener('click', e=>{
-    e.stopPropagation();
-    closeAllMenus();
-    saveCanvasToDesktop(canvas);
-  });
   document.querySelector('[data-action="exit"]').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   document.querySelector('[data-action="save"]').addEventListener('click', e=>{
     e.stopPropagation();
@@ -1517,7 +1509,6 @@
   const exportPaletteBtn = document.getElementById('cc-export-palette');
   const loadImageBtn = document.getElementById('cc-load-image');
   const saveImageBtn = document.getElementById('cc-save-image');
-  const saveDesktopBtn = document.getElementById('cc-save-desktop');
   const importInput = document.getElementById('cc-photo-import');
   const contentPanel = document.getElementById('content-panel');
   const COLS = 7, ROWS = 7;
@@ -2122,7 +2113,6 @@
   exportPaletteBtn.addEventListener('click', exportPaletteText);
   loadImageBtn.addEventListener('click', promptForPhotoImport);
   saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));
-  saveDesktopBtn.addEventListener('click', ()=> saveCanvasToDesktop(canvas));
   async function processImportedPhotoFile(file){
     if(!file || !file.type.startsWith('image/')) return;
     const img = await readImageFile(file);

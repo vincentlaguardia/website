@@ -1366,9 +1366,10 @@
     const EDGE_SIGMA_RATIO = 0.22;
     const edgeSigma = Math.max(EDGE_SIGMA_MIN, glowSigma * EDGE_SIGMA_RATIO);
     const edgeSigmaDenominator = 2 * edgeSigma * edgeSigma;
-    const fringeStrength = glowStrength * 0.18;
-    const FRINGE_MAGENTA_FACTOR = 0.95;
-    const FRINGE_CYAN_FACTOR = 0.90;
+    const FRINGE_BASE_MULTIPLIER = 0.18;
+    const fringeStrength = glowStrength * FRINGE_BASE_MULTIPLIER;
+    const FRINGE_MAGENTA_STRENGTH = 0.95;
+    const FRINGE_CYAN_STRENGTH = 0.90;
     const HALO_BLEND_FACTOR = 0.8;
     // Keep blue present in both rings so cyan/magenta fringes stay luminous purple/teal,
     // instead of splitting into harsh red/green outlines.
@@ -1397,8 +1398,8 @@
         const fringeMagenta = outerEdge * fringeStrength;
         // Blue carries both rings so cyan and magenta stay visually balanced.
         const fringeBlueContribution = (fringeCyan + fringeMagenta) * FRINGE_BLUE_FACTOR;
-        const litR = Math.min(1, litBase + fringeMagenta * FRINGE_MAGENTA_FACTOR);
-        const litG = Math.min(1, litBase + fringeCyan * FRINGE_CYAN_FACTOR);
+        const litR = Math.min(1, litBase + fringeMagenta * FRINGE_MAGENTA_STRENGTH);
+        const litG = Math.min(1, litBase + fringeCyan * FRINGE_CYAN_STRENGTH);
         const litB = Math.min(1, litBase + fringeBlueContribution);
 
         // Opaque material darkens toward darkFloor; dots stay bright.

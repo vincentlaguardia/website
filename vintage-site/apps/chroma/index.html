@@ -1527,7 +1527,7 @@
     };
   }
   function shuffledSourceZone(zone){
-    return zones[zoneShuffleOrder[zone.idx]] || zone;
+    return zones[zoneShuffleOrder[zone.idx]];
   }
   function computedZoneHex(zone){
     if(focusActive && isInFocusBand(zone)){
@@ -1598,8 +1598,7 @@
       shuffleArrayInPlace(zoneShuffleOrder);
       if(zoneShuffleOrder.some((value, idx)=>value !== previous[idx])) return;
     }
-    const first = zoneShuffleOrder.shift();
-    zoneShuffleOrder.push(first);
+    [zoneShuffleOrder[0], zoneShuffleOrder[1]] = [zoneShuffleOrder[1], zoneShuffleOrder[0]];
   }
   const PASTRAMI_PHILOS = [0, 1, 3, 5]; // Monochromatic, Analogous, Split-Complementary, Tetradic
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }

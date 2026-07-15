@@ -2191,6 +2191,8 @@
   function resetFocusGrid(){
     zoneShuffleOrder = zones.map(zone=>zone.idx);
     focusBandIndex = DEFAULT_FOCUS_BAND_INDEX;
+    focusActive = false;
+    syncFocusButtonState();
     drawScene();
   }
   focusBtn.addEventListener('click', ()=>{

@@ -308,6 +308,8 @@
   .desktop-icon-item.echo-trail-drop-target { outline: 3px dashed #0078d7; outline-offset: -2px; background: rgba(0,120,215,0.12); }
   .chroma-diary-window { resize: both; overflow: hidden; }
   .chroma-diary-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
+  .macro-diary-window { resize: both; overflow: hidden; }
+  .macro-diary-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
   .chroma-sam-window { resize: both; overflow: hidden; }
   .chroma-sam-frame { border: none; background: #c0c0c0; display: block; width: 100%; height: 100%; }
 
@@ -1112,6 +1114,7 @@
         <div class="menu-item" id="menu-flight">nyc_flight_sim</div>
         <div class="menu-item" id="menu-notes">Notes</div>
         <div class="menu-item" id="menu-echo-trail">Echo Trail</div>
+        <div class="menu-item" id="menu-macro-diary">Macro Diary</div>
         <!-- colormixer95 hidden: <div class="menu-item" id="menu-colormixer95">colormixer95</div> -->
         <div class="menu-item" id="menu-static">static coefficient calculator</div>
         <div class="menu-item" id="menu-mycomputer">My Computer</div>
@@ -1806,7 +1809,7 @@ async function pasteClipboardInto(parentId, skipUndo) {
   return true;
 }
 
-function buildItemContextMenuEntries(itemId, parentId, renameAction) {
+function buildItemContextMenuEntries(itemId, parentId, renameAction, clickEvent) {
   const item = items[itemId];
   if (!item) return [];
   const menuEntries = [
@@ -1819,6 +1822,27 @@ function buildItemContextMenuEntries(itemId, parentId, renameAction) {
   if (item.type === 'audio') menuEntries.push({ label: 'Add to Playlist', onClick: () => openMediaPlayerWindow().then(() => mpAddTrackToPlaylist(itemId)) });
   if (item.syncFolder === 'content/_assets/private/fonts') menuEntries.push({ label: 'Download All as ZIP', onClick: () => downloadFontsZip() });
   menuEntries.push({ label: 'Delete', onClick: () => deleteItem(itemId, parentId) });
+  // "Add to Diary" — auto-detect colour at right-click point when available
+  const detectedColor = clickEvent ? getColorAtPoint(clickEvent.clientX, clickEvent.clientY) : null;
+  const addLabel = detectedColor
+    ? 'Add ' + detectedColor.hex + ' to Diary'
+    : 'Add to Diary...';
+  menuEntries.push({
+    label: addLabel,
+    color: detectedColor ? detectedColor.hex : null,
+    onClick: () => {
+      if (detectedColor) {
+        addColorToDiary(detectedColor.hex, detectedColor.r, detectedColor.g, detectedColor.b);
+      } else {
+        const hex = prompt('Enter hex color to add to diary (e.g. #ff1234):');
+        if (!hex) return;
+        const clean = hex.trim().replace(/^#/, '');
+        const m = clean.match(/^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/);
+        if (!m) { alert('Invalid hex color.'); return; }
+        addColorToDiary('#' + clean, parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16));
+      }
+    }
+  });
   return menuEntries;
 }
 
@@ -4063,7 +4087,7 @@ function renderFolderContent(id) {
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, null));
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, null, e));
     });
     const savedPos = getFolderIconPosition(id, childId);
     const defaultPos = folderSlotPosition(index, childId, grid);
@@ -4127,7 +4151,7 @@ function renderDetailsContent(id) {
     row.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, null));
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(childId, id, null, e));
     });
     tbody.appendChild(row);
   });
@@ -7686,6 +7710,107 @@ function openChromaDiaryWindow() {
   bringToFront(id);
 }
 
+// ── Macro Diary ───────────────────────────────────────────────────────────────
+const MACRO_DIARY_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAADZJREFUOI1jYGBg+M9AAWAiVgMjIyOBmoYiMFIbiJGRkaCBGIbgNQCXIXgNwGUIMoGBgQEAEAwEAtF4RJEAAAAASUVORK5CYII=';
+
+function openMacroDiaryWindow() {
+  const id = 'macro_diary';
+  if (openWindows[id]) {
+    if (openWindows[id].minimized) toggleMinimize(id);
+    else bringToFront(id);
+    return;
+  }
+  const win = document.createElement('div');
+  win.className = 'win98-window bevel-out macro-diary-window';
+  const openW = 560, openH = 520;
+  win.style.left = Math.max(0, Math.round((window.innerWidth - openW) / 2)) + 'px';
+  win.style.top = Math.max(0, Math.round((window.innerHeight - openH) / 2)) + 'px';
+  win.style.width = openW + 'px';
+  win.style.height = openH + 'px';
+  win.style.minWidth = '340px';
+  win.style.minHeight = '280px';
+
+  const titlebar = document.createElement('div');
+  titlebar.className = 'win98-titlebar';
+  titlebar.innerHTML = `
+    <span class="title-text">Macro Diary</span>
+    <div class="win-buttons">
+      <div class="win-btn" data-action="min">_</div>
+      <div class="win-btn" data-action="close">&times;</div>
+    </div>
+  `;
+
+  const content = document.createElement('div');
+  content.className = 'win98-content';
+  content.style.cssText = 'padding:0;flex:1;display:flex;flex-direction:column;overflow:hidden;';
+  content.innerHTML = `<iframe class="macro-diary-frame" src="apps/macro-diary/index.html" title="Macro Diary"></iframe>`;
+
+  win.appendChild(titlebar);
+  win.appendChild(content);
+  document.getElementById('desktop').appendChild(win);
+
+  win.addEventListener('mousedown', () => bringToFront(id));
+  titlebar.querySelector('[data-action="close"]').addEventListener('click', () => closeWindow(id));
+  titlebar.querySelector('[data-action="min"]').addEventListener('click', () => toggleMinimize(id));
+  makeDraggable(win, titlebar);
+
+  openWindows[id] = { el: win, minimized: false, titlebarEl: titlebar };
+  addTaskbarEntry(id, 'Macro Diary', '📔');
+  bringToFront(id);
+}
+
+/**
+ * Add a color to the chroma diary (shared color store used by "Add to Diary"
+ * context menu options throughout the desktop UI).
+ * @param {string} hex  e.g. "#ff1234"
+ * @param {number} r
+ * @param {number} g
+ * @param {number} b
+ */
+function addColorToDiary(hex, r, g, b) {
+  const key = 'chroma.diary';
+  const MAX = 100;
+  let arr;
+  try { arr = JSON.parse(localStorage.getItem(key)) || []; } catch(e) { arr = []; }
+  if (arr.length >= MAX) {
+    alert('Diary is full (100 colors). Open Macro Diary and delete some to make room.');
+    return;
+  }
+  // Avoid exact duplicates
+  if (arr.some(c => (c.hex||'').toLowerCase() === hex.toLowerCase())) return;
+  arr.push({ hex, r, g, b });
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+/**
+ * Read the color of the topmost opaque element at (x, y).
+ * Returns { hex, r, g, b } or null.
+ */
+function getColorAtPoint(x, y) {
+  // Temporarily hide any context menu so it doesn't interfere with elementFromPoint
+  const existing = document.getElementById('ctx-menu');
+  const prevDisplay = existing ? existing.style.display : null;
+  if (existing) existing.style.display = 'none';
+
+  let node = document.elementFromPoint(x, y);
+
+  if (existing && prevDisplay !== null) existing.style.display = prevDisplay;
+
+  while (node && node !== document.documentElement) {
+    const bg = window.getComputedStyle(node).backgroundColor;
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+      const m = bg.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
+      if (m) {
+        const r = parseInt(m[1]), g = parseInt(m[2]), b = parseInt(m[3]);
+        const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+        return { hex, r, g, b };
+      }
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
 function openSamModeWindow() {
   const id = 'chroma_sam';
   if (openWindows[id]) {
@@ -8920,7 +9045,7 @@ function buildDesktopIcons() {
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(itemId, 'desktop', null));
+      showContextMenu(e.clientX, e.clientY, buildItemContextMenuEntries(itemId, 'desktop', null, e));
     });
     wrap.appendChild(el);
   });
@@ -8947,6 +9072,28 @@ function buildDesktopIcons() {
         { label: 'Change Background', onClick: openBackgroundPickerWindow },
         { label: 'Palette', onClick: openSchemeWindow }
       );
+      // "Add [#hex] to Diary" — read colour of the element at the click point
+      const clickX = e.clientX, clickY = e.clientY;
+      const detectedColor = getColorAtPoint(clickX, clickY);
+      const addLabel = detectedColor
+        ? 'Add ' + detectedColor.hex + ' to Diary'
+        : 'Add Color to Diary...';
+      menuEntries.push({
+        label: addLabel,
+        color: detectedColor ? detectedColor.hex : null,
+        onClick: () => {
+          if (detectedColor) {
+            addColorToDiary(detectedColor.hex, detectedColor.r, detectedColor.g, detectedColor.b);
+          } else {
+            const hex = prompt('Enter hex color to add to diary (e.g. #ff1234):');
+            if (!hex) return;
+            const m = hex.trim().replace(/^#/, '').match(/^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/);
+            if (!m) { alert('Invalid hex color.'); return; }
+            addColorToDiary('#' + m[0], parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16));
+          }
+        }
+      });
+      menuEntries.push({ label: 'Open Macro Diary', onClick: openMacroDiaryWindow });
       showContextMenu(e.clientX, e.clientY, menuEntries);
     });
   }
@@ -9134,6 +9281,11 @@ document.getElementById('menu-echo-trail').addEventListener('click', () => {
   document.getElementById('start-button').classList.remove('pressed');
   openEchoTrailWindow();
 });
+document.getElementById('menu-macro-diary').addEventListener('click', () => {
+  document.getElementById('start-menu').style.display = 'none';
+  document.getElementById('start-button').classList.remove('pressed');
+  openMacroDiaryWindow();
+});
 // colormixer95 menu listener hidden:
 // document.getElementById('menu-colormixer95').addEventListener('click', () => {
 //   document.getElementById('start-menu').style.display = 'none';
@@ -9268,12 +9420,14 @@ window.addEventListener('message', function(e) {
   const echoTrailFrame = document.querySelector('.echo-trail-frame');
   const colorMixer95Frame = document.querySelector('iframe[title="colormixer95"]');
   const staticFrame = document.querySelector('iframe[title="static coefficient calculator"]');
+  const macroDiaryFrame = document.querySelector('.macro-diary-frame');
   const isFromChroma = chromaFrame && e.source === chromaFrame.contentWindow;
   const isFromDiary = diaryFrame && e.source === diaryFrame.contentWindow;
   const isFromSam = samFrame && e.source === samFrame.contentWindow;
   const isFromEchoTrail = echoTrailFrame && e.source === echoTrailFrame.contentWindow;
   const isFromColorMixer95 = colorMixer95Frame && e.source === colorMixer95Frame.contentWindow;
   const isFromStatic = staticFrame && e.source === staticFrame.contentWindow;
+  const isFromMacroDiary = macroDiaryFrame && e.source === macroDiaryFrame.contentWindow;
 
   if (e.data.type === 'chroma-open-diary' && isFromChroma) {
     openChromaDiaryWindow();
@@ -9285,6 +9439,10 @@ window.addEventListener('message', function(e) {
   }
   if (e.data.type === 'chroma-diary-close' && isFromDiary) {
     closeWindow('chroma_diary');
+    return;
+  }
+  if (e.data.type === 'macro-diary-close' && isFromMacroDiary) {
+    closeWindow('macro_diary');
     return;
   }
   if (e.data.type === 'chroma-open-sam' && isFromChroma) {
@@ -9326,6 +9484,7 @@ window.addEventListener('message', function(e) {
     { label: 'nyc_flight_sim',   category: 'App',     keywords: ['flight', 'sim', 'game', 'nyc', 'plane'], action: () => openFlightSimWindow() },
     { label: 'Notes',            category: 'App',     keywords: ['notes', 'notepad', 'text', 'write'],    action: () => openNotepadWindow() },
     { label: 'Echo Trail',       category: 'App',     keywords: ['echo', 'trail', 'draw', 'art'],         action: () => openEchoTrailWindow() },
+    { label: 'Macro Diary',      category: 'App',     keywords: ['macro', 'diary', 'color', 'palette', 'swatches'], action: () => openMacroDiaryWindow() },
     // { label: 'colormixer95',     category: 'App',     keywords: ['colormixer95', 'color', 'mixer', 'palette', 'mix'], action: () => openColorMixer95Window() }, // hidden
     { label: 'My Computer',      category: 'App',     keywords: ['my computer', 'files', 'repo', 'browse', 'github'], action: () => openMyComputerWindow() },
     // Navigation / destinations

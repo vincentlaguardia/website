@@ -188,7 +188,7 @@
     <div class="winbody">
       <div id="diary-grid" class="diary-grid"></div>
       <div class="footer">
-        <span id="diary-count" style="font-size:11px;">0 / 36</span>
+        <span id="diary-count" style="font-size:11px;">0 / 100</span>
         <button class="win-btn" id="diary-clear" style="margin-left:auto;">Clear All</button>
         <button class="win-btn" id="diary-export">Export JPG</button>
         <button class="win-btn" id="diary-save-desktop">Save to Desktop</button>
@@ -204,7 +204,7 @@
 <script>
 (function(){
   const DIARY_KEY = 'chroma.diary';
-  const MAX_DIARY = 36;
+  const MAX_DIARY = 100;
 
   function loadDiary(){
     try{ return JSON.parse(localStorage.getItem(DIARY_KEY)) || []; }

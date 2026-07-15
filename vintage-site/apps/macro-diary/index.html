@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Macro Diary</title>
+<script src="../../content/_assets/private/site-fonts.js" data-provider-only="true"></script>
+<style>
+  :root{
+    --face:#c0c0c0;
+    --shadow:#808080;
+    --dark:#000000;
+    --hi:#dfdfdf;
+    --white:#ffffff;
+    --navy:#000080;
+    --teal:#008080;
+    --max-swatches:100;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    height:100%;
+    background:var(--teal);
+    font-family:var(--site-font-family, Tahoma, "MS Sans Serif", "Segoe UI", Arial, sans-serif);
+    font-size:12px;
+    color:#000;
+    -webkit-font-smoothing:none;
+  }
+  .raised{
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .sunken{
+    background:var(--white);
+    box-shadow: inset 1px 1px 0 var(--shadow), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--dark), inset -2px -2px 0 var(--hi);
+  }
+  #desktop{
+    min-height:100vh;
+    padding:0;
+    display:flex;
+    align-items:stretch;
+    justify-content:stretch;
+  }
+  .window{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    min-width:0;
+    min-height:0;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    padding:3px;
+  }
+  .titlebar{
+    background:var(--navy);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:3px 4px 3px 6px;
+    font-weight:bold;
+    font-size:13px;
+    letter-spacing:.2px;
+    flex:0 0 auto;
+    cursor:default;
+    user-select:none;
+  }
+  .titlebar-left{ display:flex; align-items:center; gap:6px; overflow:hidden; }
+  .titlebar-icon{
+    width:14px; height:14px; flex:0 0 auto;
+    background:linear-gradient(135deg,#ff4d4d,#ffd24d,#4dd2ff,#9b59ff);
+    border:1px solid #000;
+  }
+  .titlebar-btns{ display:flex; gap:2px; flex:0 0 auto; }
+  .tbtn{
+    width:16px; height:14px;
+    font-size:10px; line-height:12px;
+    text-align:center;
+    background:var(--face);
+    color:#000;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -1px -1px 0 var(--shadow), inset 1px 1px 0 var(--hi);
+    user-select:none;
+  }
+  .tbtn:active{ box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white); }
+  /* Tab bar */
+  .tab-bar{
+    display:flex;
+    flex-direction:row;
+    gap:0;
+    padding:4px 4px 0;
+    flex:0 0 auto;
+    background:var(--face);
+  }
+  .tab{
+    padding:4px 14px 3px;
+    cursor:pointer;
+    background:var(--shadow);
+    color:#fff;
+    font-size:12px;
+    border:1px solid var(--dark);
+    border-bottom:none;
+    margin-right:2px;
+    position:relative;
+    top:1px;
+    user-select:none;
+  }
+  .tab.active{
+    background:var(--face);
+    color:#000;
+    font-weight:bold;
+    z-index:2;
+    border-bottom:1px solid var(--face);
+  }
+  .tab-divider{
+    height:1px;
+    background:var(--dark);
+    flex:0 0 auto;
+    margin:0 4px;
+  }
+  /* Winbody */
+  .winbody{
+    padding:6px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+    overflow:hidden;
+  }
+  .tab-panel{ display:none; flex:1; flex-direction:column; min-height:0; }
+  .tab-panel.active{ display:flex; }
+  /* Diary grid */
+  .diary-grid{
+    display:grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap:3px;
+    padding:4px;
+    flex:1;
+    overflow-y:auto;
+    align-content:start;
+  }
+  .diary-swatch{
+    position:relative;
+    aspect-ratio:1;
+    cursor:default;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    overflow:hidden;
+    border:1px solid rgba(0,0,0,0.25);
+    padding:0 2px 3px;
+    user-select:none;
+  }
+  .diary-swatch.empty{
+    background:var(--face) !important;
+    border:1px dashed var(--shadow) !important;
+    opacity:0.3;
+  }
+  .dsw-hex{
+    font-size:8px;
+    font-weight:bold;
+    text-align:center;
+    line-height:1.2;
+    word-break:break-all;
+    pointer-events:none;
+  }
+  /* Footer */
+  .diary-footer{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:4px 4px 2px;
+    flex:0 0 auto;
+  }
+  button.win-btn{
+    font-family:inherit;
+    font-size:12px;
+    padding:4px 10px;
+    background:var(--face);
+    border:none;
+    cursor:pointer;
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  button.win-btn:active{
+    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--white),
+                inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
+  }
+  /* Context menu */
+  #ctx-menu{
+    position:fixed;
+    z-index:999;
+    min-width:130px;
+    padding:2px;
+    display:none;
+    background:var(--face);
+    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
+                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+  }
+  .ctx-option{ padding:4px 10px; cursor:pointer; white-space:nowrap; }
+  .ctx-option:hover{ background:var(--navy); color:#fff; }
+  .ctx-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 var(--white); margin:3px 2px; }
+  /* Embedded */
+  html.embedded, body.embedded{ background:var(--face); }
+  body.embedded #desktop{ height:100vh; align-items:stretch; justify-content:stretch; }
+  body.embedded .window{ width:100%; max-width:100%; flex:1; box-shadow:none; }
+  body.embedded .titlebar{ display:none; }
+</style>
+</head>
+<body>
+<script>if(window.self !== window.top){ document.documentElement.classList.add('embedded'); document.body.classList.add('embedded'); }</script>
+<div id="desktop">
+  <div class="window">
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <span class="titlebar-icon"></span>
+        <span>Macro Diary</span>
+      </div>
+      <div class="titlebar-btns">
+        <div class="tbtn" id="btn-close" title="Close">X</div>
+      </div>
+    </div>
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <div class="tab active" data-tab="chroma">chroma.exe</div>
+      <div class="tab" data-tab="echo">Echo Trail</div>
+      <div class="tab" data-tab="all">All Swatches</div>
+    </div>
+    <div class="tab-divider"></div>
+    <!-- Winbody -->
+    <div class="winbody">
+      <!-- Chroma tab -->
+      <div class="tab-panel active" id="panel-chroma">
+        <div id="grid-chroma" class="diary-grid"></div>
+        <div class="diary-footer">
+          <span id="count-chroma" style="font-size:11px;">0 / 100</span>
+          <button class="win-btn" id="clear-chroma" style="margin-left:auto;">Clear All</button>
+          <button class="win-btn" id="export-chroma">Export JPG</button>
+        </div>
+      </div>
+      <!-- Echo Trail tab -->
+      <div class="tab-panel" id="panel-echo">
+        <div id="grid-echo" class="diary-grid"></div>
+        <div class="diary-footer">
+          <span id="count-echo" style="font-size:11px;">0 / 100</span>
+          <button class="win-btn" id="clear-echo" style="margin-left:auto;">Clear All</button>
+          <button class="win-btn" id="export-echo">Export JPG</button>
+        </div>
+      </div>
+      <!-- All Swatches tab -->
+      <div class="tab-panel" id="panel-all">
+        <div id="grid-all" class="diary-grid"></div>
+        <div class="diary-footer">
+          <span id="count-all" style="font-size:11px;">0 swatches</span>
+          <button class="win-btn" id="export-all" style="margin-left:auto;">Export JPG</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Right-click context menu -->
+<div id="ctx-menu">
+  <div class="ctx-option" id="ctx-copy">Copy Hex</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-option" id="ctx-delete">Delete</div>
+</div>
+<script>
+(function(){
+  const CHROMA_KEY    = 'chroma.diary';
+  const ECHO_KEY      = 'echo-trail.diary';
+  const MAX_SWATCHES  = 100;
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+  function load(key){
+    try{ return JSON.parse(localStorage.getItem(key)) || []; }
+    catch(e){ return []; }
+  }
+  function save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+
+  function textColor(r,g,b){
+    return (0.299*r + 0.587*g + 0.114*b)/255 > 0.55 ? '#000' : '#fff';
+  }
+
+  function copyText(text){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).catch(()=> fallbackCopy(text));
+    } else { fallbackCopy(text); }
+  }
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  function timestampTag(){
+    const d = new Date();
+    return d.getFullYear() +
+      String(d.getMonth()+1).padStart(2,'0') +
+      String(d.getDate()).padStart(2,'0') + '-' +
+      String(d.getHours()).padStart(2,'0') +
+      String(d.getMinutes()).padStart(2,'0') +
+      String(d.getSeconds()).padStart(2,'0');
+  }
+
+  // ── context menu state ────────────────────────────────────────────────────
+  const ctxMenu = document.getElementById('ctx-menu');
+  let ctxKey = null, ctxIdx = -1, ctxColor = null;
+
+  function showCtx(e, key, idx, color){
+    ctxKey = key; ctxIdx = idx; ctxColor = color;
+    ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 150) + 'px';
+    ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - 80) + 'px';
+    ctxMenu.style.display = 'block';
+  }
+  function hideCtx(){ ctxMenu.style.display = 'none'; ctxKey = null; ctxIdx = -1; ctxColor = null; }
+
+  document.getElementById('ctx-copy').addEventListener('click', e=>{
+    e.stopPropagation();
+    if(ctxColor) copyText(ctxColor.hex);
+    hideCtx();
+  });
+  document.getElementById('ctx-delete').addEventListener('click', e=>{
+    e.stopPropagation();
+    if(ctxKey !== null && ctxIdx >= 0){
+      const arr = load(ctxKey);
+      arr.splice(ctxIdx, 1);
+      save(ctxKey, arr);
+      renderAll();
+    }
+    hideCtx();
+  });
+  document.addEventListener('click', e=>{ if(!ctxMenu.contains(e.target)) hideCtx(); });
+
+  // ── render a grid ─────────────────────────────────────────────────────────
+  function renderGrid(gridEl, countEl, colors, storageKey, maxSlots){
+    gridEl.innerHTML = '';
+    countEl.textContent = colors.length + ' / ' + maxSlots;
+    colors.forEach((c, idx)=>{
+      const tc = textColor(c.r, c.g, c.b);
+      const div = document.createElement('div');
+      div.className = 'diary-swatch';
+      div.style.background = c.hex;
+      div.title = c.hex + ' — right-click for options';
+      const span = document.createElement('span');
+      span.className = 'dsw-hex';
+      span.style.color = tc;
+      span.textContent = c.hex;
+      div.appendChild(span);
+      div.addEventListener('contextmenu', e=>{
+        e.preventDefault(); e.stopPropagation();
+        showCtx(e, storageKey, idx, c);
+      });
+      gridEl.appendChild(div);
+    });
+    for(let i=colors.length; i<maxSlots; i++){
+      const div = document.createElement('div');
+      div.className = 'diary-swatch empty';
+      gridEl.appendChild(div);
+    }
+  }
+
+  // ── render the "All Swatches" tab (union, deduplicated by hex) ─────────────
+  function renderAll(){
+    const chromaColors = load(CHROMA_KEY);
+    const echoColors   = load(ECHO_KEY);
+    renderGrid(
+      document.getElementById('grid-chroma'),
+      document.getElementById('count-chroma'),
+      chromaColors, CHROMA_KEY, MAX_SWATCHES
+    );
+    renderGrid(
+      document.getElementById('grid-echo'),
+      document.getElementById('count-echo'),
+      echoColors, ECHO_KEY, MAX_SWATCHES
+    );
+
+    // Combined: all unique hex values from both, in insertion order
+    const seen = new Set();
+    const combined = [];
+    [...chromaColors, ...echoColors].forEach(c=>{
+      const hex = (c.hex||'').toLowerCase();
+      if(hex && !seen.has(hex)){ seen.add(hex); combined.push(c); }
+    });
+    const allGrid = document.getElementById('grid-all');
+    const allCount = document.getElementById('count-all');
+    allGrid.innerHTML = '';
+    allCount.textContent = combined.length + ' swatches (no limit)';
+    combined.forEach(c=>{
+      const tc = textColor(c.r, c.g, c.b);
+      const div = document.createElement('div');
+      div.className = 'diary-swatch';
+      div.style.background = c.hex;
+      div.title = c.hex;
+      const span = document.createElement('span');
+      span.className = 'dsw-hex';
+      span.style.color = tc;
+      span.textContent = c.hex;
+      div.appendChild(span);
+      div.addEventListener('contextmenu', e=>{
+        e.preventDefault(); e.stopPropagation();
+        // In combined view, we can only copy (no single-source delete)
+        const tmp = ctxMenu.cloneNode(true);
+        // Just use copy-only approach via regular ctx show
+        showCtx(e, null, -1, c);
+      });
+      allGrid.appendChild(div);
+    });
+  }
+
+  // ── export ────────────────────────────────────────────────────────────────
+  function exportJpg(colors, label){
+    if(!colors.length){ alert('Diary is empty.'); return; }
+    const COLS = 10;
+    const ROWS = Math.ceil(colors.length / COLS);
+    const SW = 80, SH = 80, GAP = 4, PAD = 12, HEADER = 32;
+    const cw = COLS*SW + (COLS-1)*GAP + PAD*2;
+    const ch = ROWS*SH + (ROWS-1)*GAP + PAD*2 + HEADER;
+    const c = document.createElement('canvas');
+    c.width = cw; c.height = ch;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#c0c0c0';
+    cx.fillRect(0,0,cw,ch);
+    cx.fillStyle = '#000';
+    cx.font = 'bold 12px Tahoma,Arial,sans-serif';
+    cx.textAlign = 'left';
+    cx.fillText('Macro Diary — ' + label, PAD, PAD + 12);
+    colors.forEach((color, i)=>{
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
+      const x = PAD + col*(SW+GAP);
+      const y = PAD + HEADER + row*(SH+GAP);
+      cx.fillStyle = color.hex;
+      cx.fillRect(x,y,SW,SH);
+      cx.strokeStyle = 'rgba(0,0,0,0.2)';
+      cx.lineWidth = 1;
+      cx.strokeRect(x+0.5, y+0.5, SW-1, SH-1);
+      const tc = textColor(color.r, color.g, color.b);
+      cx.fillStyle = tc;
+      cx.font = 'bold 8px Tahoma,Arial,sans-serif';
+      cx.textAlign = 'center';
+      cx.fillText(color.hex, x+SW/2, y+SH/2+4);
+    });
+    const link = document.createElement('a');
+    link.download = 'macro-diary-' + timestampTag() + '.jpg';
+    link.href = c.toDataURL('image/jpeg', 0.92);
+    link.click();
+  }
+
+  // ── tab switching ─────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── button listeners ──────────────────────────────────────────────────────
+  document.getElementById('clear-chroma').addEventListener('click', ()=>{
+    const arr = load(CHROMA_KEY);
+    if(!arr.length || !confirm('Clear all chroma diary colors?')) return;
+    save(CHROMA_KEY, []);
+    renderAll();
+  });
+  document.getElementById('clear-echo').addEventListener('click', ()=>{
+    const arr = load(ECHO_KEY);
+    if(!arr.length || !confirm('Clear all Echo Trail diary colors?')) return;
+    save(ECHO_KEY, []);
+    renderAll();
+  });
+  document.getElementById('export-chroma').addEventListener('click', ()=>{
+    exportJpg(load(CHROMA_KEY), 'chroma.exe');
+  });
+  document.getElementById('export-echo').addEventListener('click', ()=>{
+    exportJpg(load(ECHO_KEY), 'Echo Trail');
+  });
+  document.getElementById('export-all').addEventListener('click', ()=>{
+    const seen = new Set();
+    const combined = [];
+    [...load(CHROMA_KEY), ...load(ECHO_KEY)].forEach(c=>{
+      const hex = (c.hex||'').toLowerCase();
+      if(hex && !seen.has(hex)){ seen.add(hex); combined.push(c); }
+    });
+    exportJpg(combined, 'All Swatches');
+  });
+
+  // ── close button ──────────────────────────────────────────────────────────
+  document.getElementById('btn-close').addEventListener('click', ()=>{
+    if(window.self !== window.top){
+      window.parent.postMessage({ type: 'macro-diary-close' }, window.location.origin);
+    } else {
+      window.close();
+    }
+  });
+
+  // ── listen for external postMessage (add color from parent) ───────────────
+  window.addEventListener('message', e=>{
+    if(e.origin !== window.location.origin) return;
+    if(!e.data || e.data.type !== 'macro-diary-add') return;
+    const { hex, r, g, b, target } = e.data;
+    if(!hex) return;
+    const key = (target === 'echo') ? ECHO_KEY : CHROMA_KEY;
+    const arr = load(key);
+    if(arr.length >= MAX_SWATCHES){ return; }
+    arr.push({ hex, r: r||0, g: g||0, b: b||0 });
+    save(key, arr);
+    renderAll();
+  });
+
+  // ── react to storage changes from other tabs / apps ───────────────────────
+  window.addEventListener('storage', e=>{
+    if(e.key === CHROMA_KEY || e.key === ECHO_KEY) renderAll();
+  });
+
+  // ── initial render ────────────────────────────────────────────────────────
+  renderAll();
+})();
+</script>
+</body>
+</html>

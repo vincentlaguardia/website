@@ -7760,7 +7760,7 @@ function openMacroDiaryWindow() {
 }
 
 /**
- * Add a color to the chroma diary (shared color store used by "Add to Diary"
+ * Add a color to the desktop diary (shared color store used by "Add to Diary"
  * context menu options throughout the desktop UI).
  * @param {string} hex  e.g. "#ff1234"
  * @param {number} r
@@ -7768,12 +7768,12 @@ function openMacroDiaryWindow() {
  * @param {number} b
  */
 function addColorToDiary(hex, r, g, b) {
-  const key = 'chroma.diary';
+  const key = 'desktop.diary';
   const MAX = 100;
   let arr;
   try { arr = JSON.parse(localStorage.getItem(key)) || []; } catch(e) { arr = []; }
   if (arr.length >= MAX) {
-    alert('Diary is full (100 colors). Open Color Diary and delete some to make room.');
+    alert('Desktop diary is full (100 colors). Open the Macro Diary and delete some to make room.');
     return;
   }
   // Avoid exact duplicates

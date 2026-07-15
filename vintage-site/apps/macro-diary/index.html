@@ -227,15 +227,25 @@
     </div>
     <!-- Tab bar -->
     <div class="tab-bar">
-      <div class="tab active" data-tab="chroma">chroma.exe</div>
+      <div class="tab active" data-tab="desktop">Desktop</div>
+      <div class="tab" data-tab="chroma">chroma.exe</div>
       <div class="tab" data-tab="echo">Echo Trail</div>
       <div class="tab" data-tab="all">All Swatches</div>
     </div>
     <div class="tab-divider"></div>
     <!-- Winbody -->
     <div class="winbody">
+      <!-- Desktop tab -->
+      <div class="tab-panel active" id="panel-desktop">
+        <div id="grid-desktop" class="diary-grid"></div>
+        <div class="diary-footer">
+          <span id="count-desktop" style="font-size:11px;">0 / 100</span>
+          <button class="win-btn" id="clear-desktop" style="margin-left:auto;">Clear All</button>
+          <button class="win-btn" id="export-desktop">Export JPG</button>
+        </div>
+      </div>
       <!-- Chroma tab -->
-      <div class="tab-panel active" id="panel-chroma">
+      <div class="tab-panel" id="panel-chroma">
         <div id="grid-chroma" class="diary-grid"></div>
         <div class="diary-footer">
           <span id="count-chroma" style="font-size:11px;">0 / 100</span>
@@ -271,6 +281,7 @@
 </div>
 <script>
 (function(){
+  const DESKTOP_KEY   = 'desktop.diary';
   const CHROMA_KEY    = 'chroma.diary';
   const ECHO_KEY      = 'echo-trail.diary';
   const MAX_SWATCHES  = 100;
@@ -368,8 +379,14 @@
 
   // ── render the "All Swatches" tab (union, deduplicated by hex) ─────────────
   function renderAll(){
-    const chromaColors = load(CHROMA_KEY);
-    const echoColors   = load(ECHO_KEY);
+    const desktopColors = load(DESKTOP_KEY);
+    const chromaColors  = load(CHROMA_KEY);
+    const echoColors    = load(ECHO_KEY);
+    renderGrid(
+      document.getElementById('grid-desktop'),
+      document.getElementById('count-desktop'),
+      desktopColors, DESKTOP_KEY, MAX_SWATCHES
+    );
     renderGrid(
       document.getElementById('grid-chroma'),
       document.getElementById('count-chroma'),
@@ -381,17 +398,17 @@
       echoColors, ECHO_KEY, MAX_SWATCHES
     );
 
-    // Combined: all unique hex values from both, in insertion order
+    // Combined: all unique hex values from all three sources, in insertion order
     const seen = new Set();
     const combined = [];
-    [...chromaColors, ...echoColors].forEach(c=>{
+    [...desktopColors, ...chromaColors, ...echoColors].forEach(c=>{
       const hex = (c.hex||'').toLowerCase();
       if(hex && !seen.has(hex)){ seen.add(hex); combined.push(c); }
     });
     const allGrid = document.getElementById('grid-all');
     const allCount = document.getElementById('count-all');
     allGrid.innerHTML = '';
-    allCount.textContent = combined.length + ' swatches (combined from both diaries)';
+    allCount.textContent = combined.length + ' swatches (combined from all diaries)';
     combined.forEach(c=>{
       const tc = textColor(c.r, c.g, c.b);
       const div = document.createElement('div');
@@ -462,6 +479,12 @@
   });
 
   // ── button listeners ──────────────────────────────────────────────────────
+  document.getElementById('clear-desktop').addEventListener('click', ()=>{
+    const arr = load(DESKTOP_KEY);
+    if(!arr.length || !confirm('Clear all Desktop diary colors?')) return;
+    save(DESKTOP_KEY, []);
+    renderAll();
+  });
   document.getElementById('clear-chroma').addEventListener('click', ()=>{
     const arr = load(CHROMA_KEY);
     if(!arr.length || !confirm('Clear all chroma diary colors?')) return;
@@ -474,6 +497,9 @@
     save(ECHO_KEY, []);
     renderAll();
   });
+  document.getElementById('export-desktop').addEventListener('click', ()=>{
+    exportJpg(load(DESKTOP_KEY), 'Desktop');
+  });
   document.getElementById('export-chroma').addEventListener('click', ()=>{
     exportJpg(load(CHROMA_KEY), 'chroma.exe');
   });
@@ -483,7 +509,7 @@
   document.getElementById('export-all').addEventListener('click', ()=>{
     const seen = new Set();
     const combined = [];
-    [...load(CHROMA_KEY), ...load(ECHO_KEY)].forEach(c=>{
+    [...load(DESKTOP_KEY), ...load(CHROMA_KEY), ...load(ECHO_KEY)].forEach(c=>{
       const hex = (c.hex||'').toLowerCase();
       if(hex && !seen.has(hex)){ seen.add(hex); combined.push(c); }
     });
@@ -505,7 +531,7 @@
     if(!e.data || e.data.type !== 'macro-diary-add') return;
     const { hex, r, g, b, target } = e.data;
     if(!hex) return;
-    const key = (target === 'echo') ? ECHO_KEY : CHROMA_KEY;
+    const key = (target === 'echo') ? ECHO_KEY : (target === 'chroma') ? CHROMA_KEY : DESKTOP_KEY;
     const arr = load(key);
     if(arr.length >= MAX_SWATCHES){
       console.warn('macro-diary: diary is full (' + MAX_SWATCHES + ' colors max)');
@@ -518,7 +544,7 @@
 
   // ── react to storage changes from other tabs / apps ───────────────────────
   window.addEventListener('storage', e=>{
-    if(e.key === CHROMA_KEY || e.key === ECHO_KEY) renderAll();
+    if(e.key === DESKTOP_KEY || e.key === CHROMA_KEY || e.key === ECHO_KEY) renderAll();
   });
 
   // ── initial render ────────────────────────────────────────────────────────

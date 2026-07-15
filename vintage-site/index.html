@@ -7783,7 +7783,75 @@ function addColorToDiary(hex, r, g, b) {
 }
 
 /**
+ * Sample the actual rendered pixel from an element's background-image at (clientX, clientY).
+ * Handles the three wallpaper fit modes used by applyWallpaperFitStyle: cover (fill),
+ * stretch (100% 100%), and tile (repeat). Returns { hex, r, g, b } or null.
+ */
+function sampleImagePixelAtPoint(imgSrc, el, clientX, clientY) {
+  const img = new Image();
+  img.src = imgSrc;
+  if (!img.complete || !img.naturalWidth) return null;
+
+  const rect = el.getBoundingClientRect();
+  const lx = clientX - rect.left;
+  const ly = clientY - rect.top;
+  const elW = rect.width, elH = rect.height;
+  const iW = img.naturalWidth, iH = img.naturalHeight;
+
+  // Detect fit mode from inline style set by applyWallpaperFitStyle.
+  // tile:    backgroundRepeat === 'repeat' (backgroundSize is e.g. "192px 108px")
+  // stretch: backgroundSize   === '100% 100%'
+  // cover:   backgroundSize   === 'cover' (or empty = CSS default which is also cover)
+  const inlineRepeat = el.style.backgroundRepeat;
+  const inlineSize   = el.style.backgroundSize;
+
+  let px, py;
+
+  if (inlineRepeat === 'repeat') {
+    // Tile mode: backgroundSize is "Wpx Hpx" (10% of natural dims)
+    const parts = inlineSize.match(/([\d.]+)px\s+([\d.]+)px/);
+    const tileW = parts ? parseFloat(parts[1]) : iW;
+    const tileH = parts ? parseFloat(parts[2]) : iH;
+    px = (((lx % tileW) + tileW) % tileW) / tileW * iW;
+    py = (((ly % tileH) + tileH) % tileH) / tileH * iH;
+  } else if (inlineSize === '100% 100%') {
+    // Stretch mode
+    px = (lx / elW) * iW;
+    py = (ly / elH) * iH;
+  } else {
+    // Cover mode (explicit 'cover' or CSS default)
+    const scale = Math.max(elW / iW, elH / iH);
+    const rW = iW * scale, rH = iH * scale;
+    const offX = (elW - rW) / 2;
+    const offY = (elH - rH) / 2;
+    px = (lx - offX) / scale;
+    py = (ly - offY) / scale;
+  }
+
+  px = Math.max(0, Math.min(iW - 1, Math.round(px)));
+  py = Math.max(0, Math.min(iH - 1, Math.round(py)));
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1; canvas.height = 1;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, px, py, 1, 1, 0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    if (d[3] > 0) {
+      const r = d[0], g = d[1], b = d[2];
+      const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+      return { hex, r, g, b };
+    }
+  } catch (e) {
+    // Canvas tainted (cross-origin image) or other error; fall through to CSS color
+  }
+  return null;
+}
+
+/**
  * Read the color of the topmost opaque element at (x, y).
+ * For elements with a background-image (e.g. the desktop wallpaper) the actual
+ * rendered pixel is sampled via canvas before falling back to background-color.
  * Returns { hex, r, g, b } or null.
  */
 function getColorAtPoint(x, y) {
@@ -7797,7 +7865,19 @@ function getColorAtPoint(x, y) {
   if (existing && prevDisplay !== null) existing.style.display = prevDisplay;
 
   while (node && node !== document.documentElement) {
-    const bg = window.getComputedStyle(node).backgroundColor;
+    const cs = window.getComputedStyle(node);
+
+    // Try background-image first so wallpaper pixels are sampled accurately
+    const bgImg = cs.backgroundImage;
+    if (bgImg && bgImg !== 'none') {
+      const urlMatch = bgImg.match(/url\(["']?([^"')]+)["']?\)/);
+      if (urlMatch) {
+        const sampled = sampleImagePixelAtPoint(urlMatch[1], node, x, y);
+        if (sampled) return sampled;
+      }
+    }
+
+    const bg = cs.backgroundColor;
     if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
       const m = bg.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
       if (m) {

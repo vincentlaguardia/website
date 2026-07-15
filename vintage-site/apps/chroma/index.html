@@ -641,7 +641,7 @@
         <input type="color" id="cc-target-color" value="#a8a8a8">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
-      <button class="ctrl-btn" id="cc-shuffle" type="button">Shuffle</button>
+      <button class="ctrl-btn" id="cc-shuffle" type="button" title="Rearrange the current swatches without changing palette settings" aria-label="Shuffle swatch arrangement">Shuffle</button>
       <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
       <div class="match-sat-control">
         <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Chroma: continuously lock Chroma (LCH absolute intensity) to the selected source color" aria-pressed="false">Match Chroma</button>
@@ -1584,6 +1584,7 @@
     window.parent.postMessage({ type: 'chroma-save-to-desktop', name: fname, dataUrl }, window.location.origin);
   }
   function randomSeed(){ return { angle: Math.random()*Math.PI*2, repeats: 1+Math.floor(Math.random()*3), phase: Math.random() }; }
+  const MAX_SHUFFLE_ATTEMPTS = 4;
   function shuffleArrayInPlace(values){
     for(let i=values.length-1; i>0; i--){
       const j = Math.floor(Math.random()*(i+1));
@@ -1591,9 +1592,9 @@
     }
   }
   function shuffleZoneOrder(){
-    if(zoneShuffleOrder.length <= 1) return;
+    if(zoneShuffleOrder.length < 2) return;
     const previous = zoneShuffleOrder.slice();
-    for(let attempt=0; attempt<4; attempt++){
+    for(let attempt=0; attempt<MAX_SHUFFLE_ATTEMPTS; attempt++){
       shuffleArrayInPlace(zoneShuffleOrder);
       if(zoneShuffleOrder.some((value, idx)=>value !== previous[idx])) return;
     }

@@ -1372,16 +1372,16 @@
     const glowStrength = glowVal / 100;
     // Darkest value in the opaque vinyl gaps (never fully black so texture reads).
     const darkFloor = 0.06;
-    // Symmetric, faint chromatic fringe around the softened dot boundary only.
-    // Inner ring leans cyan and outer ring leans magenta, matching the reference.
-    const CA_SHIFT_RATIO = 0.065;
+    // Chromatic fringe around the softened dot boundary: inner ring leans cyan,
+    // outer ring leans magenta.
+    const CA_SHIFT_RATIO = 0.30;
     // Radial offset for the inner/outer fringe rings on either side of the dot edge.
     const caShift = dotRadius * CA_SHIFT_RATIO;
     const EDGE_SIGMA_MIN = 0.45;
-    const EDGE_SIGMA_RATIO = 0.22;
+    const EDGE_SIGMA_RATIO = 0.40;
     const edgeSigma = Math.max(EDGE_SIGMA_MIN, glowSigma * EDGE_SIGMA_RATIO);
     const edgeSigmaDenominator = 2 * edgeSigma * edgeSigma;
-    const FRINGE_BASE_MULTIPLIER = 0.18;
+    const FRINGE_BASE_MULTIPLIER = 0.70;
     const fringeStrength = glowStrength * FRINGE_BASE_MULTIPLIER;
     const FRINGE_MAGENTA_STRENGTH = 0.95;
     const FRINGE_CYAN_STRENGTH = 0.90;
@@ -1393,7 +1393,7 @@
     // centre, B channel inward. This separates the color channels at high-contrast edges
     // inside each dot (e.g. the tree/sky boundary in the reference image).
     // Max displacement scales with dot radius so the effect is consistent at any zoom.
-    const caPixels = (chromaVal / 100) * dotRadius * 0.40;
+    const caPixels = (chromaVal / 100) * dotRadius * 1.80;
 
     const src = new Uint8ClampedArray(data);
 

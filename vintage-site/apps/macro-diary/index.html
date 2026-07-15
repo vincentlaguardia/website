@@ -256,8 +256,7 @@
       <div class="tab-panel" id="panel-all">
         <div id="grid-all" class="diary-grid"></div>
         <div class="diary-footer">
-          <span id="count-all" style="font-size:11px;">0 swatches</span>
-          <button class="win-btn" id="export-all" style="margin-left:auto;">Export JPG</button>
+          <button class="win-btn" id="export-all">Export JPG</button>
         </div>
       </div>
     </div>
@@ -389,9 +388,7 @@
       if(hex && !seen.has(hex)){ seen.add(hex); combined.push(c); }
     });
     const allGrid = document.getElementById('grid-all');
-    const allCount = document.getElementById('count-all');
     allGrid.innerHTML = '';
-    allCount.textContent = combined.length + ' swatches (combined from both diaries)';
     combined.forEach(c=>{
       const tc = textColor(c.r, c.g, c.b);
       const div = document.createElement('div');

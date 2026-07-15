@@ -1405,7 +1405,7 @@
     // centre, B channel inward. This separates the color channels at high-contrast edges
     // inside each dot (e.g. the tree/sky boundary in the reference image).
     // Max displacement scales with dot radius so the effect is consistent at any zoom.
-    const caPixels = (chromaVal / 100) * dotRadius * 1.80;
+    const caPixels = (chromaVal / 100) * dotRadius * 6.30;
 
     const src = new Uint8ClampedArray(data);
 

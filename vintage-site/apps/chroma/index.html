@@ -2190,12 +2190,9 @@
     }
   }
   function resetFocusGrid(){
+    zoneShuffleOrder = zones.map(zone=>zone.idx);
     focusBandIndex = DEFAULT_FOCUS_BAND_INDEX;
-    focusActive = false;
-    applyModeHex(defaultFocusHex, focusInput, focusIcon, appliedHex=>{
-      focusHex = appliedHex;
-      syncFocusButtonState();
-    });
+    drawScene();
   }
   focusBtn.addEventListener('click', ()=>{
     focusActive = !focusActive;

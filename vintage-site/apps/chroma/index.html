@@ -1070,6 +1070,7 @@
   const MAX_IMPORTED_PALETTE_SIZE = 12;
   const DEFAULT_LIGHTNESS = 50;
   const DEFAULT_DOT_SIZE_MODE = 'medium';
+  const DISTANCE_EPSILON = 1e-9;
   const DOT_SIZE_CONFIG = {
     small: { radiusRatio: 0.15 },
     medium: { radiusRatio: 0.25 },
@@ -1156,8 +1157,8 @@
       .sort((a,b)=>a.h-b.h || a.l-b.l);
   }
   function lchToLabPoint(lch){
-    const hueRadians = lch.H * Math.PI / 180;
-    return { L: lch.L, a: lch.C * Math.cos(hueRadians), b: lch.C * Math.sin(hueRadians) };
+    const hRad = lch.H * Math.PI / 180;
+    return { L: lch.L, a: lch.C * Math.cos(hRad), b: lch.C * Math.sin(hRad) };
   }
   function hexToLabPoint(hex){
     const rgb = hexToRgbObj(hex);
@@ -1168,6 +1169,13 @@
     const da = a.a - b.a;
     const db = a.b - b.b;
     return Math.sqrt(dL*dL + da*da + db*db);
+  }
+  function shouldPreferPaletteEntry(candidateEntry, candidateDistance, bestEntry, bestDistance){
+    if(candidateDistance > bestDistance) return true;
+    if(Math.abs(candidateDistance - bestDistance) > DISTANCE_EPSILON) return false;
+    if(bestEntry === null) return true;
+    return candidateEntry.count > bestEntry.count
+      || (candidateEntry.count === bestEntry.count && candidateEntry.hex.localeCompare(bestEntry.hex) < 0);
   }
   function copyText(text){
     if(navigator.clipboard && navigator.clipboard.writeText){
@@ -1659,12 +1667,7 @@
         const nearestDistance = selected.reduce((minDistance, chosen)=>{
           return Math.min(minDistance, colorPointDistance(entry.point, chosen.point));
         }, Infinity);
-        const isBetterDistance = nearestDistance > bestDistance;
-        const isEqualDistance = Math.abs(nearestDistance - bestDistance) <= 1e-9;
-        const isBetterTiebreak = bestEntry === null
-          || entry.count > bestEntry.count
-          || (entry.count === bestEntry.count && entry.hex.localeCompare(bestEntry.hex) < 0);
-        if(isBetterDistance || (isEqualDistance && isBetterTiebreak)){
+        if(shouldPreferPaletteEntry(entry, nearestDistance, bestEntry, bestDistance)){
           bestEntry = entry;
           bestDistance = nearestDistance;
         }

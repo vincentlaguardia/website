@@ -1040,7 +1040,7 @@
     const bl= x*0.0556434-y*0.2040259+z*1.0572252;
     return { r:linearSrgb(rl), g:linearSrgb(gl), b:linearSrgb(bl) };
   }
-  const DOWNLOAD_REVOKE_TIMEOUT = 1000;
+  const DOWNLOAD_REVOKE_TIMEOUT = 10000;
   const MAX_SAMPLE_DIMENSION = 180;
   const MIN_ALPHA_THRESHOLD = 24;
   const MIN_COLOR_OCCURRENCES = 2;
@@ -1163,7 +1163,7 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setTimeout(()=> URL.revokeObjectURL(url), 10000);
+        setTimeout(()=> URL.revokeObjectURL(url), DOWNLOAD_REVOKE_TIMEOUT);
       }, 'image/png');
     } catch(err){
       console.warn('chroma: save failed', err);

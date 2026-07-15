@@ -1360,9 +1360,15 @@
     // Symmetric, faint chromatic fringe around the softened dot boundary only.
     // Inner ring leans cyan and outer ring leans magenta, matching the reference.
     const caShift = dotRadius * 0.065;
-    const edgeSigma = Math.max(0.45, glowSigma * 0.22);
+    const MIN_EDGE_SIGMA = 0.45;
+    const EDGE_SIGMA_RATIO = 0.22;
+    const edgeSigma = Math.max(MIN_EDGE_SIGMA, glowSigma * EDGE_SIGMA_RATIO);
     const edgeSigmaDenom = 2 * edgeSigma * edgeSigma;
     const fringeStrength = glowStrength * 0.18;
+    const FRINGE_MAGENTA_FACTOR = 0.95;
+    const FRINGE_CYAN_FACTOR = 0.90;
+    // Keep blue present in both rings so cyan/magenta fringes stay luminous purple/teal,
+    // instead of splitting into harsh red/green outlines.
     const FRINGE_BLUE_FACTOR = 0.82;
 
     const src = new Uint8ClampedArray(data);
@@ -1386,8 +1392,8 @@
         const fringeCyan = innerEdge * fringeStrength;
         const fringeMagenta = outerEdge * fringeStrength;
         const fringeBlueContribution = (fringeCyan + fringeMagenta) * FRINGE_BLUE_FACTOR;
-        const litR = Math.min(1, litBase + fringeMagenta * 0.95);
-        const litG = Math.min(1, litBase + fringeCyan * 0.90);
+        const litR = Math.min(1, litBase + fringeMagenta * FRINGE_MAGENTA_FACTOR);
+        const litG = Math.min(1, litBase + fringeCyan * FRINGE_CYAN_FACTOR);
         const litB = Math.min(1, litBase + fringeBlueContribution);
 
         // Opaque material darkens toward darkFloor; dots stay bright.

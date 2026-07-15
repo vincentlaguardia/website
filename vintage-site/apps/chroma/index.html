@@ -1591,7 +1591,7 @@
     }
   }
   function shuffleZoneOrder(){
-    if(zoneShuffleOrder.length < 2) return;
+    if(zoneShuffleOrder.length <= 1) return;
     const previous = zoneShuffleOrder.slice();
     for(let attempt=0; attempt<4; attempt++){
       shuffleArrayInPlace(zoneShuffleOrder);
@@ -1777,6 +1777,7 @@
     if(shouldSkipPastramiGradient()) return '';
     const roundedBaseHue = roundToGradientPrecision(baseHue);
     const roundedGlobalSatMul = roundToGradientPrecision(globalSatMul);
+    const shufflePart = zoneShuffleOrder.join(',');
     const skewPart = skewColor
       ? [skewColor.h, skewColor.s, skewColor.l].map(roundToGradientPrecision).join(',')
       : 'none';
@@ -1786,6 +1787,7 @@
       roundedBaseHue,
       roundedGlobalSatMul,
       strange,
+      shufflePart,
       seed.repeats,
       seed.angle.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
       seed.phase.toFixed(GRADIENT_KEY_ANGLE_PHASE_DECIMALS),
@@ -1866,7 +1868,6 @@
   });
   shuffleBtn.addEventListener('click', ()=>{
     shuffleZoneOrder();
-    pastramiButtonGradientKey = '';
     drawScene();
   });
   function applyTargetHex(hex){

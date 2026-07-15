@@ -472,6 +472,13 @@
             <input type="range" id="moire-amount" min="0" max="100" value="45">
             <span id="moire-amount-val">45</span>
           </div>
+          <div class="sub-group">
+          <div class="control-row" style="--row-color:#CC3F9E;">
+            <button type="button" class="item-toggle active" data-target="moire-scale" data-off="50">Moire Scale</button>
+            <input type="range" id="moire-scale" min="0" max="100" value="50">
+            <span id="moire-scale-val">50</span>
+          </div>
+          </div>
         </div>
 
         <div class="controls-col">
@@ -519,11 +526,6 @@
           </div>
           <div class="control-row" style="--row-color:#3A7A4A;">
             <button type="button" class="item-toggle" data-target="infrared" id="infrared-toggle">Infrared</button>
-          </div>
-          <div class="control-row" style="--row-color:#CC3F9E;">
-            <button type="button" class="item-toggle active" data-target="moire-scale" data-off="50">Moire Scale</button>
-            <input type="range" id="moire-scale" min="0" max="100" value="50">
-            <span id="moire-scale-val">50</span>
           </div>
           <div class="control-row" style="--row-color:#F5C518;">
             <button type="button" class="item-toggle" data-target="vm-amount" data-off="0">Vending Machine</button>
@@ -2869,6 +2871,7 @@
     $('scan-tear-shift').value = 15+Math.floor(Math.random()*40);
     setRowActive('scan-tear-asym', Math.random()>0.15);
     $('scan-tear-asym').value = Math.floor(Math.random()*201)-100;
+    if(rowActive('scan-tear-shift') || rowActive('scan-tear-asym')) setRowActive('scan-tear', true);
     // Motion Echo
     setRowActive('echo-amount', Math.random()>0.5);
     $('echo-amount').value = Math.floor(Math.random()*80)+10;
@@ -2883,6 +2886,7 @@
     $('moire-amount').value = Math.floor(Math.random()*70)+15;
     setRowActive('moire-scale', Math.random()>0.15);
     $('moire-scale').value = Math.floor(Math.random()*100);
+    if(rowActive('moire-scale')) setRowActive('moire-amount', true);
 
     // Vending Machine
     setRowActive('vm-amount', Math.random()>0.25);
@@ -2895,6 +2899,7 @@
     $('vm-glow').value = Math.floor(Math.random()*16)+85;
     setRowActive('vm-chroma', Math.random()>0.3);
     $('vm-chroma').value = Math.floor(Math.random()*80)+10;
+    if(rowActive('vm-dot-size') || rowActive('vm-spacing') || rowActive('vm-glow') || rowActive('vm-chroma')) setRowActive('vm-amount', true);
 
     // New distortions — applied sparingly so they don't swamp every randomize
     setRowActive('fx-stretch', Math.random()>0.7);
@@ -3147,6 +3152,11 @@
         }
         if(targetId === 'vm-amount' && isActive){
           ['vm-dot-size','vm-spacing','vm-glow','vm-chroma'].forEach(id => setRowActive(id, true));
+        }
+        if(isActive){
+          if(targetId === 'moire-scale') setRowActive('moire-amount', true);
+          if(targetId === 'scan-tear-shift' || targetId === 'scan-tear-asym') setRowActive('scan-tear', true);
+          if(['vm-dot-size','vm-spacing','vm-glow','vm-chroma'].includes(targetId)) setRowActive('vm-amount', true);
         }
         scheduleRender();
       });

@@ -1359,6 +1359,7 @@
     const darkFloor = 0.06;
     // Symmetric, faint chromatic fringe around the softened dot boundary only.
     // Inner ring leans cyan and outer ring leans magenta, matching the reference.
+    // Radial offset for the inner/outer fringe rings on either side of the dot edge.
     const caShift = dotRadius * 0.065;
     const MIN_EDGE_SIGMA = 0.45;
     const EDGE_SIGMA_RATIO = 0.22;
@@ -1391,6 +1392,7 @@
         const outerEdge = Math.exp(-(outerDist * outerDist) / edgeSigmaDenom);
         const fringeCyan = innerEdge * fringeStrength;
         const fringeMagenta = outerEdge * fringeStrength;
+        // Blue carries both rings so cyan and magenta stay visually balanced.
         const fringeBlueContribution = (fringeCyan + fringeMagenta) * FRINGE_BLUE_FACTOR;
         const litR = Math.min(1, litBase + fringeMagenta * FRINGE_MAGENTA_FACTOR);
         const litG = Math.min(1, litBase + fringeCyan * FRINGE_CYAN_FACTOR);

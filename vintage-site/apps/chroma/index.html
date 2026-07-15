@@ -637,7 +637,7 @@
       </div>
       <div class="field">
         <div class="cc-style-wrap">
-          <button class="ctrl-btn" id="cc-palette-limit-btn" type="button">Limit Palette: Off &#9662;</button>
+          <button class="ctrl-btn" id="cc-palette-limit-btn" type="button">Limit: Off &#9662;</button>
           <div class="style-dropdown raised" id="cc-palette-limit-dropdown">
             <div class="menu-option active" data-limit="0">Off</div>
             <div class="menu-option" data-limit="1">1</div>
@@ -1880,7 +1880,7 @@
   function closePaletteLimitDropdown(){ paletteLimitDropdown.classList.remove('show'); }
   function syncPaletteLimitUI(){
     const label = paletteLimit <= 0 ? 'Off' : String(paletteLimit);
-    paletteLimitBtn.innerHTML = 'Limit Palette: ' + label + ' &#9662;';
+    paletteLimitBtn.innerHTML = 'Limit: ' + label + ' &#9662;';
     paletteLimitOptions.forEach(option=>{
       option.classList.toggle('active', Number(option.dataset.limit) === paletteLimit);
     });

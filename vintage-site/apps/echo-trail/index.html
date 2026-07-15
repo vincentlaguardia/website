@@ -155,6 +155,14 @@
   .control-row.row-active input[type=range]::-moz-range-thumb{ background:var(--row-color,#e6f0ff); }
   .control-row.row-active select{ background:color-mix(in srgb, var(--row-color,#eef4ff) 35%, white); }
 
+  /* Sub-group bracket: left [ bracket to visually group contingent sliders */
+  .sub-group{ position:relative; padding-left:9px; margin-left:2px; }
+  .sub-group::before{
+    content:''; position:absolute; left:1px; top:6px; bottom:6px;
+    width:4px;
+    border-left:1px solid #aaa; border-top:1px solid #aaa; border-bottom:1px solid #aaa;
+  }
+
   input[type=range]{ -webkit-appearance:none; height:16px; background:transparent; cursor:pointer; }
   input[type=range]::-webkit-slider-runnable-track{ height:4px; background:var(--shadow); box-shadow: inset 1px 1px 0 #000; }
   input[type=range]::-webkit-slider-thumb{
@@ -487,6 +495,7 @@
             <input type="range" id="scan-tear" min="0" max="100" value="0">
             <span id="scan-tear-val">0</span>
           </div>
+          <div class="sub-group">
           <div class="control-row" style="--row-color:#E8A96E;">
             <button type="button" class="item-toggle active" data-target="scan-tear-shift" data-off="30">Tear Shift %</button>
             <input type="range" id="scan-tear-shift" min="5" max="60" value="30">
@@ -496,6 +505,7 @@
             <button type="button" class="item-toggle active" data-target="scan-tear-asym" data-off="0">Asymmetry</button>
             <input type="range" id="scan-tear-asym" min="-100" max="100" value="0">
             <span id="scan-tear-asym-val">0</span>
+          </div>
           </div>
           <div class="control-row" style="--row-color:#E85D75;">
             <button type="button" class="item-toggle" data-target="scan-vmisalign" data-off="0">V-Misalign</button>
@@ -520,6 +530,7 @@
             <input type="range" id="vm-amount" min="0" max="100" value="75">
             <span id="vm-amount-val">75</span>
           </div>
+          <div class="sub-group">
           <div class="control-row" style="--row-color:#E8A800;">
             <button type="button" class="item-toggle active" data-target="vm-dot-size" data-off="40">Dot Size</button>
             <input type="range" id="vm-dot-size" min="0" max="100" value="40">
@@ -539,6 +550,7 @@
             <button type="button" class="item-toggle" data-target="vm-chroma" data-off="0">Chroma</button>
             <input type="range" id="vm-chroma" min="0" max="100" value="50">
             <span id="vm-chroma-val">50</span>
+          </div>
           </div>
         </div>
 

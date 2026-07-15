@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Color Diary — chroma.exe</title>
+<title>Color Diary — :technochromia</title>
 <script src="../../content/_assets/private/site-fonts.js" data-provider-only="true"></script>
 <style>
   :root{
@@ -179,7 +179,7 @@
     <div class="titlebar">
       <div class="titlebar-left">
         <span class="titlebar-icon"></span>
-        <span>Color Diary — chroma.exe</span>
+        <span>Color Diary — :technochromia</span>
       </div>
       <div class="titlebar-btns">
         <div class="tbtn" id="btn-close" title="Close">X</div>
@@ -298,7 +298,7 @@
     cx.fillStyle = '#000000';
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
-    cx.fillText('chroma.exe \u2014 Color Diary', PAD, PAD + 14);
+    cx.fillText(':technochromia \u2014 Color Diary', PAD, PAD + 14);
     colors.forEach((color, i)=>{
       const col = i % COLS;
       const row = Math.floor(i / COLS);
@@ -318,7 +318,7 @@
       cx.fillText(color.r + ',' + color.g + ',' + color.b, x + SW / 2, y + SH / 2 + 8);
     });
     const link = document.createElement('a');
-    link.download = 'chroma-diary-' + timestampTag() + '.jpg';
+    link.download = 'technochromia-diary-' + timestampTag() + '.jpg';
     link.href = c.toDataURL('image/jpeg', 0.92);
     link.click();
   }
@@ -359,7 +359,7 @@
     cx.fillStyle = '#000000';
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
-    cx.fillText('chroma.exe \u2014 Color Diary', PAD, PAD + 14);
+    cx.fillText(':technochromia \u2014 Color Diary', PAD, PAD + 14);
     colors.forEach((color, i)=>{
       const col = i % COLS;
       const row = Math.floor(i / COLS);
@@ -378,7 +378,7 @@
       cx.font = '9px Tahoma,Arial,sans-serif';
       cx.fillText(color.r + ',' + color.g + ',' + color.b, x + SW / 2, y + SH / 2 + 8);
     });
-    const defaultName = 'chroma-diary-' + timestampTag() + '.jpg';
+    const defaultName = 'technochromia-diary-' + timestampTag() + '.jpg';
     const raw = window.prompt('Save diary to virtual desktop as:', defaultName);
     if(raw === null) return;
     let fname = raw.trim() || defaultName;

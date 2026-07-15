@@ -676,7 +676,7 @@
         </div>
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
-      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="245" value="20"></div>
+      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="180" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -1230,13 +1230,13 @@
   async function saveCanvasAsPng(canvasEl){
     try{
       const blob = await canvasToBlob(canvasEl, 'image/png');
-      downloadBlob('chroma-palette-' + timestampTag() + '.png', blob);
+      downloadBlob('technochromia-palette-' + timestampTag() + '.png', blob);
     } catch(err){
       alertSaveFailure('chroma: save failed', err);
     }
   }
   async function saveCanvasToDesktop(canvasEl){
-    const defaultName = 'chroma-palette-' + timestampTag() + '.png';
+    const defaultName = 'technochromia-palette-' + timestampTag() + '.png';
     if(window.isSecureContext && typeof window.showSaveFilePicker === 'function'){
       try{
         const handle = await window.showSaveFilePicker({
@@ -1402,7 +1402,7 @@
     e.stopPropagation();
     closeAllMenus();
     const link = document.createElement('a');
-    link.download = 'chroma-palette-' + timestampTag() + '.jpg';
+    link.download = 'technochromia-palette-' + timestampTag() + '.jpg';
     link.href = canvas.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
     link.click();
   });
@@ -1720,7 +1720,7 @@
       alert('No palette colors were found to export.');
       return;
     }
-    downloadTextFile('chroma-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
+    downloadTextFile('technochromia-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
   }
   function buildPaletteText(){
     const unique = [], seen = new Set();
@@ -2577,7 +2577,7 @@
       cx.fillText(color.r + ',' + color.g + ',' + color.b, x + DIARY_EXPORT_SWATCH_WIDTH / 2, y + DIARY_EXPORT_SWATCH_HEIGHT / 2 + 8);
     });
     const link = document.createElement('a');
-    link.download = 'chroma-diary-' + timestampTag() + '.jpg';
+    link.download = 'technochromia-diary-' + timestampTag() + '.jpg';
     link.href = c.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
     link.click();
   }

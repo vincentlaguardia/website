@@ -9427,7 +9427,7 @@ document.getElementById('password-input').addEventListener('keydown', e => {
   updateIcon();
 })();
 
-// Handle messages from chroma.exe iframe and Color Diary iframe
+// Handle messages from the Technochromia iframe and Color Diary iframe
 window.addEventListener('message', function(e) {
   if (!e.data || !e.data.type) return;
   if (e.origin !== window.location.origin) return;

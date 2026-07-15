@@ -1607,6 +1607,9 @@
     const lastIdx = zoneShuffleOrder.length - 1;
     [zoneShuffleOrder[0], zoneShuffleOrder[lastIdx]] = [zoneShuffleOrder[lastIdx], zoneShuffleOrder[0]];
   }
+  function resetZoneShuffleOrder(){
+    zoneShuffleOrder = zones.map(zone => zone.idx);
+  }
   const PASTRAMI_PHILOS = [0, 1, 3, 5]; // Monochromatic, Analogous, Split-Complementary, Tetradic
   function randomPhiloIdx(){ return Math.floor(Math.random()*PHILOSOPHIES.length); }
   function randomPastramiPhiloIdx(){ return PASTRAMI_PHILOS[Math.floor(Math.random()*PASTRAMI_PHILOS.length)]; }
@@ -2189,7 +2192,7 @@
     }
   }
   function resetFocusGrid(){
-    zoneShuffleOrder = zones.map(zone => zone.idx);
+    resetZoneShuffleOrder();
     focusBandIndex = DEFAULT_FOCUS_BAND_INDEX;
     focusActive = false;
     syncFocusButtonState();

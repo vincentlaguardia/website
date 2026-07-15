@@ -14,7 +14,6 @@
     --white:#ffffff;
     --navy:#000080;
     --teal:#008080;
-    --max-swatches:100;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{
@@ -392,7 +391,7 @@
     const allGrid = document.getElementById('grid-all');
     const allCount = document.getElementById('count-all');
     allGrid.innerHTML = '';
-    allCount.textContent = combined.length + ' swatches (no limit)';
+    allCount.textContent = combined.length + ' swatches (combined from both diaries)';
     combined.forEach(c=>{
       const tc = textColor(c.r, c.g, c.b);
       const div = document.createElement('div');
@@ -406,9 +405,7 @@
       div.appendChild(span);
       div.addEventListener('contextmenu', e=>{
         e.preventDefault(); e.stopPropagation();
-        // In combined view, we can only copy (no single-source delete)
-        const tmp = ctxMenu.cloneNode(true);
-        // Just use copy-only approach via regular ctx show
+        // In combined view, only Copy Hex is available (no single-source delete)
         showCtx(e, null, -1, c);
       });
       allGrid.appendChild(div);
@@ -510,7 +507,10 @@
     if(!hex) return;
     const key = (target === 'echo') ? ECHO_KEY : CHROMA_KEY;
     const arr = load(key);
-    if(arr.length >= MAX_SWATCHES){ return; }
+    if(arr.length >= MAX_SWATCHES){
+      console.warn('macro-diary: diary is full (' + MAX_SWATCHES + ' colors max)');
+      return;
+    }
     arr.push({ hex, r: r||0, g: g||0, b: b||0 });
     save(key, arr);
     renderAll();

@@ -1181,7 +1181,7 @@
   }
   async function saveCanvasToDesktop(canvasEl){
     const defaultName = 'chroma-palette-' + timestampTag() + '.png';
-    if(window.showSaveFilePicker && window.isSecureContext){
+    if(typeof window.showSaveFilePicker === 'function' && window.isSecureContext){
       try{
         const handle = await window.showSaveFilePicker({
           suggestedName: defaultName,
@@ -1193,7 +1193,7 @@
         });
         const chosenName = String(handle.name || defaultName);
         const wantsJpeg = /\.jpe?g$/i.test(chosenName);
-        const blob = await canvasToBlob(canvasEl, wantsJpeg ? 'image/jpeg' : 'image/png', wantsJpeg ? 0.92 : undefined);
+        const blob = await canvasToBlob(canvasEl, wantsJpeg ? 'image/jpeg' : 'image/png', wantsJpeg ? EXPORT_JPEG_QUALITY : undefined);
         if(!blob){ alert('Save failed. Please try again.'); return; }
         const writable = await handle.createWritable();
         await writable.write(blob);
@@ -1345,7 +1345,7 @@
     closeAllMenus();
     const link = document.createElement('a');
     link.download = 'chroma-palette-' + timestampTag() + '.jpg';
-    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.href = canvas.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
     link.click();
   });
   const win = document.querySelector('.window');

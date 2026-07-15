@@ -1396,6 +1396,7 @@
     }
   }
   const BASE_SAT = 62, BASE_LIGHT = 47;
+  const STRANGE_INTENSITY_BASE = 100; // Preserve original 0-100 scaling so max=140 yields 40% more intensity.
   const STRANGE_MAX = 140;
   const PHILOSOPHIES = [
     { name:'Monochromatic', hueOffsets:[0], pattern:[0] },
@@ -1429,7 +1430,7 @@
     const jitterB = hashZone(zone.col+91, zone.row+37);
     const jitterC = hashZone(zone.col+53, zone.row+17);
     const outlierRoll = hashZone(zone.col+13, zone.row+29);
-    const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / 100;
+    const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / STRANGE_INTENSITY_BASE;
     let hueRange = w * 40;
     const wildcardChance = w * 0.65;
     if(outlierRoll < wildcardChance){ hueRange = 50 + w*280; }
@@ -1448,7 +1449,7 @@
     const jitterC = hashZone(zone.col+53, zone.row+17);
     const jitterD = hashZone(zone.col+7, zone.row+61);
     const jitterE = hashZone(zone.col+19, zone.row+83);
-    const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / 100;
+    const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / STRANGE_INTENSITY_BASE;
     // Zone flips between deeply unsaturated pastel and extreme neon/fluorescent
     const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
     // Hue: use philosophy hue but allow wild shifts — juxtaposition is the point
@@ -1473,7 +1474,7 @@
     const jitterC = hashZone(zone.col+97, zone.row+7);
     const jitterD = hashZone(zone.col+29, zone.row+47);
     const jitterE = hashZone(zone.col+71, zone.row+13);
-    const w = clamp(strange, 0, STRANGE_MAX) / 100;
+    const w = clamp(strange, 0, STRANGE_MAX) / STRANGE_INTENSITY_BASE;
     if(pastramiMode){
       const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
       const hue = applySkewToHue((src.h + (jitterC-0.5)*(80 + w*220) + 3600) % 360);

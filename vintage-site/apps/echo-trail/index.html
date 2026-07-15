@@ -1389,10 +1389,10 @@
         const halo = Math.exp(-(dist * dist) / (2 * glowSigma * glowSigma));
         const litBase = Math.min(1, coreFac + glowStrength * halo * HALO_BLEND_FACTOR);
         const distFromEdge = dist - dotRadius;
-        const innerDist = distFromEdge + caShift;
-        const outerDist = distFromEdge - caShift;
-        const innerEdge = Math.exp(-(innerDist * innerDist) / edgeSigmaDenominator);
-        const outerEdge = Math.exp(-(outerDist * outerDist) / edgeSigmaDenominator);
+        const innerRingDist = distFromEdge + caShift;
+        const outerRingDist = distFromEdge - caShift;
+        const innerEdge = Math.exp(-(innerRingDist * innerRingDist) / edgeSigmaDenominator);
+        const outerEdge = Math.exp(-(outerRingDist * outerRingDist) / edgeSigmaDenominator);
         const fringeCyan = innerEdge * fringeStrength;
         const fringeMagenta = outerEdge * fringeStrength;
         // Blue carries both rings so cyan and magenta stay visually balanced.

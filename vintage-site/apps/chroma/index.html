@@ -616,6 +616,7 @@
         <div class="menu-option" data-action="exit">Exit</div>
       </div>
       <div class="menu-dropdown raised" id="dropdown-dots">
+        <div class="menu-option" data-dot-size="off">Off</div>
         <div class="menu-option" data-dot-size="small">Small</div>
         <div class="menu-option active" data-dot-size="medium">Medium</div>
         <div class="menu-option" data-dot-size="large">Large</div>
@@ -653,7 +654,7 @@
           </div>
         </div>
       </div>
-      <button class="ctrl-btn" id="cc-toggle-dots">Dots Off</button>
+      <button class="ctrl-btn" id="cc-toggle-dots" style="display:none">Dots Off</button>
       <div class="picker-with-hex">
         <input type="color" id="cc-target-color" value="#a8a8a8">
       </div>
@@ -1303,10 +1304,14 @@
     opt.addEventListener('click', e=>{
       e.stopPropagation();
       const nextMode = opt.dataset.dotSize;
-      if(!DOT_SIZE_CONFIG[nextMode]) return;
-      dotSizeMode = nextMode;
-      document.querySelectorAll('#dropdown-dots .menu-option').forEach(o=>o.classList.remove('active'));
-      opt.classList.add('active');
+      if(nextMode === 'off'){
+        showDots = false;
+      } else {
+        if(!DOT_SIZE_CONFIG[nextMode]) return;
+        dotSizeMode = nextMode;
+        showDots = true;
+      }
+      syncDotsToggleUI();
       closeAllMenus();
       drawScene();
     });
@@ -1789,8 +1794,10 @@
   let paletteLimitCacheKey = '';
   let paletteLimitCacheMap = null;
   function syncDotsToggleUI(){
-    toggleDotsBtn.textContent = showDots ? 'Dots Off' : 'Dots On';
-    toggleDotsBtn.classList.toggle('is-active', showDots);
+    document.querySelectorAll('#dropdown-dots .menu-option').forEach(o=>{
+      const isOff = o.dataset.dotSize === 'off';
+      o.classList.toggle('active', showDots ? o.dataset.dotSize === dotSizeMode : isOff);
+    });
   }
   // (row + col) mod 4 maps cells into repeating diagonal bands.
   function isInFocusBand(zone){
@@ -2066,11 +2073,6 @@
   }
   targetColorInput.addEventListener('input', ()=>{ applyTargetHex(targetColorInput.value); });
   syncDotsToggleUI();
-  toggleDotsBtn.addEventListener('click', ()=>{
-    showDots = !showDots;
-    syncDotsToggleUI();
-    drawScene();
-  });
   satSlider.addEventListener('input', ()=>{ globalSatMul = satSlider.value/100; drawScene(); });
   matchSatBtn.addEventListener('click', ()=>{
     matchSatActive = !matchSatActive;

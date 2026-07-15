@@ -535,6 +535,11 @@
             <input type="range" id="vm-glow" min="0" max="100" value="55">
             <span id="vm-glow-val">55</span>
           </div>
+          <div class="control-row" style="--row-color:#9A5200;">
+            <button type="button" class="item-toggle" data-target="vm-chroma" data-off="0">Chroma</button>
+            <input type="range" id="vm-chroma" min="0" max="100" value="50">
+            <span id="vm-chroma-val">50</span>
+          </div>
         </div>
 
         <div class="controls-col">
@@ -1354,7 +1359,7 @@
   // A regular dot grid lets light through the holes; the opaque material between
   // them goes dark. A soft Gaussian halo bleeds light around each dot like the
   // fluorescent tube glow visible through the perforations up close.
-  function applyVendingMachine(data, width, height, amount, dotSizeVal, spacingVal, glowVal) {
+  function applyVendingMachine(data, width, height, amount, dotSizeVal, spacingVal, glowVal, chromaVal) {
     if (amount <= 0) return;
     const t = amount / 100;
     // Map spacing slider (0-100) to pixel distance between dot centres.
@@ -1384,6 +1389,11 @@
     // Keep blue present in both rings so cyan/magenta fringes stay luminous purple/teal,
     // instead of splitting into harsh red/green outlines.
     const FRINGE_BLUE_FACTOR = 0.82;
+    // Spatial chromatic aberration: R channel is sampled radially outward from the dot
+    // centre, B channel inward. This separates the color channels at high-contrast edges
+    // inside each dot (e.g. the tree/sky boundary in the reference image).
+    // Max displacement scales with dot radius so the effect is consistent at any zoom.
+    const caPixels = (chromaVal / 100) * dotRadius * 0.40;
 
     const src = new Uint8ClampedArray(data);
 
@@ -1418,7 +1428,21 @@
         const bsB = darkFloor + (1 - darkFloor) * litB;
 
         const idx = (y * width + x) * 4;
-        let r = src[idx], g = src[idx + 1], b = src[idx + 2];
+        // Spatial CA: sample R from a position shifted outward radially, B inward.
+        // Green stays at the original pixel position.
+        let r, g, b;
+        if (caPixels > 0.5 && dist > 0.5) {
+          const nx = dx / dist, ny = dy / dist;
+          const rxp = Math.max(0, Math.min(width - 1, Math.round(x + nx * caPixels)));
+          const ryp = Math.max(0, Math.min(height - 1, Math.round(y + ny * caPixels)));
+          const bxp = Math.max(0, Math.min(width - 1, Math.round(x - nx * caPixels)));
+          const byp = Math.max(0, Math.min(height - 1, Math.round(y - ny * caPixels)));
+          r = src[(ryp * width + rxp) * 4];
+          g = src[idx + 1];
+          b = src[(byp * width + bxp) * 4 + 2];
+        } else {
+          r = src[idx]; g = src[idx + 1]; b = src[idx + 2];
+        }
 
         r *= bsR;
         g *= bsG;
@@ -2427,7 +2451,8 @@
         amount: rowVal('vm-amount'),
         dotSize: rowVal('vm-dot-size'),
         spacing: rowVal('vm-spacing'),
-        glow: rowVal('vm-glow')
+        glow: rowVal('vm-glow'),
+        chroma: rowVal('vm-chroma')
       },
       distort:{
         stretch: rowVal('fx-stretch'),
@@ -2464,7 +2489,7 @@
     // Moire runs last, like a print/scan texture over the finished composite
     applyMoire(data,w,h,opts.moire.amount,opts.moire.scale);
     // Vending Machine dot-grid overlay applied after all other effects.
-    applyVendingMachine(data,w,h,opts.vm.amount,opts.vm.dotSize,opts.vm.spacing,opts.vm.glow);
+    applyVendingMachine(data,w,h,opts.vm.amount,opts.vm.dotSize,opts.vm.spacing,opts.vm.glow,opts.vm.chroma);
     dctx.putImageData(imgData,0,0);
     // Text overlays render after the image stack so each layer can keep its own settings.
     textLayers.forEach(layer => {
@@ -2732,7 +2757,7 @@
 
   // ---------- UI wiring ----------
   function updateAllSpans(){
-    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
+    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','vm-chroma','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(id=>{
       const span = $(id+'-val');
       if(span) span.textContent = $(id).value;
     });
@@ -2856,6 +2881,8 @@
     $('vm-spacing').value = Math.floor(Math.random()*80)+10;
     setRowActive('vm-glow', true);
     $('vm-glow').value = Math.floor(Math.random()*16)+85;
+    setRowActive('vm-chroma', Math.random()>0.3);
+    $('vm-chroma').value = Math.floor(Math.random()*80)+10;
 
     // New distortions — applied sparingly so they don't swamp every randomize
     setRowActive('fx-stretch', Math.random()>0.7);
@@ -2975,6 +3002,7 @@
     $('vm-dot-size').value=40;                setRowActive('vm-dot-size', true);
     $('vm-spacing').value=50;                 setRowActive('vm-spacing', true);
     $('vm-glow').value=55;                    setRowActive('vm-glow', false);
+    $('vm-chroma').value=50;                  setRowActive('vm-chroma', false);
 
     $('fx-stretch').value=50;                 setRowActive('fx-stretch', false);
     $('fx-warp').value=50;                    setRowActive('fx-warp', false);
@@ -3089,7 +3117,7 @@
 
     $('zoom-slider').addEventListener('input', ()=>{ setZoom(parseInt($('zoom-slider').value,10)); });
 
-    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
+    ['image-exposure','topo-levels','topo-spacing','topo-thickness','topo-strength','dither-levels','grain-intensity','grain-size','scan-intensity','scan-spacing','scan-chroma','scan-tracking','scan-vignette','scan-tear','scan-tear-shift','scan-tear-asym','scan-vmisalign','echo-amount','echo-trail','moire-amount','moire-scale','vm-amount','vm-dot-size','vm-spacing','vm-glow','vm-chroma','fx-stretch','fx-warp','fx-vtear','fx-htear','fx-opacity','fx-glitch','fx-dissolve','fx-txtgrain','text-size','text-scale-x','text-scale-y','text-rotation','text-opacity'].forEach(bindRange);
     $('topo-palette').addEventListener('input', scheduleRender);
     $('topo-palette').addEventListener('change', scheduleRender);
 

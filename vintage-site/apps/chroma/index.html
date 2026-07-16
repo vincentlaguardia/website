@@ -677,6 +677,7 @@
       </div>
       <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
       <div class="field">Strange <input type="range" id="cc-weird" min="0" max="180" value="20"></div>
+      <div class="field" id="techno-field" style="display:none">Technochromia <input type="range" id="cc-techno" min="0" max="100" value="100"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -1495,6 +1496,8 @@
   const matchSatIcon = document.getElementById('match-sat-icon');
   const hueSlider = document.getElementById('cc-hue');
   const weirdSlider = document.getElementById('cc-weird');
+  const technoSlider = document.getElementById('cc-techno');
+  const technoField = document.getElementById('techno-field');
   const styleBtn = document.getElementById('cc-style-btn');
   const styleDropdown = document.getElementById('cc-style-dropdown');
   const styleOptions = styleDropdown.querySelectorAll('.menu-option');
@@ -1570,32 +1573,39 @@
     const light = BASE_LIGHT + lightOffset + (jitterB-0.5)*lightRange;
     return { h: hue, s: clamp(sat, 10, 97), l: clamp(light, 12, 88) };
   }
-  function resolveZoneColorPastrami(zone, philo, baseHue, seed, strange){
+  function resolveZoneColorPastrami(zone, philo, baseHue, seed, strange, technoStrength){
     const hues = philo.hueOffsets.map(off => (baseHue+off+3600)%360);
     const bandIdx = bandIndexFor(zone, philo.pattern.length, seed);
     const role = philo.pattern[bandIdx];
+    const roleCount = hues.length;
+    const lightOffset = (role - (roleCount-1)/2) * 6;
     const jitterA = hashZone(zone.col, zone.row);
     const jitterB = hashZone(zone.col+91, zone.row+37);
     const jitterC = hashZone(zone.col+53, zone.row+17);
     const jitterD = hashZone(zone.col+7, zone.row+61);
     const jitterE = hashZone(zone.col+19, zone.row+83);
     const w = Math.max(0, Math.min(STRANGE_MAX, strange)) / STRANGE_INTENSITY_BASE;
+    const t = clamp(technoStrength, 0, 100) / 100;
     // Zone flips between deeply unsaturated pastel and extreme neon/fluorescent
     const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
     // Hue: use philosophy hue but allow wild shifts — juxtaposition is the point
     const hueJitter = (jitterC - 0.5) * (50 + w * 250);
     const hue = applySkewToHue((hues[role] + hueJitter + 3600) % 360);
-    let sat, light;
+    const baseSat = BASE_SAT + (jitterA-0.5)*30;
+    const baseLight = BASE_LIGHT + lightOffset + (jitterB-0.5)*28;
+    let technoSat, technoLight;
     if(isPastel){
-      sat  = 50 + jitterA * 30;        // soft pastel: 50–80%
-      light = 72 + jitterB * 16;       // light: 72–88%
+      technoSat  = 50 + jitterA * 30;        // soft pastel: 50–80%
+      technoLight = 72 + jitterB * 16;       // light: 72–88%
     } else {
-      sat  = 92 + jitterA * 8;         // extreme neon: 92–100%
-      light = 47 + jitterB * 20;       // vivid mid: 47–67%
+      technoSat  = 92 + jitterA * 8;         // extreme neon: 92–100%
+      technoLight = 47 + jitterB * 20;       // vivid mid: 47–67%
     }
+    const sat = baseSat + (technoSat - baseSat) * t;
+    const light = baseLight + (technoLight - baseLight) * t;
     return { h: hue, s: clamp(sat, 0, 100), l: clamp(light, 0, 100) };
   }
-  function resolveImportedZoneColor(zone, palette, seed, strange, pastramiMode){
+  function resolveImportedZoneColor(zone, palette, seed, strange, pastramiMode, technoStrength){
     if(!palette.length) return { h:0, s:0, l:DEFAULT_LIGHTNESS };
     const paletteIndex = bandIndexFor(zone, palette.length, seed);
     const src = palette[paletteIndex];
@@ -1606,12 +1616,13 @@
     const jitterE = hashZone(zone.col+71, zone.row+13);
     const w = clamp(strange, 0, STRANGE_MAX) / STRANGE_INTENSITY_BASE;
     if(pastramiMode){
+      const t = clamp(technoStrength, 0, 100) / 100;
       const isPastel = jitterD > (0.38 + jitterE * 0.24 * w);
       const hue = applySkewToHue((src.h + (jitterC-0.5)*(80 + w*220) + 3600) % 360);
       const technoSat = isPastel ? 50 + jitterA * 30 : 92 + jitterA * 8;
       const technoLight = isPastel ? 72 + jitterB * 16 : 47 + jitterB * 20;
-      const sat = technoSat * (isPastel ? 0.72 : 0.8) + src.s * (isPastel ? 0.28 : 0.2);
-      const light = technoLight * (isPastel ? 0.7 : 0.72) + src.l * (isPastel ? 0.3 : 0.28);
+      const sat = technoSat * (isPastel ? 0.72 : 0.8) * t + src.s * (1 - (isPastel ? 0.72 : 0.8) * t);
+      const light = technoLight * (isPastel ? 0.7 : 0.72) * t + src.l * (1 - (isPastel ? 0.7 : 0.72) * t);
       return {
         h: hue,
         s: clamp(sat, 0, 100),
@@ -1632,9 +1643,9 @@
       return focusHex;
     }
     const sourceColor = importedMode
-      ? resolveImportedZoneColor(zone, importedPalette, seed, strange, pastramiMode)
+      ? resolveImportedZoneColor(zone, importedPalette, seed, strange, pastramiMode, technoStrength)
       : pastramiMode
-        ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange)
+        ? resolveZoneColorPastrami(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange, technoStrength)
         : resolveZoneColor(zone, PHILOSOPHIES[philoIdx], baseHue, seed, strange);
     const baseHex = hslToHex(sourceColor.h, clamp(sourceColor.s * globalSatMul, 0, 100), sourceColor.l);
     if(matchSatActive && matchSatValue !== null){
@@ -1764,6 +1775,7 @@
   let globalSatMul = satSlider.value/100;
   let baseHue = +hueSlider.value;
   let strange = +weirdSlider.value;
+  let technoStrength = +technoSlider.value;
   let showDots = true;
   let dotSizeMode = DEFAULT_DOT_SIZE_MODE;
   let paletteLimit = 0;
@@ -1972,6 +1984,7 @@
       roundedBaseHue,
       roundedGlobalSatMul,
       strange,
+      technoStrength,
       paletteLimit,
       shufflePart,
       seed.repeats,
@@ -2027,6 +2040,7 @@
   function syncPastramiButtonState(){
     pastramiBtn.classList.toggle('is-active', pastramiMode);
     pastramiBtn.setAttribute('aria-pressed', String(pastramiMode));
+    technoField.style.display = pastramiMode ? '' : 'none';
     syncPastramiButtonGradient();
   }
   pastramiBtn.addEventListener('click', ()=>{
@@ -2110,6 +2124,7 @@
   syncPaletteLimitUI();
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
+  technoSlider.addEventListener('input', ()=>{ technoStrength = +technoSlider.value; drawScene(); });
   exportPaletteBtn.addEventListener('click', exportPaletteText);
   loadImageBtn.addEventListener('click', promptForPhotoImport);
   saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));

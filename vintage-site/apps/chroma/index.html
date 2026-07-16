@@ -693,8 +693,6 @@
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
-          <span class="cc-copybox" id="cc-rgbbox" title="Click to copy">RGB —, —, —</span>
-          <button class="ctrl-btn" id="cc-export-palette" title="Export unique palette HEX values">Export Palette</button>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
           <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochromia" aria-pressed="false">Technochromia</button>
@@ -1391,7 +1389,7 @@
   document.querySelector('[data-action="export-palette"]').addEventListener('click', e=>{
     e.stopPropagation();
     closeAllMenus();
-    document.getElementById('cc-export-palette').click();
+    exportPaletteText();
   });
   document.querySelector('[data-action="exit"]').addEventListener('click', e=>{ e.stopPropagation(); doShutdown(); });
   document.querySelector('[data-action="save"]').addEventListener('click', e=>{
@@ -1508,8 +1506,6 @@
   const shuffleBtn = document.getElementById('cc-shuffle');
   const lastSwatchEl = document.getElementById('cc-lastswatch');
   const hexBoxEl = document.getElementById('cc-hexbox');
-  const rgbBoxEl = document.getElementById('cc-rgbbox');
-  const exportPaletteBtn = document.getElementById('cc-export-palette');
   const loadImageBtn = document.getElementById('cc-load-image');
   const saveImageBtn = document.getElementById('cc-save-image');
   const importInput = document.getElementById('cc-photo-import');
@@ -2125,7 +2121,6 @@
   hueSlider.addEventListener('input', ()=>{ importedMode = false; baseHue = +hueSlider.value; drawScene(); });
   weirdSlider.addEventListener('input', ()=>{ strange = +weirdSlider.value; drawScene(); });
   technoSlider.addEventListener('input', ()=>{ technoStrength = +technoSlider.value; drawScene(); });
-  exportPaletteBtn.addEventListener('click', exportPaletteText);
   loadImageBtn.addEventListener('click', promptForPhotoImport);
   saveImageBtn.addEventListener('click', ()=> saveCanvasAsPng(canvas));
   async function processImportedPhotoFile(file){
@@ -2247,7 +2242,6 @@
     if(!lastColor) return;
     lastSwatchEl.style.background = lastColor.hex;
     hexBoxEl.textContent = lastColor.hex;
-    rgbBoxEl.textContent = 'RGB ' + lastColor.r + ', ' + lastColor.g + ', ' + lastColor.b;
   }
   function flashCopied(el, restoreText){ el.textContent = 'Copied!'; setTimeout(()=>{ el.textContent = restoreText; }, 800); }
   canvas.addEventListener('click', e=>{
@@ -2265,13 +2259,6 @@
     showCanvasCtxMenu(e, lastColor);
   });
   hexBoxEl.addEventListener('click', ()=>{ if(!lastColor) return; copyText(lastColor.hex); flashCopied(hexBoxEl, lastColor.hex); });
-  rgbBoxEl.addEventListener('click', ()=>{
-    if(!lastColor) return;
-    const rgbCss = 'rgb(' + lastColor.r + ', ' + lastColor.g + ', ' + lastColor.b + ')';
-    const label = 'RGB ' + lastColor.r + ', ' + lastColor.g + ', ' + lastColor.b;
-    copyText(rgbCss);
-    flashCopied(rgbBoxEl, label);
-  });
   // --- Skew ---
   const skewBtn = document.getElementById('cc-skew-btn');
   const skewSwatchBtn = document.getElementById('cc-skew-swatch');

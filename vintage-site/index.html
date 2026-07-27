@@ -9022,6 +9022,7 @@ function cleanUpDesktopBySort(sortBy) {
 }
 
 function buildDesktopIcons() {
+  snapshotDesktopPositions();
   const wrap = document.getElementById('desktop-icons');
   wrap.innerHTML = '';
   const defaultLayout = buildChaoticDesktopDefaultLayout();

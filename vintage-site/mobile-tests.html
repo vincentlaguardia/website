@@ -84,6 +84,12 @@
     await new Promise(resolve => setTimeout(resolve, 600));
     check('Scrolling cancels long press', !doc.getElementById('ctx-menu'));
     doc.dispatchEvent(new win.PointerEvent('pointercancel', { bubbles: true }));
+    const nativeContext = new win.PointerEvent('contextmenu', {
+      bubbles: true, cancelable: true, pointerType: 'touch', clientX: 40, clientY: 40
+    });
+    launcherItem.dispatchEvent(nativeContext);
+    check('Native touch context menu opens site actions instead', nativeContext.defaultPrevented && !!doc.getElementById('ctx-menu'));
+    win.eval('closeContextMenu()');
     check('Programs available without hover', win.getComputedStyle(doc.getElementById('programs-submenu')).display !== 'none');
     doc.getElementById('start-button').click();
     frame.style.width = '667px'; frame.style.height = '375px';
@@ -98,6 +104,39 @@
     check('Desktop single click does not open app', !doc.querySelector('.win98-window'));
     myComputer.dispatchEvent(new win.MouseEvent('dblclick', { bubbles: true }));
     check('Desktop double click still opens app', !!doc.querySelector('.win98-window'));
+    win.eval('openColorMixer95Window()');
+    const embeddedApp = doc.querySelector('.colormixer95-window iframe');
+    if (!embeddedApp.contentDocument || !embeddedApp.contentDocument.querySelector('link[data-mobile-styles]')) {
+      await new Promise(resolve => embeddedApp.addEventListener('load', resolve, { once: true }));
+    }
+    await settle();
+    const mobileStyles = embeddedApp.contentDocument.querySelector('link[data-mobile-styles]');
+    check('Narrow app iframe preserves desktop layout in desktop shell', mobileStyles.media === 'not all');
+    frame.style.width = '390px';
+    await settle();
+    check('App iframe enables mobile layout with shell', mobileStyles.media === 'all');
+    win.eval('closeWindow("colormixer95"); openPaintWindow()');
+    await settle();
+    const swatches = doc.querySelectorAll('.paint-swatch');
+    check('Paint color targets do not overlap', swatches[1].getBoundingClientRect().left >= swatches[0].getBoundingClientRect().right);
+    check('Paint palette scrolls instead of clipping colors', win.getComputedStyle(doc.querySelector('.paint-palette-row')).overflowX === 'auto');
+    const canvas = doc.querySelector('.paint-canvas');
+    const capture = canvas.setPointerCapture;
+    // Synthetic pointers cannot acquire native capture; exercise the input bridge separately.
+    canvas.setPointerCapture = () => {};
+    const mouseEvents = [];
+    const record = event => mouseEvents.push(event.type);
+    for (const type of ['mousedown', 'mousemove', 'mouseup']) canvas.addEventListener(type, record);
+    const rect = canvas.getBoundingClientRect();
+    for (const type of ['pointerdown', 'pointermove', 'pointercancel']) {
+      canvas.dispatchEvent(new win.PointerEvent(type, {
+        bubbles: true, cancelable: true, pointerType: 'touch', isPrimary: true,
+        pointerId: 7, button: 0, clientX: rect.left + 5, clientY: rect.top + 5
+      }));
+    }
+    check('Touch paint input and cancellation reach existing drawing handlers', mouseEvents.join(',') === 'mousedown,mousemove,mouseup');
+    for (const type of ['mousedown', 'mousemove', 'mouseup']) canvas.removeEventListener(type, record);
+    canvas.setPointerCapture = capture;
     frame.remove();
 
     for (const path of [
@@ -113,6 +152,17 @@
         check(path + ' at ' + width + 'px: no page overflow', appDoc.documentElement.scrollWidth <= width);
       }
       check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));
+      if (path === 'apps/chroma/index.html') {
+        appFrame.style.width = '320px';
+        await settle();
+        check('Chroma image/focus toolbar fits phone width', [...appDoc.querySelectorAll('.cc-lastcolor > *')].every(el => el.getBoundingClientRect().right <= 320));
+        check('Chroma menu controls wrap within phone width', [...appDoc.querySelectorAll('.menubar > .menu-item')].every(el => el.getBoundingClientRect().right <= 320));
+      }
+      if (path.includes('spectrum')) {
+        const lane = appDoc.querySelector('.lane-track').getBoundingClientRect();
+        const ruler = appDoc.querySelector('.ruler-track').getBoundingClientRect();
+        check(path + ': perception lanes align with touch ruler', Math.abs(lane.left - ruler.left) < 1 && Math.abs(lane.width - ruler.width) < 1);
+      }
       appFrame.remove();
     }
   } catch (error) {

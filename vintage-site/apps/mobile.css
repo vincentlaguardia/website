@@ -14,7 +14,7 @@
   }
   .menu-option, .dropdown-item, .dropdown-opt { white-space: normal; }
   .menu-dropdown { top: 100%; max-height: 60dvh; overflow-y: auto; max-width: calc(100vw - 8px); }
-  .toolbar, .ctrlbar, .status-bar { flex-wrap: wrap; }
+  .toolbar, .ctrlbar, .status-bar, .menubar, .menu-bar { flex-wrap: wrap; }
   .tab-bar { flex-wrap: wrap; }
   .toolbar, .ctrlbar { gap: 6px; }
   .window, .dialog, .window.modal { min-width: 0; max-width: 100%; }
@@ -30,19 +30,27 @@
   img, video, iframe { max-width: 100%; }
   input[type="range"] { min-height: 32px; }
   .diary-grid { grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); }
+  #taskbar { height: 48px; }
+  #start-btn, .sm-item { min-height: 44px; }
+  #start-menu { bottom: 50px; max-height: calc(100dvh - 50px); overflow-y: auto; }
+  .tray { display: none; }
 
-  html[data-mobile-app="chroma"] #desktop { height: calc(100dvh - 30px); }
+  html[data-mobile-app="chroma"] #desktop { height: calc(100dvh - 48px); min-height: 0; }
   html[data-mobile-app="chroma"] body.embedded #desktop { height: 100dvh; }
-  html[data-mobile-app="chroma"] #desktop > .window { height: 100% !important; }
+  html[data-mobile-app="chroma"] #desktop > .window { height: 100% !important; overflow-y: auto; }
+  html[data-mobile-app="chroma"] .winbody { flex: 1 0 320px; }
   html[data-mobile-app="chroma"] .cc-wrap { flex: 0 0 240px; }
   html[data-mobile-app="chroma"] .content-panel { flex: 1 0 auto; }
   html[data-mobile-app="chroma"] .ctrlbar { gap: 6px; }
+  html[data-mobile-app="chroma"] .field { min-width: 0; max-width: 100%; }
+  html[data-mobile-app="chroma"] .cc-lastcolor { flex-wrap: wrap; }
 
-  html[data-mobile-app="spectrum"] body > .window { height: calc(100dvh - 30px) !important; }
+  html[data-mobile-app="spectrum"] body > .window { height: calc(100dvh - 48px) !important; }
   html[data-mobile-app="spectrum-embedded"] body > .window { height: 100dvh !important; }
   html[data-mobile-app^="spectrum"] .experience { flex: 0 0 160px; }
+  html[data-mobile-app^="spectrum"] .scale-stack { --gutter: 96px; }
   html[data-mobile-app^="spectrum"] .lane { height: 24px; }
-  html[data-mobile-app^="spectrum"] .lane-label { width: 90px; font-size: 10px; }
+  html[data-mobile-app^="spectrum"] .lane-label { width: calc(var(--gutter) - 6px); font-size: 10px; }
 
   html[data-mobile-app="echo-trail"] body { height: 100dvh; }
   html[data-mobile-app="echo-trail"] .main-area { flex-direction: column; }

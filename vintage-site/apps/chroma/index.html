@@ -130,6 +130,7 @@
     border-bottom:1px solid var(--shadow);
   }
   .mobile-controls{ display:contents; }
+  .mobile-control-label{ display:none; }
   .field{ display:flex; flex-direction:column; gap:3px; font-size:11px; }
   .ctrl-btn{
     font-family:inherit;
@@ -675,7 +676,7 @@
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <button class="ctrl-btn" id="cc-shuffle" type="button" title="Shuffle swatch arrangement" aria-label="Shuffle swatch arrangement">Shuffle</button>
-      <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
+      <div class="field mobile-slider">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
       <div class="match-sat-control">
         <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Chroma: continuously lock Chroma (LCH absolute intensity) to the selected source color" aria-pressed="false">Match Chroma</button>
         <div class="match-source-wrap">
@@ -692,8 +693,8 @@
           <input type="color" id="cc-match-sat-color" value="#fbf432" aria-label="Pick custom chroma source color">
         </div>
       </div>
-      <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
-      <div class="field strange-field">Strange <input type="range" id="cc-weird" min="0" max="180" value="20"></div>
+      <div class="field mobile-slider">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
+      <div class="field strange-field mobile-slider">Strange <input type="range" id="cc-weird" min="0" max="180" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -708,10 +709,10 @@
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
-          <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
-          <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochrome" aria-pressed="false">Technochrome</button>
-          <label class="field" id="techno-field">Technochrome Strength <input type="range" id="cc-techno" min="0" max="100" value="15"></label>
+          <button class="ctrl-btn mobile-action" id="cc-load-image" type="button" title="Open image file"><span class="desktop-control-label">Load Image</span><span class="mobile-control-label">Upload</span></button>
+          <button class="ctrl-btn mobile-action" id="cc-save-image" type="button" title="Save PNG image to your device" aria-label="Save">Save</button>
+          <button class="ctrl-btn mobile-action" id="pastrami-btn" type="button" title="???" aria-pressed="false"><span class="desktop-control-label">Technochrome</span><span class="mobile-control-label">Technochromia</span></button>
+          <label class="field mobile-slider" id="techno-field">Technochrome Strength <input type="range" id="cc-techno" min="0" max="100" value="15"></label>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
           <div class="picker-with-hex">

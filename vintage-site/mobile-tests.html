@@ -46,6 +46,10 @@
     if (invertPreference === null) localStorage.removeItem('desktop.ui.invert');
     else localStorage.setItem('desktop.ui.invert', invertPreference);
     const win = frame.contentWindow, doc = frame.contentDocument;
+    check('Mobile login buttons are compact', ['login-ok', 'login-hint'].every(id => {
+      const height = doc.getElementById(id).getBoundingClientRect().height;
+      return height >= 28 && height <= 32;
+    }));
     check('Mobile starts uninverted even with a saved On preference', !doc.body.classList.contains('desktop-ui-inverted'));
     doc.getElementById('password-input').value = win.eval('SITE_PASSWORD');
     await win.eval('tryLogin()');
@@ -132,7 +136,10 @@
       const appFrame = await load(path, 320);
       const appDoc = appFrame.contentDocument;
       const sizes = [{ width: 320, height: 740 }, { width: 430, height: 740 }];
-      if (path === 'apps/chroma/index.html') sizes.push({ width: 667, height: 375 });
+      if (path === 'apps/chroma/index.html') sizes.push(
+        { width: 375, height: 740 }, { width: 390, height: 740 },
+        { width: 768, height: 1024 }, { width: 667, height: 375 }
+      );
       for (const { width, height } of sizes) {
         appFrame.style.width = width + 'px';
         appFrame.style.height = height + 'px';
@@ -141,12 +148,45 @@
         if (path === 'apps/chroma/index.html') {
           const appWin = appFrame.contentWindow;
           const main = appDoc.querySelector('#desktop > .window');
-          const controls = appDoc.querySelector('.ctrlbar');
+          const controls = appDoc.querySelector('.mobile-controls');
           const canvas = appDoc.getElementById('cc-canvas');
           const canvasRect = canvas.getBoundingClientRect();
-          check('Chroma ' + width + 'px: no hidden horizontal control overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth <= controls.clientWidth);
-          check('Chroma ' + width + 'px: canvas visible before controls', canvasRect.top >= 0 && canvasRect.bottom < appFrame.clientHeight && canvasRect.bottom <= controls.getBoundingClientRect().top);
-          check('Chroma ' + width + 'px: every control fits horizontally', [...controls.querySelectorAll('button, input')].filter(el => el.getClientRects().length).every(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= width; }));
+          check('Chroma ' + width + 'px: controls scroll horizontally without page overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth > controls.clientWidth && appWin.getComputedStyle(controls).overflowX === 'auto');
+          check('Chroma ' + width + 'px: canvas stays square and nearly phone-width', Math.abs(canvasRect.width - canvasRect.height) < 1 && canvasRect.width >= width * 0.9 && canvas.width === canvas.height);
+          check('Chroma ' + width + 'px: canvas appears before controls', canvasRect.top >= 0 && canvasRect.bottom <= controls.getBoundingClientRect().top);
+          check('Chroma ' + width + 'px: controls have exactly three rows', appWin.getComputedStyle(controls).gridTemplateRows.split(' ').length === 3);
+          check('Chroma ' + width + 'px: Technochrome and Strange are first', ['cc-techno', 'cc-weird'].every(id => {
+            const rect = appDoc.getElementById(id).getBoundingClientRect();
+            return rect.left >= 0 && rect.right <= width;
+          }) && appDoc.getElementById('cc-techno').getBoundingClientRect().top < appDoc.getElementById('cc-weird').getBoundingClientRect().top);
+          for (const [selector, menuId] of [
+            ['[data-menu="file"]', 'dropdown-file'], ['[data-menu="dots"]', 'dropdown-dots'],
+            ['#cc-style-btn', 'cc-style-dropdown'], ['#cc-palette-limit-btn', 'cc-palette-limit-dropdown'],
+            ['#cc-match-source-btn', 'cc-match-source-dropdown']
+          ]) {
+            const button = appDoc.querySelector(selector);
+            button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            await settle();
+            button.click();
+            await settle();
+            const menu = appDoc.getElementById(menuId);
+            const rect = menu.getBoundingClientRect();
+            check('Chroma ' + width + 'px: ' + menuId + ' escapes scroller and stays onscreen', menu.classList.contains('show') && rect.left >= 0 && rect.right <= width && rect.top >= 0 && rect.bottom <= height);
+            appDoc.body.click();
+          }
+          main.scrollTop = 0;
+          controls.scrollLeft = 0;
+          await settle();
+          for (const id of ['cc-techno', 'cc-weird']) {
+            const slider = appDoc.getElementById(id);
+            const original = slider.value;
+            const before = canvas.toDataURL();
+            slider.value = slider.max;
+            slider.dispatchEvent(new appWin.Event('input', { bubbles: true }));
+            check('Chroma ' + width + 'px: ' + id + ' updates the grid', canvas.toDataURL() !== before);
+            slider.value = original;
+            slider.dispatchEvent(new appWin.Event('input', { bubbles: true }));
+          }
           canvas.dispatchEvent(new appWin.MouseEvent('click', { bubbles: true, clientX: canvasRect.left + canvasRect.width / 2, clientY: canvasRect.top + canvasRect.height / 2 }));
           check('Chroma ' + width + 'px: tapping canvas selects a color', /^#[0-9A-F]{6}$/.test(appDoc.getElementById('cc-hexbox').textContent));
           appDoc.getElementById('cc-diary-open').click();
@@ -156,9 +196,19 @@
           diaryClose.click();
           check('Chroma ' + width + 'px: diary can be dismissed', !appDoc.getElementById('diary-dialog').classList.contains('show'));
           appDoc.getElementById('cc-save-image').scrollIntoView();
-          check('Chroma ' + width + 'px: lower controls reachable by scrolling', appDoc.getElementById('cc-save-image').getBoundingClientRect().bottom <= appFrame.clientHeight);
+          const saveRect = appDoc.getElementById('cc-save-image').getBoundingClientRect();
+          check('Chroma ' + width + 'px: later controls reachable by scrolling', saveRect.bottom <= appFrame.clientHeight && saveRect.left >= 0 && saveRect.right <= width);
           main.scrollTop = 0;
+          controls.scrollLeft = 0;
         }
+      }
+      if (path === 'apps/chroma/index.html') {
+        appFrame.style.width = '1280px';
+        appFrame.style.height = '1000px';
+        await settle();
+        const appWin = appFrame.contentWindow;
+        check('Desktop Chroma keeps original control layout', appWin.getComputedStyle(appDoc.querySelector('.mobile-controls')).display === 'contents' && appWin.getComputedStyle(appDoc.querySelector('.ctrlbar')).display === 'flex');
+        check('Desktop Chroma keeps original control order', appDoc.querySelector('.menubar').getBoundingClientRect().top < appDoc.querySelector('.ctrlbar').getBoundingClientRect().top && appDoc.querySelector('.ctrlbar').getBoundingClientRect().bottom <= appDoc.querySelector('.winbody').getBoundingClientRect().top);
       }
       check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));
       appFrame.remove();

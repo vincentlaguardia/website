@@ -7,6 +7,7 @@
   #login-fields { min-width: 0; }
   input, select, textarea, #password-input { font-size: 16px !important; }
   button, .win98-button { min-height: 44px; }
+  #login-buttons .win98-button { min-height: 28px; padding: 3px 16px; }
   #desktop-icons {
     bottom: var(--mobile-taskbar-height);
     padding: 8px;

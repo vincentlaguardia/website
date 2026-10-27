@@ -31,21 +31,13 @@
   input[type="range"] { min-height: 32px; }
   .diary-grid { grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); }
 
-  html[data-mobile-app="chroma"] #desktop { height: calc(100dvh - 32px); min-height: 0; }
+  html[data-mobile-app="chroma"] #desktop { height: 100dvh; min-height: 0; }
   html[data-mobile-app="chroma"] body.embedded #desktop { height: 100dvh; }
   html[data-mobile-app="chroma"] #desktop > .window { height: 100% !important; overflow-y: auto; overflow-x: hidden; }
-  html[data-mobile-app="chroma"] .menubar {
-    flex-wrap: nowrap;
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-  }
-  html[data-mobile-app="chroma"] .menubar > .menu-item {
-    flex: 0 0 auto;
-    min-height: 44px;
-    padding: 3px 6px;
-    white-space: nowrap;
-  }
+  html[data-mobile-app="chroma"] .menubar,
+  html[data-mobile-app="chroma"] #taskbar,
+  html[data-mobile-app="chroma"] #start-menu,
+  html[data-mobile-app="chroma"] #desktop > .window > .titlebar .titlebar-btns { display: none; }
   html[data-mobile-app="chroma"] #desktop > .window > .winbody {
     order: 1;
     flex: 0 0 auto;
@@ -71,10 +63,16 @@
   html[data-mobile-app="chroma"] .ctrlbar,
   html[data-mobile-app="chroma"] .lastcolor-field,
   html[data-mobile-app="chroma"] .cc-lastcolor { display: contents; }
-  html[data-mobile-app="chroma"] .lastcolor-label { display: none; }
-  html[data-mobile-app="chroma"] #techno-field { order: -3; }
-  html[data-mobile-app="chroma"] .strange-field { order: -2; }
-  html[data-mobile-app="chroma"] #pastrami-btn { order: -1; }
+  html[data-mobile-app="chroma"] .ctrlbar > :not(.mobile-slider):not(.lastcolor-field),
+  html[data-mobile-app="chroma"] .lastcolor-label,
+  html[data-mobile-app="chroma"] .cc-lastcolor > :not(.mobile-slider):not(.mobile-action),
+  html[data-mobile-app="chroma"] .desktop-control-label { display: none; }
+  html[data-mobile-app="chroma"] .mobile-control-label { display: inline; }
+  html[data-mobile-app="chroma"] #pastrami-btn { order: -3; }
+  html[data-mobile-app="chroma"] #techno-field { order: -2; }
+  html[data-mobile-app="chroma"] .strange-field { order: -1; }
+  html[data-mobile-app="chroma"] #cc-load-image { order: 1; }
+  html[data-mobile-app="chroma"] #cc-save-image { order: 2; }
   html[data-mobile-app="chroma"] .mobile-controls .field { min-width: 0; }
   html[data-mobile-app="chroma"] .ctrlbar .ctrl-btn { white-space: normal; }
   html[data-mobile-app="chroma"] .ctrlbar input[type="range"] { width: 100%; }

@@ -153,36 +153,25 @@
           const canvas = appDoc.getElementById('cc-canvas');
           const canvasRect = canvas.getBoundingClientRect();
           check('Chroma ' + width + 'px: controls scroll horizontally without page overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth > controls.clientWidth && appWin.getComputedStyle(controls).overflowX === 'auto');
-          check('Chroma ' + width + 'px: menu stays above canvas and outside controls', menubar.parentElement === main && menubar.getBoundingClientRect().bottom <= canvasRect.top && !controls.contains(menubar));
-          check('Chroma ' + width + 'px: Diary is only in the menu and Diary+ is the sole diary control', !appDoc.getElementById('cc-diary-open') && !!appDoc.getElementById('cc-diary-add') && appDoc.getElementById('menu-diary').textContent.trim() === 'Diary');
+          const visible = element => element.getClientRects().length > 0 && appWin.getComputedStyle(element).visibility !== 'hidden';
+          check('Chroma ' + width + 'px: menus and standalone taskbar are hidden', !visible(menubar) && !visible(appDoc.getElementById('taskbar')));
+          check('Chroma ' + width + 'px: only three buttons and sliders remain', [...controls.querySelectorAll('button, input, select, [tabindex]')].filter(visible).every(element =>
+            element.matches('input[type="range"], #pastrami-btn, #cc-load-image, #cc-save-image')
+          ) && [...controls.querySelectorAll('button')].filter(visible).length === 3);
+          check('Chroma ' + width + 'px: mobile button labels', ['pastrami-btn', 'cc-load-image', 'cc-save-image'].map(id => appDoc.getElementById(id).innerText.trim()).join(',') === 'Technochromia,Upload,Save');
           check('Chroma ' + width + 'px: canvas stays square and nearly phone-width', Math.abs(canvasRect.width - canvasRect.height) < 1 && canvasRect.width >= width * 0.9 && canvas.width === canvas.height);
           check('Chroma ' + width + 'px: canvas appears before controls', canvasRect.top >= 0 && canvasRect.bottom <= controls.getBoundingClientRect().top);
           check('Chroma ' + width + 'px: controls retain three rows', appWin.getComputedStyle(controls).gridTemplateRows.split(' ').length === 3);
           check('Chroma ' + width + 'px: scrolling columns have no horizontal gap', appWin.getComputedStyle(controls).columnGap === '0px');
-          check('Chroma ' + width + 'px: top menu omits Techno and Technochrome', [...menubar.querySelectorAll('.menu-item')].map(item => item.textContent.trim()).join(',') === 'File,Dots,Diary,About');
           check('Chroma ' + width + 'px: sliders have transparent, non-recessed touch areas', [...appDoc.querySelectorAll('input[type="range"]')].every(slider => {
             const style = appWin.getComputedStyle(slider);
             return style.backgroundColor === 'rgba(0, 0, 0, 0)' && style.boxShadow === 'none' && slider.getBoundingClientRect().height >= 32;
           }));
-          check('Chroma ' + width + 'px: Technochrome and Strange are first', ['cc-techno', 'cc-weird'].every(id => {
+          check('Chroma ' + width + 'px: Technochromia is first, followed by Strength and Strange', ['pastrami-btn', 'cc-techno', 'cc-weird'].every(id => {
             const rect = appDoc.getElementById(id).getBoundingClientRect();
             return rect.left >= 0 && rect.right <= width;
-          }) && appDoc.getElementById('cc-techno').getBoundingClientRect().top < appDoc.getElementById('cc-weird').getBoundingClientRect().top);
-          for (const [selector, menuId] of [
-            ['[data-menu="file"]', 'dropdown-file'], ['[data-menu="dots"]', 'dropdown-dots'],
-            ['#cc-style-btn', 'cc-style-dropdown'], ['#cc-palette-limit-btn', 'cc-palette-limit-dropdown'],
-            ['#cc-match-source-btn', 'cc-match-source-dropdown']
-          ]) {
-            const button = appDoc.querySelector(selector);
-            button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-            await settle();
-            button.click();
-            await settle();
-            const menu = appDoc.getElementById(menuId);
-            const rect = menu.getBoundingClientRect();
-            check('Chroma ' + width + 'px: ' + menuId + ' escapes scroller and stays onscreen', menu.classList.contains('show') && rect.left >= 0 && rect.right <= width && rect.top >= 0 && rect.bottom <= height);
-            appDoc.body.click();
-          }
+          }) && appDoc.getElementById('pastrami-btn').getBoundingClientRect().top < appDoc.getElementById('cc-techno').getBoundingClientRect().top &&
+            appDoc.getElementById('cc-techno').getBoundingClientRect().top < appDoc.getElementById('cc-weird').getBoundingClientRect().top);
           main.scrollTop = 0;
           controls.scrollLeft = 0;
           await settle();
@@ -198,12 +187,6 @@
           }
           canvas.dispatchEvent(new appWin.MouseEvent('click', { bubbles: true, clientX: canvasRect.left + canvasRect.width / 2, clientY: canvasRect.top + canvasRect.height / 2 }));
           check('Chroma ' + width + 'px: tapping canvas selects a color', /^#[0-9A-F]{6}$/.test(appDoc.getElementById('cc-hexbox').textContent));
-          appDoc.getElementById('menu-diary').click();
-          const diaryClose = appDoc.getElementById('diary-close');
-          const closeRect = diaryClose.getBoundingClientRect();
-          check('Chroma ' + width + 'px: embedded diary has visible close control', appWin.getComputedStyle(diaryClose.closest('.titlebar')).display !== 'none' && closeRect.top >= 0 && closeRect.right <= width);
-          diaryClose.click();
-          check('Chroma ' + width + 'px: diary can be dismissed', !appDoc.getElementById('diary-dialog').classList.contains('show'));
           appDoc.getElementById('cc-save-image').scrollIntoView();
           const saveRect = appDoc.getElementById('cc-save-image').getBoundingClientRect();
           check('Chroma ' + width + 'px: later controls reachable by scrolling', saveRect.bottom <= appFrame.clientHeight && saveRect.left >= 0 && saveRect.right <= width);
@@ -212,14 +195,53 @@
         }
       }
       if (path === 'apps/chroma/index.html') {
+        const appWin = appFrame.contentWindow;
+        const importInput = appDoc.getElementById('cc-photo-import');
+        let openedPicker = false;
+        importInput.click = () => { openedPicker = true; };
+        appDoc.getElementById('cc-load-image').click();
+        check('Mobile Chroma Upload opens the image picker', openedPicker && importInput.accept === 'image/*');
+        delete importInput.click;
+        const sample = appDoc.createElement('canvas');
+        sample.width = sample.height = 10;
+        sample.getContext('2d').fillStyle = '#ff0000';
+        sample.getContext('2d').fillRect(0, 0, 10, 10);
+        const photo = await new Promise(resolve => sample.toBlob(resolve, 'image/png'));
+        const transfer = new appWin.DataTransfer();
+        transfer.items.add(new appWin.File([photo], 'mobile-photo.png', { type: 'image/png' }));
+        const beforeUpload = appDoc.getElementById('cc-canvas').toDataURL();
+        importInput.files = transfer.files;
+        importInput.dispatchEvent(new appWin.Event('change', { bubbles: true }));
+        for (let attempt = 0; attempt < 20 && importInput.value; attempt++) await settle();
+        check('Mobile Chroma Upload imports a phone photo as a palette', appDoc.getElementById('cc-style-btn').textContent.includes('Photo Palette') &&
+          appDoc.getElementById('cc-canvas').toDataURL() !== beforeUpload && importInput.value === '');
+        const originalClick = appWin.HTMLAnchorElement.prototype.click;
+        let download;
+        try {
+          download = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Save did not download an image')), 5000);
+            appWin.HTMLAnchorElement.prototype.click = function() {
+              clearTimeout(timeout);
+              resolve({ name: this.download, url: this.href });
+            };
+            appDoc.getElementById('cc-save-image').click();
+          });
+        } finally {
+          appWin.HTMLAnchorElement.prototype.click = originalClick;
+        }
+        const savedImage = await appWin.fetch(download.url).then(response => response.blob());
+        check('Mobile Chroma Save downloads a PNG to the device', /^technochrome-palette-.*\.png$/.test(download.name) &&
+          download.url.startsWith('blob:') && savedImage.type === 'image/png' && savedImage.size > 0);
         appFrame.style.width = '1280px';
         appFrame.style.height = '1000px';
         await settle();
-        const appWin = appFrame.contentWindow;
         check('Desktop Chroma keeps original control layout', appWin.getComputedStyle(appDoc.querySelector('.mobile-controls')).display === 'contents' && appWin.getComputedStyle(appDoc.querySelector('.ctrlbar')).display === 'flex');
         check('Desktop Chroma keeps original control order', appDoc.querySelector('.menubar').getBoundingClientRect().top < appDoc.querySelector('.ctrlbar').getBoundingClientRect().top && appDoc.querySelector('.ctrlbar').getBoundingClientRect().bottom <= appDoc.querySelector('.winbody').getBoundingClientRect().top);
         check('Desktop Chroma keeps Diary+ without a separate Diary button', !appDoc.getElementById('cc-diary-open') && !!appDoc.getElementById('cc-diary-add'));
         check('Desktop Chroma top menu omits Techno and Technochrome', !appDoc.getElementById('menu-help') && !appDoc.getElementById('menu-techno'));
+        check('Desktop Chroma keeps original button labels and extra controls', appDoc.getElementById('cc-load-image').innerText.trim() === 'Load Image' &&
+          appDoc.getElementById('pastrami-btn').innerText.trim() === 'Technochrome' && appDoc.getElementById('cc-shuffle').getBoundingClientRect().width > 0 &&
+          appWin.getComputedStyle(appDoc.querySelector('.menubar')).display !== 'none');
       }
       check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));
       appFrame.remove();

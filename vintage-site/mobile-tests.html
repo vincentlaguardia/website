@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile Layout Tests</title>
+<style>
+  body { font-family: monospace; background: #c0c0c0; }
+  .pass { color: green; } .fail { color: red; }
+  iframe { display: block; border: 0; margin-top: 12px; }
+</style>
+</head>
+<body>
+<h1>Mobile Layout Tests</h1>
+<div id="results"></div>
+<div id="summary">Running…</div>
+<script>
+(async () => {
+  let passed = 0, failed = 0;
+  const results = document.getElementById('results');
+  function check(name, condition) {
+    const row = document.createElement('div');
+    row.className = condition ? 'pass' : 'fail';
+    row.textContent = (condition ? 'PASS ' : 'FAIL ') + name;
+    results.appendChild(row);
+    if (condition) passed++; else failed++;
+  }
+  function settle() { return new Promise(resolve => setTimeout(resolve, 150)); }
+  async function load(path, width, height = 740) {
+    const frame = document.createElement('iframe');
+    frame.style.width = width + 'px';
+    frame.style.height = height + 'px';
+    frame.src = path;
+    await new Promise((resolve, reject) => {
+      frame.onload = resolve;
+      frame.onerror = reject;
+      document.body.appendChild(frame);
+    });
+    await settle();
+    return frame;
+  }
+  try {
+    const frame = await load('index.html', 390);
+    const win = frame.contentWindow, doc = frame.contentDocument;
+    doc.getElementById('login-screen').style.display = 'none';
+    doc.getElementById('desktop').style.display = 'block';
+    win.eval('buildDesktopIcons()');
+    const icon = doc.querySelector('.desktop-icon-item');
+    check('Mobile icons use a flow layout', win.getComputedStyle(icon).position === 'static');
+    const myComputer = [...doc.querySelectorAll('.desktop-icon-item')].find(el => el.textContent.includes('My Computer'));
+    myComputer.click();
+    await settle();
+    check('One tap opens My Computer', !!doc.querySelector('.win98-window'));
+    const app = doc.querySelector('.win98-window');
+    const bounds = () => ['left', 'top', 'width', 'height'].map(key => app.style[key]).join(',');
+    const originalBounds = bounds();
+    for (const width of [320, 375, 390, 430, 768]) {
+      frame.style.width = width + 'px';
+      await settle();
+      const rect = app.getBoundingClientRect();
+      check(width + 'px: no shell page overflow', doc.documentElement.scrollWidth <= width);
+      check(width + 'px: window fits above taskbar', rect.left === 0 && rect.right <= width && rect.bottom <= doc.getElementById('taskbar').getBoundingClientRect().top + 1);
+      check(width + 'px: close control has a 44px target', app.querySelector('[data-action="close"]').getBoundingClientRect().width >= 44);
+    }
+    app.querySelector('[data-action="min"]').click();
+    check('Minimize hides app', app.style.display === 'none');
+    doc.querySelector('.taskbar-item').click();
+    check('Taskbar restores minimized app', app.style.display !== 'none');
+    doc.getElementById('start-button').click();
+    frame.style.width = '390px';
+    const launcherItem = [...doc.querySelectorAll('.desktop-icon-item')].find(el => el.dataset.itemId);
+    launcherItem.dispatchEvent(new win.PointerEvent('pointerdown', {
+      bubbles: true, pointerType: 'touch', button: 0, clientX: 40, clientY: 40
+    }));
+    await new Promise(resolve => setTimeout(resolve, 600));
+    check('Long press opens item actions', !!doc.getElementById('ctx-menu'));
+    launcherItem.dispatchEvent(new win.PointerEvent('pointerup', { bubbles: true }));
+    launcherItem.click();
+    win.eval('closeContextMenu()');
+    launcherItem.dispatchEvent(new win.PointerEvent('pointerdown', {
+      bubbles: true, pointerType: 'touch', button: 0, clientX: 40, clientY: 40
+    }));
+    doc.dispatchEvent(new win.PointerEvent('pointermove', { bubbles: true, clientX: 40, clientY: 90 }));
+    await new Promise(resolve => setTimeout(resolve, 600));
+    check('Scrolling cancels long press', !doc.getElementById('ctx-menu'));
+    doc.dispatchEvent(new win.PointerEvent('pointercancel', { bubbles: true }));
+    check('Programs available without hover', win.getComputedStyle(doc.getElementById('programs-submenu')).display !== 'none');
+    doc.getElementById('start-button').click();
+    frame.style.width = '667px'; frame.style.height = '375px';
+    await settle();
+    check('Landscape keeps close control above taskbar', app.querySelector('[data-action="close"]').getBoundingClientRect().bottom < doc.getElementById('taskbar').getBoundingClientRect().top);
+    frame.style.width = '1280px'; frame.style.height = '900px';
+    await settle();
+    check('Desktop icon positioning restored', win.getComputedStyle(icon).position === 'absolute');
+    check('Desktop window bounds unchanged', bounds() === originalBounds);
+    app.querySelector('[data-action="close"]').click();
+    myComputer.click();
+    check('Desktop single click does not open app', !doc.querySelector('.win98-window'));
+    myComputer.dispatchEvent(new win.MouseEvent('dblclick', { bubbles: true }));
+    check('Desktop double click still opens app', !!doc.querySelector('.win98-window'));
+    frame.remove();
+
+    for (const path of [
+      'apps/chroma/index.html', 'apps/chroma/diary.html', 'apps/echo-trail/index.html',
+      'apps/macro-diary/index.html', 'apps/static/index.html', 'apps/spectrum/index.html',
+      'apps/spectrumindex.html', 'apps/colormixer95/colormixer95.html', 'apps/flightindex.html'
+    ]) {
+      const appFrame = await load(path, 320);
+      const appDoc = appFrame.contentDocument;
+      for (const width of [320, 430]) {
+        appFrame.style.width = width + 'px';
+        await settle();
+        check(path + ' at ' + width + 'px: no page overflow', appDoc.documentElement.scrollWidth <= width);
+      }
+      check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));
+      appFrame.remove();
+    }
+  } catch (error) {
+    check('Unexpected error: ' + error.message, false);
+  }
+  document.getElementById('summary').textContent = passed + ' passed, ' + failed + ' failed';
+})();
+</script>
+</body>
+</html>

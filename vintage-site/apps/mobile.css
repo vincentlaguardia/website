@@ -1,0 +1,73 @@
+/* Shared small-screen rules for standalone apps and their desktop iframes. */
+@media (max-width: 768px), (max-width: 1024px) and (max-height: 500px) and (pointer: coarse) {
+  html, body { margin: 0; max-width: 100%; }
+  body { padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; }
+  input, select, textarea { font-size: 16px !important; max-width: 100%; min-width: 0; }
+  button, .btn95, .ctrl-btn, .win-btn, .tbtn, .menu-item, .menu-option,
+  .dropdown-item, .dropdown-opt, .ctx-option, .tab {
+    min-height: 44px;
+  }
+  .tbtn, .title-bar-controls button { min-width: 44px; height: 44px; line-height: 40px; }
+  .menu-item, .menu-option, .dropdown-item, .dropdown-opt, .ctx-option, .tab {
+    display: flex; align-items: center;
+  }
+  .menu-option, .dropdown-item, .dropdown-opt { white-space: normal; }
+  .menu-dropdown { top: 100%; max-height: 60dvh; overflow-y: auto; max-width: calc(100vw - 8px); }
+  .toolbar, .ctrlbar, .status-bar { flex-wrap: wrap; }
+  .tab-bar { flex-wrap: wrap; }
+  .toolbar, .ctrlbar { gap: 6px; }
+  .window, .dialog, .window.modal { min-width: 0; max-width: 100%; }
+  body > .window, #desktop > .window {
+    left: 0 !important; top: 0 !important; transform: none !important;
+    width: 100% !important; min-height: 0;
+  }
+  #desktop { padding: 0; min-height: 100%; }
+  .winbody, .content-panel, .body95, .content { min-width: 0; }
+  .winbody { overflow-y: auto; }
+  .resize-handle { display: none; }
+  .dialog, .window.modal { max-height: 90dvh; overflow-y: auto; }
+  img, video, iframe { max-width: 100%; }
+  input[type="range"] { min-height: 32px; }
+  .diary-grid { grid-template-columns: repeat(auto-fit, minmax(48px, 1fr)); }
+
+  html[data-mobile-app="chroma"] #desktop { height: calc(100dvh - 30px); }
+  html[data-mobile-app="chroma"] body.embedded #desktop { height: 100dvh; }
+  html[data-mobile-app="chroma"] #desktop > .window { height: 100% !important; }
+  html[data-mobile-app="chroma"] .cc-wrap { flex: 0 0 240px; }
+  html[data-mobile-app="chroma"] .content-panel { flex: 1 0 auto; }
+  html[data-mobile-app="chroma"] .ctrlbar { gap: 6px; }
+
+  html[data-mobile-app="spectrum"] body > .window { height: calc(100dvh - 30px) !important; }
+  html[data-mobile-app="spectrum-embedded"] body > .window { height: 100dvh !important; }
+  html[data-mobile-app^="spectrum"] .experience { flex: 0 0 160px; }
+  html[data-mobile-app^="spectrum"] .lane { height: 24px; }
+  html[data-mobile-app^="spectrum"] .lane-label { width: 90px; font-size: 10px; }
+
+  html[data-mobile-app="echo-trail"] body { height: 100dvh; }
+  html[data-mobile-app="echo-trail"] .main-area { flex-direction: column; }
+  html[data-mobile-app="echo-trail"] .canvas-panel { flex: 0 0 220px; }
+  html[data-mobile-app="echo-trail"] .controls-panel { flex: 0 0 auto; overflow: visible; }
+  html[data-mobile-app="echo-trail"] .control-row input[type="range"] { width: 0; min-width: 44px; }
+  html[data-mobile-app="echo-trail"] .text-layer-row { flex-wrap: wrap; }
+  html[data-mobile-app="echo-trail"] .text-layer-text { flex: 1 0 100%; order: 1; }
+  html[data-mobile-app="echo-trail"] .text-layer-icon-btn,
+  html[data-mobile-app="echo-trail"] .text-layer-select { min-width: 44px; flex-basis: 44px; }
+  html[data-mobile-app="echo-trail"] .text-layer-font-select,
+  html[data-mobile-app="echo-trail"] .text-layer-blend-select { flex: 1 1 90px; }
+  html[data-mobile-app="echo-trail"] .status-field { min-width: 0; overflow-wrap: anywhere; }
+
+  html[data-mobile-app="colormixer95"] #mainWindow { height: 100dvh; }
+  html[data-mobile-app="colormixer95"] .modegrid { grid-template-columns: minmax(0, 1fr); }
+  html[data-mobile-app="colormixer95"] .colorswrap { flex-direction: column; }
+  html[data-mobile-app="colormixer95"] .paletteBtnCol { flex-basis: auto; padding: 0; border: 0; }
+  html[data-mobile-app="colormixer95"] .palettegrid { grid-template-columns: minmax(0, 1fr); }
+  html[data-mobile-app="colormixer95"] .samplerow { --rowh: 44px; }
+  html[data-mobile-app="colormixer95"] fieldset { min-width: 0; padding: 8px; }
+
+  html[data-mobile-app="static"] fieldset { min-width: 0; }
+  html[data-mobile-app="static"] .content { overflow: auto; }
+  html[data-mobile-app="static"] .garment-table { display: block; overflow-x: auto; }
+  html[data-mobile-app="static"] .row { flex-wrap: wrap; }
+  html[data-mobile-app="static"] .coef-number { font-size: 30px; }
+}

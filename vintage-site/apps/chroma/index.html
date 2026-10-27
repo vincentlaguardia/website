@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>technochromia</title>
+<title>technochrome</title>
 <script src="../../content/_assets/private/site-fonts.js" data-provider-only="true"></script>
 <style>
   :root{
@@ -564,7 +564,7 @@
     padding:2px;
     display:none;
   }
-  /* technochromia */
+  /* technochrome */
   #pastrami-btn{
     background:var(--face);
     font-weight:400;
@@ -589,7 +589,7 @@
     <div class="titlebar">
       <div class="titlebar-left">
         <span class="titlebar-icon"></span>
-        <span id="win-title">technochromia</span>
+        <span id="win-title">technochrome</span>
       </div>
       <div class="titlebar-btns">
         <div class="tbtn" id="btn-min" title="Minimize">_</div>
@@ -602,7 +602,7 @@
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
       <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Techno</div>
-      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Technochromia</div>
+      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Technochrome</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
@@ -694,8 +694,8 @@
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
           <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
           <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochromia" aria-pressed="false">Technochromia</button>
-          <label class="field" id="techno-field">Technochromia Strength <input type="range" id="cc-techno" min="0" max="100" value="15"></label>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochrome" aria-pressed="false">Technochrome</button>
+          <label class="field" id="techno-field">Technochrome Strength <input type="range" id="cc-techno" min="0" max="100" value="15"></label>
           <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
           <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
           <div class="picker-with-hex">
@@ -844,7 +844,7 @@
 </div>
 <div id="techno-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Technochromia</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Technochrome</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="techno-close">X</div></div>
   </div>
   <div class="winbody">
@@ -954,7 +954,7 @@
 </div>
 <div id="diary-dialog" class="dialog">
   <div class="titlebar">
-    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary — technochromia</span></div>
+    <div class="titlebar-left"><span class="titlebar-icon"></span><span>Color Diary — technochrome</span></div>
     <div class="titlebar-btns"><div class="tbtn" id="diary-close" title="Close">X</div></div>
   </div>
   <div class="winbody">
@@ -978,14 +978,14 @@
 </div>
 <div id="taskbar">
   <div id="start-btn"><span class="flag"></span>Start</div>
-  <div class="task-item raised"><span class="task-icon"></span>technochromia</div>
+  <div class="task-item raised"><span class="task-icon"></span>technochrome</div>
   <div class="tray" id="tray-clock">--:-- --</div>
 </div>
 <div id="start-menu" class="raised">
   <div class="sm-item" id="sm-programs">Programs</div>
   <div class="sm-item" id="sm-folder">Apps Folder</div>
   <div class="sm-item" id="sm-help">Techno</div>
-  <div class="sm-item" id="sm-techno">Technochromia</div>
+  <div class="sm-item" id="sm-techno">Technochrome</div>
   <div class="sm-item" id="sm-about">About</div>
   <div class="menu-sep"></div>
   <div class="sm-item" id="sm-shutdown">Shut Down...</div>
@@ -993,7 +993,7 @@
 <div id="shutdown-overlay">
   <div>
     <div id="shutdown-text">It is now safe to close this browser tab.</div>
-    <button class="win-btn" id="restart-btn">Restart technochromia</button>
+    <button class="win-btn" id="restart-btn">Restart technochrome</button>
   </div>
 </div>
 <input type="file" id="cc-photo-import" accept="image/*" style="display:none;">
@@ -1229,13 +1229,13 @@
   async function saveCanvasAsPng(canvasEl){
     try{
       const blob = await canvasToBlob(canvasEl, 'image/png');
-      downloadBlob('technochromia-palette-' + timestampTag() + '.png', blob);
+      downloadBlob('technochrome-palette-' + timestampTag() + '.png', blob);
     } catch(err){
       alertSaveFailure('chroma: save failed', err);
     }
   }
   async function saveCanvasToDesktop(canvasEl){
-    const defaultName = 'technochromia-palette-' + timestampTag() + '.png';
+    const defaultName = 'technochrome-palette-' + timestampTag() + '.png';
     if(window.isSecureContext && typeof window.showSaveFilePicker === 'function'){
       try{
         const handle = await window.showSaveFilePicker({
@@ -1401,7 +1401,7 @@
     e.stopPropagation();
     closeAllMenus();
     const link = document.createElement('a');
-    link.download = 'technochromia-palette-' + timestampTag() + '.jpg';
+    link.download = 'technochrome-palette-' + timestampTag() + '.jpg';
     link.href = canvas.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
     link.click();
   });
@@ -1727,7 +1727,7 @@
       alert('No palette colors were found to export.');
       return;
     }
-    downloadTextFile('technochromia-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
+    downloadTextFile('technochrome-palette-' + timestampTag() + '.txt', unique.join('\n') + '\n');
   }
   function buildPaletteText(){
     const unique = [], seen = new Set();
@@ -2043,7 +2043,7 @@
     pastramiMode = !pastramiMode;
     syncPastramiButtonState();
     applyPastramiDropdown();
-    // If current philosophy is not allowed in Technochromia, switch it
+    // If current philosophy is not allowed in Technochrome, switch it
     if(pastramiMode && (philoIdx === 2 || philoIdx === 4)){
       philoIdx = randomPastramiPhiloIdx();
       styleBtn.innerHTML = PHILOSOPHIES[philoIdx].name + ' &#9662;';
@@ -2561,7 +2561,7 @@
     cx.fillStyle = '#000000';
     cx.font = 'bold 13px Tahoma,Arial,sans-serif';
     cx.textAlign = 'left';
-    cx.fillText('technochromia — Color Diary', DIARY_EXPORT_CANVAS_PADDING, DIARY_EXPORT_CANVAS_PADDING + 14);
+    cx.fillText('technochrome — Color Diary', DIARY_EXPORT_CANVAS_PADDING, DIARY_EXPORT_CANVAS_PADDING + 14);
     diaryColors.forEach((color, i)=>{
       const col = i % gridColumns;
       const row = Math.floor(i / gridColumns);
@@ -2581,7 +2581,7 @@
       cx.fillText(color.r + ',' + color.g + ',' + color.b, x + DIARY_EXPORT_SWATCH_WIDTH / 2, y + DIARY_EXPORT_SWATCH_HEIGHT / 2 + 8);
     });
     const link = document.createElement('a');
-    link.download = 'technochromia-diary-' + timestampTag() + '.jpg';
+    link.download = 'technochrome-diary-' + timestampTag() + '.jpg';
     link.href = c.toDataURL('image/jpeg', EXPORT_JPEG_QUALITY);
     link.click();
   }

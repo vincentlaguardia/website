@@ -40,13 +40,29 @@
     return frame;
   }
   try {
+    const invertPreference = localStorage.getItem('desktop.ui.invert');
+    localStorage.setItem('desktop.ui.invert', 'true');
     const frame = await load('index.html', 390);
+    if (invertPreference === null) localStorage.removeItem('desktop.ui.invert');
+    else localStorage.setItem('desktop.ui.invert', invertPreference);
     const win = frame.contentWindow, doc = frame.contentDocument;
-    doc.getElementById('login-screen').style.display = 'none';
-    doc.getElementById('desktop').style.display = 'block';
-    win.eval('buildDesktopIcons()');
+    check('Mobile starts uninverted even with a saved On preference', !doc.body.classList.contains('desktop-ui-inverted'));
+    doc.getElementById('password-input').value = win.eval('SITE_PASSWORD');
+    await win.eval('tryLogin()');
+    await settle();
+    check('Music player starts minimized with a taskbar entry',
+      win.eval('openWindows.mediaplayer.minimized') &&
+      doc.querySelector('.face-window').style.display === 'none' &&
+      !!doc.querySelector('.taskbar-item[data-id="mediaplayer"]'));
+    doc.querySelector('.taskbar-item[data-id="mediaplayer"]').click();
+    check('Music player can be restored', doc.querySelector('.face-window').style.display !== 'none');
+    win.eval("closeWindow('mediaplayer'); closeWindow('browser')");
     const icon = doc.querySelector('.desktop-icon-item');
-    check('Mobile icons use a flow layout', win.getComputedStyle(icon).position === 'static');
+    check('Mobile icons use scattered positions', win.getComputedStyle(icon).position === 'absolute' && !!icon.style.getPropertyValue('--mobile-icon-left'));
+    const initialScatter = [...doc.querySelectorAll('.desktop-icon-item')].map(el => el.style.getPropertyValue('--mobile-icon-left') + ',' + el.style.getPropertyValue('--mobile-icon-top')).join(';');
+    win.eval('buildDesktopIcons()');
+    await settle();
+    check('Scatter stays stable when icons are rebuilt', initialScatter === [...doc.querySelectorAll('.desktop-icon-item')].map(el => el.style.getPropertyValue('--mobile-icon-left') + ',' + el.style.getPropertyValue('--mobile-icon-top')).join(';'));
     const myComputer = [...doc.querySelectorAll('.desktop-icon-item')].find(el => el.textContent.includes('My Computer'));
     myComputer.click();
     await settle();
@@ -60,7 +76,14 @@
       const rect = app.getBoundingClientRect();
       check(width + 'px: no shell page overflow', doc.documentElement.scrollWidth <= width);
       check(width + 'px: window fits above taskbar', rect.left === 0 && rect.right <= width && rect.bottom <= doc.getElementById('taskbar').getBoundingClientRect().top + 1);
-      check(width + 'px: close control has a 44px target', app.querySelector('[data-action="close"]').getBoundingClientRect().width >= 44);
+      const closeRect = app.querySelector('[data-action="close"]').getBoundingClientRect();
+      check(width + 'px: compact but usable close control', closeRect.width >= 32 && closeRect.height >= 28 && closeRect.height <= 32);
+      check(width + 'px: slim window and taskbar chrome', app.querySelector('.win98-titlebar').getBoundingClientRect().height === 32 && doc.getElementById('taskbar').getBoundingClientRect().height === 40);
+      const iconRects = [...doc.querySelectorAll('.desktop-icon-item')].map(el => el.getBoundingClientRect());
+      check(width + 'px: scattered icons stay within desktop width', iconRects.every(rect => rect.left >= 0 && rect.right <= width));
+      check(width + 'px: scattered icons do not overlap', iconRects.every((rect, i) => iconRects.slice(i + 1).every(other => rect.right <= other.left || other.right <= rect.left || rect.bottom <= other.top || other.bottom <= rect.top)));
+      const desktop = doc.getElementById('desktop-icons');
+      check(width + 'px: all scattered icons are scrollable', Math.max(...iconRects.map(rect => rect.bottom)) <= desktop.scrollHeight);
     }
     app.querySelector('[data-action="min"]').click();
     check('Minimize hides app', app.style.display === 'none');
@@ -91,7 +114,8 @@
     check('Landscape keeps close control above taskbar', app.querySelector('[data-action="close"]').getBoundingClientRect().bottom < doc.getElementById('taskbar').getBoundingClientRect().top);
     frame.style.width = '1280px'; frame.style.height = '900px';
     await settle();
-    check('Desktop icon positioning restored', win.getComputedStyle(icon).position === 'absolute');
+    check('Desktop icon positioning restored', win.getComputedStyle(myComputer).left === myComputer.style.left);
+    check('Desktop titlebar height unchanged', app.querySelector('.win98-titlebar').getBoundingClientRect().height === 20);
     check('Desktop window bounds unchanged', bounds() === originalBounds);
     app.querySelector('[data-action="close"]').click();
     myComputer.click();
@@ -107,10 +131,34 @@
     ]) {
       const appFrame = await load(path, 320);
       const appDoc = appFrame.contentDocument;
-      for (const width of [320, 430]) {
+      const sizes = [{ width: 320, height: 740 }, { width: 430, height: 740 }];
+      if (path === 'apps/chroma/index.html') sizes.push({ width: 667, height: 375 });
+      for (const { width, height } of sizes) {
         appFrame.style.width = width + 'px';
+        appFrame.style.height = height + 'px';
         await settle();
         check(path + ' at ' + width + 'px: no page overflow', appDoc.documentElement.scrollWidth <= width);
+        if (path === 'apps/chroma/index.html') {
+          const appWin = appFrame.contentWindow;
+          const main = appDoc.querySelector('#desktop > .window');
+          const controls = appDoc.querySelector('.ctrlbar');
+          const canvas = appDoc.getElementById('cc-canvas');
+          const canvasRect = canvas.getBoundingClientRect();
+          check('Chroma ' + width + 'px: no hidden horizontal control overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth <= controls.clientWidth);
+          check('Chroma ' + width + 'px: canvas visible before controls', canvasRect.top >= 0 && canvasRect.bottom < appFrame.clientHeight && canvasRect.bottom <= controls.getBoundingClientRect().top);
+          check('Chroma ' + width + 'px: every control fits horizontally', [...controls.querySelectorAll('button, input')].filter(el => el.getClientRects().length).every(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= width; }));
+          canvas.dispatchEvent(new appWin.MouseEvent('click', { bubbles: true, clientX: canvasRect.left + canvasRect.width / 2, clientY: canvasRect.top + canvasRect.height / 2 }));
+          check('Chroma ' + width + 'px: tapping canvas selects a color', /^#[0-9A-F]{6}$/.test(appDoc.getElementById('cc-hexbox').textContent));
+          appDoc.getElementById('cc-diary-open').click();
+          const diaryClose = appDoc.getElementById('diary-close');
+          const closeRect = diaryClose.getBoundingClientRect();
+          check('Chroma ' + width + 'px: embedded diary has visible close control', appWin.getComputedStyle(diaryClose.closest('.titlebar')).display !== 'none' && closeRect.top >= 0 && closeRect.right <= width);
+          diaryClose.click();
+          check('Chroma ' + width + 'px: diary can be dismissed', !appDoc.getElementById('diary-dialog').classList.contains('show'));
+          appDoc.getElementById('cc-save-image').scrollIntoView();
+          check('Chroma ' + width + 'px: lower controls reachable by scrolling', appDoc.getElementById('cc-save-image').getBoundingClientRect().bottom <= appFrame.clientHeight);
+          main.scrollTop = 0;
+        }
       }
       check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));
       appFrame.remove();

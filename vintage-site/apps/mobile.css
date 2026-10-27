@@ -34,7 +34,18 @@
   html[data-mobile-app="chroma"] #desktop { height: calc(100dvh - 32px); min-height: 0; }
   html[data-mobile-app="chroma"] body.embedded #desktop { height: 100dvh; }
   html[data-mobile-app="chroma"] #desktop > .window { height: 100% !important; overflow-y: auto; overflow-x: hidden; }
-  html[data-mobile-app="chroma"] .menubar > .menu-item { min-height: 44px; padding: 3px 6px; }
+  html[data-mobile-app="chroma"] .menubar {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  html[data-mobile-app="chroma"] .menubar > .menu-item {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 3px 6px;
+    white-space: nowrap;
+  }
   html[data-mobile-app="chroma"] #desktop > .window > .winbody {
     order: 1;
     flex: 0 0 auto;
@@ -57,7 +68,6 @@
     overscroll-behavior-x: contain;
     border-bottom: 1px solid var(--shadow);
   }
-  html[data-mobile-app="chroma"] .menubar,
   html[data-mobile-app="chroma"] .ctrlbar,
   html[data-mobile-app="chroma"] .lastcolor-field,
   html[data-mobile-app="chroma"] .cc-lastcolor { display: contents; }

@@ -149,12 +149,15 @@
           const appWin = appFrame.contentWindow;
           const main = appDoc.querySelector('#desktop > .window');
           const controls = appDoc.querySelector('.mobile-controls');
+          const menubar = appDoc.querySelector('.menubar');
           const canvas = appDoc.getElementById('cc-canvas');
           const canvasRect = canvas.getBoundingClientRect();
           check('Chroma ' + width + 'px: controls scroll horizontally without page overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth > controls.clientWidth && appWin.getComputedStyle(controls).overflowX === 'auto');
+          check('Chroma ' + width + 'px: menu stays above canvas and outside controls', menubar.parentElement === main && menubar.getBoundingClientRect().bottom <= canvasRect.top && !controls.contains(menubar));
+          check('Chroma ' + width + 'px: Diary is only in the menu and Diary+ is the sole diary control', !appDoc.getElementById('cc-diary-open') && !!appDoc.getElementById('cc-diary-add') && appDoc.getElementById('menu-diary').textContent.trim() === 'Diary');
           check('Chroma ' + width + 'px: canvas stays square and nearly phone-width', Math.abs(canvasRect.width - canvasRect.height) < 1 && canvasRect.width >= width * 0.9 && canvas.width === canvas.height);
           check('Chroma ' + width + 'px: canvas appears before controls', canvasRect.top >= 0 && canvasRect.bottom <= controls.getBoundingClientRect().top);
-          check('Chroma ' + width + 'px: controls have exactly three rows', appWin.getComputedStyle(controls).gridTemplateRows.split(' ').length === 3);
+          check('Chroma ' + width + 'px: controls retain three rows', appWin.getComputedStyle(controls).gridTemplateRows.split(' ').length === 3);
           check('Chroma ' + width + 'px: Technochrome and Strange are first', ['cc-techno', 'cc-weird'].every(id => {
             const rect = appDoc.getElementById(id).getBoundingClientRect();
             return rect.left >= 0 && rect.right <= width;
@@ -189,7 +192,7 @@
           }
           canvas.dispatchEvent(new appWin.MouseEvent('click', { bubbles: true, clientX: canvasRect.left + canvasRect.width / 2, clientY: canvasRect.top + canvasRect.height / 2 }));
           check('Chroma ' + width + 'px: tapping canvas selects a color', /^#[0-9A-F]{6}$/.test(appDoc.getElementById('cc-hexbox').textContent));
-          appDoc.getElementById('cc-diary-open').click();
+          appDoc.getElementById('menu-diary').click();
           const diaryClose = appDoc.getElementById('diary-close');
           const closeRect = diaryClose.getBoundingClientRect();
           check('Chroma ' + width + 'px: embedded diary has visible close control', appWin.getComputedStyle(diaryClose.closest('.titlebar')).display !== 'none' && closeRect.top >= 0 && closeRect.right <= width);
@@ -209,6 +212,7 @@
         const appWin = appFrame.contentWindow;
         check('Desktop Chroma keeps original control layout', appWin.getComputedStyle(appDoc.querySelector('.mobile-controls')).display === 'contents' && appWin.getComputedStyle(appDoc.querySelector('.ctrlbar')).display === 'flex');
         check('Desktop Chroma keeps original control order', appDoc.querySelector('.menubar').getBoundingClientRect().top < appDoc.querySelector('.ctrlbar').getBoundingClientRect().top && appDoc.querySelector('.ctrlbar').getBoundingClientRect().bottom <= appDoc.querySelector('.winbody').getBoundingClientRect().top);
+        check('Desktop Chroma keeps Diary+ without a separate Diary button', !appDoc.getElementById('cc-diary-open') && !!appDoc.getElementById('cc-diary-add'));
       }
       check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));
       appFrame.remove();

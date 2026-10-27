@@ -52,6 +52,6 @@ Everything else about the site — Paint, Solitaire, the password gate, existing
 
 On small screens, window title bars are 32px tall and the desktop taskbar is 40px tall, plus the device's bottom safe area. Color inversion starts off, even if a previous visit saved it as on; it can still be enabled from Start. Songs Player starts minimized in the taskbar and opens when tapped.
 
-Desktop icons use stable, staggered positions with vertical scrolling rather than a rigid grid. This layout does not overwrite desktop icon positions. Technochrome shows its canvas first, with wrapping controls below it in the same scrollable window; its diary remains closable inside the site.
+Desktop icons use stable, staggered positions with vertical scrolling rather than a rigid grid. This layout does not overwrite desktop icon positions. Technochrome fills the available space with its canvas above a compact, two-row toolbar; swipe or scroll horizontally (or tab through the controls) to reach more options. Its diary remains closable inside the site.
 
 To check responsive layouts locally, serve this folder over HTTP and open `mobile-tests.html`. It covers compact chrome, startup defaults, scattered icons, and Technochrome controls as well as the other app layouts.

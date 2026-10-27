@@ -132,7 +132,9 @@
       const appFrame = await load(path, 320);
       const appDoc = appFrame.contentDocument;
       const sizes = [{ width: 320, height: 740 }, { width: 430, height: 740 }];
-      if (path === 'apps/chroma/index.html') sizes.push({ width: 667, height: 375 });
+      if (path === 'apps/chroma/index.html') sizes.push(
+        { width: 667, height: 375 }, { width: 900, height: 600 }, { width: 1280, height: 800 }
+      );
       for (const { width, height } of sizes) {
         appFrame.style.width = width + 'px';
         appFrame.style.height = height + 'px';
@@ -144,9 +146,46 @@
           const controls = appDoc.querySelector('.ctrlbar');
           const canvas = appDoc.getElementById('cc-canvas');
           const canvasRect = canvas.getBoundingClientRect();
-          check('Chroma ' + width + 'px: no hidden horizontal control overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth <= controls.clientWidth);
+          const toolbarRect = controls.getBoundingClientRect();
+          const toolbarStyle = appWin.getComputedStyle(controls);
+          check('Chroma ' + width + 'px: horizontal overflow stays inside toolbar', main.scrollWidth <= main.clientWidth && controls.scrollWidth > controls.clientWidth && toolbarStyle.overflowX === 'auto');
+          check('Chroma ' + width + 'px: exactly two compact rows', toolbarStyle.gridAutoFlow === 'column' && toolbarStyle.gridTemplateRows.split(' ').length === 2 && toolbarRect.height <= 120);
           check('Chroma ' + width + 'px: canvas visible before controls', canvasRect.top >= 0 && canvasRect.bottom < appFrame.clientHeight && canvasRect.bottom <= controls.getBoundingClientRect().top);
-          check('Chroma ' + width + 'px: every control fits horizontally', [...controls.querySelectorAll('button, input')].filter(el => el.getClientRects().length).every(el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= width; }));
+          const wrapRect = appDoc.getElementById('cc-wrap').getBoundingClientRect();
+          check('Chroma ' + width + 'px: canvas fills available area', Math.abs(canvasRect.width - wrapRect.width + 2) <= 1 && Math.abs(canvasRect.height - wrapRect.height + 2) <= 1);
+          check('Chroma ' + width + 'px: resized grid paints through the bottom-right corner', canvas.getContext('2d').getImageData(canvas.width - 2, canvas.height - 2, 1, 1).data[3] === 255);
+          check('Chroma ' + width + 'px: canvas area gets remaining height', appDoc.querySelector('.winbody').getBoundingClientRect().height > appFrame.clientHeight * 0.6 && main.scrollHeight <= main.clientHeight);
+          const visibleCells = [...controls.children].filter(el => { const r = el.getBoundingClientRect(); return r.width && r.right > toolbarRect.left && r.left < toolbarRect.right; });
+          check('Chroma ' + width + 'px: only a few control groups visible', visibleCells.length <= 10);
+          appDoc.getElementById('pastrami-btn').click();
+          check('Chroma ' + width + 'px: Technochrome strength hides when off', appDoc.getElementById('cc-techno').getClientRects().length === 0);
+          appDoc.getElementById('pastrami-btn').click();
+          check('Chroma ' + width + 'px: Technochrome strength remains available', appDoc.getElementById('cc-techno').getClientRects().length > 0);
+          check('Chroma ' + width + 'px: controls stay within their two rows', [...controls.querySelectorAll('button, input')].filter(el => el.getClientRects().length).every(el => { const r = el.getBoundingClientRect(); return r.top >= toolbarRect.top && r.bottom <= toolbarRect.bottom; }));
+          let focusable = true;
+          for (const control of controls.querySelectorAll('button, input')) {
+            if (!control.getClientRects().length) continue;
+            control.focus();
+            await settle();
+            const r = control.getBoundingClientRect();
+            focusable = focusable && appDoc.activeElement === control && r.left >= toolbarRect.left && r.right <= toolbarRect.right;
+          }
+          check('Chroma ' + width + 'px: keyboard focus reveals every control', focusable);
+          check('Chroma ' + width + 'px: sliders have accessible labels', [...controls.querySelectorAll('input[type="range"]')].every(el => el.labels.length > 0));
+          for (const [buttonId, menuId] of [
+            ['cc-style-btn', 'cc-style-dropdown'], ['cc-palette-limit-btn', 'cc-palette-limit-dropdown'],
+            ['cc-match-source-btn', 'cc-match-source-dropdown']
+          ]) {
+            const button = appDoc.getElementById(buttonId);
+            button.focus();
+            await settle();
+            button.click();
+            const menu = appDoc.getElementById(menuId);
+            const r = menu.getBoundingClientRect();
+            check('Chroma ' + width + 'px: ' + menuId + ' opens without clipping', menu.classList.contains('show') && r.top >= 0 && r.bottom <= height && r.left >= 0 && r.right <= width && appDoc.activeElement.closest('[role="menu"]') === menu);
+            appDoc.activeElement.dispatchEvent(new appWin.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            check('Chroma ' + width + 'px: ' + menuId + ' works by keyboard', !menu.classList.contains('show') && appDoc.activeElement === button && button.getAttribute('aria-expanded') === 'false');
+          }
           canvas.dispatchEvent(new appWin.MouseEvent('click', { bubbles: true, clientX: canvasRect.left + canvasRect.width / 2, clientY: canvasRect.top + canvasRect.height / 2 }));
           check('Chroma ' + width + 'px: tapping canvas selects a color', /^#[0-9A-F]{6}$/.test(appDoc.getElementById('cc-hexbox').textContent));
           appDoc.getElementById('cc-diary-open').click();
@@ -155,9 +194,10 @@
           check('Chroma ' + width + 'px: embedded diary has visible close control', appWin.getComputedStyle(diaryClose.closest('.titlebar')).display !== 'none' && closeRect.top >= 0 && closeRect.right <= width);
           diaryClose.click();
           check('Chroma ' + width + 'px: diary can be dismissed', !appDoc.getElementById('diary-dialog').classList.contains('show'));
-          appDoc.getElementById('cc-save-image').scrollIntoView();
-          check('Chroma ' + width + 'px: lower controls reachable by scrolling', appDoc.getElementById('cc-save-image').getBoundingClientRect().bottom <= appFrame.clientHeight);
-          main.scrollTop = 0;
+          appDoc.getElementById('cc-save-image').focus();
+          await settle();
+          check('Chroma ' + width + 'px: later controls reachable by horizontal scrolling', controls.scrollLeft > 0 && appDoc.getElementById('cc-save-image').getBoundingClientRect().bottom <= appFrame.clientHeight);
+          controls.scrollLeft = 0;
         }
       }
       check(path + ': viewport declared', !!appDoc.querySelector('meta[name="viewport"]'));

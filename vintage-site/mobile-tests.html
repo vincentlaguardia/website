@@ -152,26 +152,37 @@
           const menubar = appDoc.querySelector('.menubar');
           const canvas = appDoc.getElementById('cc-canvas');
           const canvasRect = canvas.getBoundingClientRect();
-          check('Chroma ' + width + 'px: controls scroll horizontally without page overflow', main.scrollWidth <= main.clientWidth && controls.scrollWidth > controls.clientWidth && appWin.getComputedStyle(controls).overflowX === 'auto');
+          check('Chroma ' + width + 'px: controls fit without horizontal scrolling', main.scrollWidth <= main.clientWidth && controls.scrollWidth <= controls.clientWidth);
           const visible = element => element.getClientRects().length > 0 && appWin.getComputedStyle(element).visibility !== 'hidden';
           check('Chroma ' + width + 'px: menus and standalone taskbar are hidden', !visible(menubar) && !visible(appDoc.getElementById('taskbar')));
           check('Chroma ' + width + 'px: only three buttons and sliders remain', [...controls.querySelectorAll('button, input, select, [tabindex]')].filter(visible).every(element =>
             element.matches('input[type="range"], #pastrami-btn, #cc-load-image, #cc-save-image')
           ) && [...controls.querySelectorAll('button')].filter(visible).length === 3);
-          check('Chroma ' + width + 'px: mobile button labels', ['pastrami-btn', 'cc-load-image', 'cc-save-image'].map(id => appDoc.getElementById(id).innerText.trim()).join(',') === 'Technochromia,Upload,Save');
+          check('Chroma ' + width + 'px: mobile button labels', ['pastrami-btn', 'cc-load-image', 'cc-save-image'].map(id => appDoc.getElementById(id).innerText.trim()).join(',') === 'Technochrome,Load,Save');
           check('Chroma ' + width + 'px: canvas stays square and nearly phone-width', Math.abs(canvasRect.width - canvasRect.height) < 1 && canvasRect.width >= width * 0.9 && canvas.width === canvas.height);
           check('Chroma ' + width + 'px: canvas appears before controls', canvasRect.top >= 0 && canvasRect.bottom <= controls.getBoundingClientRect().top);
           check('Chroma ' + width + 'px: controls retain three rows', appWin.getComputedStyle(controls).gridTemplateRows.split(' ').length === 3);
-          check('Chroma ' + width + 'px: scrolling columns have no horizontal gap', appWin.getComputedStyle(controls).columnGap === '0px');
+          const rows = [
+            ['cc-techno', 'cc-weird'],
+            ['cc-hue', 'cc-sat'],
+            ['pastrami-btn', 'cc-load-image', 'cc-save-image']
+          ].map(ids => ids.map(id => appDoc.getElementById(id).getBoundingClientRect()));
+          check('Chroma ' + width + 'px: sliders and buttons occupy the requested rows', rows.every(row =>
+            row.every(rect => Math.abs(rect.top - row[0].top) < 1) &&
+            row.every((rect, index) => !index || rect.left > row[index - 1].right)
+          ) && rows[0][0].bottom < rows[1][0].top && rows[1][0].bottom < rows[2][0].top);
+          check('Chroma ' + width + 'px: slider pairs match the full button row width', rows.slice(0, 2).every(row =>
+            Math.abs(row[0].left - rows[2][0].left) < 1 &&
+            Math.abs(row[1].right - rows[2][2].right) < 1 &&
+            Math.abs(row[0].width - row[1].width) < 1
+          ));
+          check('Chroma ' + width + 'px: slider tracks have a small visible gap', rows.slice(0, 2).every(row =>
+            row[1].left - row[0].right >= 4 && row[1].left - row[0].right <= 8
+          ));
           check('Chroma ' + width + 'px: sliders have transparent, non-recessed touch areas', [...appDoc.querySelectorAll('input[type="range"]')].every(slider => {
             const style = appWin.getComputedStyle(slider);
             return style.backgroundColor === 'rgba(0, 0, 0, 0)' && style.boxShadow === 'none' && slider.getBoundingClientRect().height >= 32;
           }));
-          check('Chroma ' + width + 'px: Technochromia is first, followed by Strength and Strange', ['pastrami-btn', 'cc-techno', 'cc-weird'].every(id => {
-            const rect = appDoc.getElementById(id).getBoundingClientRect();
-            return rect.left >= 0 && rect.right <= width;
-          }) && appDoc.getElementById('pastrami-btn').getBoundingClientRect().top < appDoc.getElementById('cc-techno').getBoundingClientRect().top &&
-            appDoc.getElementById('cc-techno').getBoundingClientRect().top < appDoc.getElementById('cc-weird').getBoundingClientRect().top);
           main.scrollTop = 0;
           controls.scrollLeft = 0;
           await settle();
@@ -189,7 +200,7 @@
           check('Chroma ' + width + 'px: tapping canvas selects a color', /^#[0-9A-F]{6}$/.test(appDoc.getElementById('cc-hexbox').textContent));
           appDoc.getElementById('cc-save-image').scrollIntoView();
           const saveRect = appDoc.getElementById('cc-save-image').getBoundingClientRect();
-          check('Chroma ' + width + 'px: later controls reachable by scrolling', saveRect.bottom <= appFrame.clientHeight && saveRect.left >= 0 && saveRect.right <= width);
+          check('Chroma ' + width + 'px: Save remains reachable', saveRect.bottom <= appFrame.clientHeight && saveRect.left >= 0 && saveRect.right <= width);
           main.scrollTop = 0;
           controls.scrollLeft = 0;
         }
@@ -200,7 +211,7 @@
         let openedPicker = false;
         importInput.click = () => { openedPicker = true; };
         appDoc.getElementById('cc-load-image').click();
-        check('Mobile Chroma Upload opens the image picker', openedPicker && importInput.accept === 'image/*');
+        check('Mobile Chroma Load opens the image picker', openedPicker && importInput.accept === 'image/*');
         delete importInput.click;
         const sample = appDoc.createElement('canvas');
         sample.width = sample.height = 10;

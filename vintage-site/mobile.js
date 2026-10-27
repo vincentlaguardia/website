@@ -8,6 +8,35 @@
   let touchDrag = null;
   let startX = 0, startY = 0;
 
+  function scatterDesktopIcons() {
+    const desktop = document.getElementById('desktop-icons');
+    if (!mobile.matches || !desktop || !desktop.clientWidth) return;
+    const columns = Math.max(1, Math.floor((desktop.clientWidth - 16) / 110));
+    const columnWidth = (desktop.clientWidth - 16) / columns;
+    const bottoms = Array(columns).fill(44);
+    desktop.querySelectorAll('.desktop-icon-item').forEach(item => {
+      const seed = item.dataset.itemId || item.id;
+      let hash = 2166136261;
+      for (const char of seed) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
+      const column = bottoms.indexOf(Math.min(...bottoms));
+      const left = 8 + column * columnWidth + (hash % 100) / 100 * (columnWidth - 92);
+      const top = bottoms[column] + (hash >>> 8) % 29;
+      item.style.setProperty('--mobile-icon-left', left + 'px');
+      item.style.setProperty('--mobile-icon-top', top + 'px');
+      bottoms[column] = top + item.offsetHeight + 20;
+    });
+    desktop.style.setProperty('--mobile-icons-height', Math.max(...bottoms) + 'px');
+  }
+
+  const desktop = document.getElementById('desktop-icons');
+  if (desktop) {
+    new MutationObserver(scatterDesktopIcons).observe(desktop, { childList: true });
+    new ResizeObserver(scatterDesktopIcons).observe(desktop);
+    document.fonts.ready.then(scatterDesktopIcons);
+    mobile.addEventListener('change', scatterDesktopIcons);
+    scatterDesktopIcons();
+  }
+
   function cancelHold() {
     clearTimeout(holdTimer);
   }

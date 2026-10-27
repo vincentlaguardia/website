@@ -47,3 +47,11 @@ No editing `index.html` required for any of this.
 Testing the site by double-clicking `index.html` on your own computer will **not** show synced content — browsers block that kind of file-reading for security reasons when a page is opened directly from disk. Synced folders only work once the site is actually live (or run through a local dev server, which I can help set up if you ever want that for testing).
 
 Everything else about the site — Paint, Solitaire, the password gate, existing pictures/PDFs/videos that were embedded directly — works exactly the same as before, live or locally.
+
+## Mobile layout
+
+On small screens, window title bars are 32px tall and the desktop taskbar is 40px tall, plus the device's bottom safe area. Color inversion starts off, even if a previous visit saved it as on; it can still be enabled from Start. Songs Player starts minimized in the taskbar and opens when tapped.
+
+Desktop icons use stable, staggered positions with vertical scrolling rather than a rigid grid. This layout does not overwrite desktop icon positions. Technochrome shows its canvas first, with wrapping controls below it in the same scrollable window; its diary remains closable inside the site.
+
+To check responsive layouts locally, serve this folder over HTTP and open `mobile-tests.html`. It covers compact chrome, startup defaults, scattered icons, and Technochrome controls as well as the other app layouts.

@@ -9152,7 +9152,8 @@ function setDesktopInvertState(enabled, persist = true) {
 }
 let initialDesktopInvertEnabled = false;
 try {
-  initialDesktopInvertEnabled = window.localStorage.getItem(DESKTOP_INVERT_STORAGE_KEY) === 'true';
+  const mobileViewport = window.matchMedia('(max-width: 768px), (max-width: 1024px) and (max-height: 500px) and (pointer: coarse)').matches;
+  initialDesktopInvertEnabled = !mobileViewport && window.localStorage.getItem(DESKTOP_INVERT_STORAGE_KEY) === 'true';
 } catch (e) {
   // Intentionally ignore storage failures to avoid console noise in restricted contexts.
 }
@@ -9271,11 +9272,13 @@ async function tryLogin() {
     initWallpaper();
     updateClock();
     setInterval(updateClock, 30000);
-    // Open order controls stacking (last opened ends up on top): browser
-    // starts minimized in the taskbar, media player on top.
+    // Keep startup apps in the taskbar so the desktop is visible on mobile.
     openBrowserWindow('https://en.wikipedia.org/wiki/United_States_involvement_in_regime_change');
     toggleMinimize('browser');
     openMediaPlayerWindow();
+    if (window.matchMedia('(max-width: 768px), (max-width: 1024px) and (max-height: 500px) and (pointer: coarse)').matches) {
+      toggleMinimize('mediaplayer');
+    }
   } else {
     err.textContent = 'Incorrect password. Please try again.';
     input.value = '';

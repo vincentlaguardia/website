@@ -175,24 +175,40 @@
   }
   input[type=range]{
     -webkit-appearance:none;
+    appearance:none;
     width:110px;
-    height:4px;
+    height:32px;
+    padding:0;
+    background:transparent;
+    border:none;
+    box-shadow:none;
+    cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:2px;
     background:var(--shadow);
-    box-shadow: inset 1px 1px 0 var(--dark), inset -1px -1px 0 var(--hi);
+  }
+  input[type=range]::-moz-range-track{
+    height:2px;
+    background:var(--shadow);
   }
   input[type=range]::-webkit-slider-thumb{
     -webkit-appearance:none;
-    width:14px; height:20px;
-    background:var(--face);
-    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
-                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    width:10px; height:20px;
+    margin-top:-9px;
+    border:1px solid var(--shadow);
+    border-radius:0;
+    background:var(--hi);
+    box-shadow:inset 1px 1px 0 var(--white);
     cursor:pointer;
   }
   input[type=range]::-moz-range-thumb{
-    width:14px; height:20px; border:none;
-    background:var(--face);
-    box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
-                inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
+    box-sizing:border-box;
+    width:10px; height:20px;
+    border:1px solid var(--shadow);
+    border-radius:0;
+    background:var(--hi);
+    box-shadow:inset 1px 1px 0 var(--white);
     cursor:pointer;
   }
   .cc-lastcolor{ display:flex; align-items:center; gap:6px; }
@@ -603,8 +619,6 @@
       <div class="menu-item" data-menu="file" tabindex="0" aria-haspopup="menu">File</div>
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
       <div class="menu-item" id="menu-diary" tabindex="0" aria-haspopup="dialog">Diary</div>
-      <div class="menu-item" id="menu-help" tabindex="0" aria-haspopup="dialog">Techno</div>
-      <div class="menu-item" id="menu-techno" tabindex="0" aria-haspopup="dialog">Technochrome</div>
       <div class="menu-item" id="menu-about" tabindex="0" aria-haspopup="dialog">About</div>
       <div class="menu-dropdown raised" id="dropdown-file">
         <div class="menu-option" data-action="import-photo">Import Photo...</div>
@@ -1329,7 +1343,7 @@
       item.click();
     });
   }
-  [...menuItems, ...['menu-diary', 'menu-help', 'menu-techno', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
+  [...menuItems, ...['menu-diary', 'menu-about'].map(id=>document.getElementById(id))].forEach(activateMenuItemWithKeyboard);
   document.querySelectorAll('#dropdown-dots .menu-option[data-dot-size]').forEach(opt=>{
     opt.addEventListener('click', e=>{
       e.stopPropagation();
@@ -1393,8 +1407,6 @@
   helpSaveBtn.addEventListener('click', ()=>{ localStorage.setItem(HELP_STORAGE_KEY, helpContent.innerHTML); setHelpEditing(false); });
   helpCancelBtn.addEventListener('click', ()=>{ helpContent.innerHTML = helpDraftHtml; setHelpEditing(false); });
   helpResetBtn.addEventListener('click', ()=>{ helpContent.innerHTML = DEFAULT_HELP_HTML; localStorage.removeItem(HELP_STORAGE_KEY); setHelpEditing(false); });
-  document.getElementById('menu-help').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openHelp(); });
-  document.getElementById('menu-techno').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openTechno(); });
   document.getElementById('menu-about').addEventListener('click', e=>{ e.stopPropagation(); closeAllMenus(); openAbout(); });
   document.getElementById('help-close').addEventListener('click', closeHelp);
   document.getElementById('help-ok').addEventListener('click', closeHelp);

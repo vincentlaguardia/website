@@ -66,7 +66,7 @@
   html[data-mobile-app="chroma"] .desktop-control-label { display: none; }
   html[data-mobile-app="chroma"] .mobile-control-label { display: inline; }
   html[data-mobile-app="chroma"] .mobile-slider { grid-column: span 3; }
-  html[data-mobile-app="chroma"] .mobile-action { grid-column: span 2; }
+  html[data-mobile-app="chroma"] .mobile-action { grid-row: 3; grid-column: span 2; }
   html[data-mobile-app="chroma"] #pastrami-btn { order: 1; }
   html[data-mobile-app="chroma"] #techno-field { order: -2; }
   html[data-mobile-app="chroma"] .strange-field { order: -1; }

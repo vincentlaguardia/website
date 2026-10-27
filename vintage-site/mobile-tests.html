@@ -179,6 +179,18 @@
           check('Chroma ' + width + 'px: slider tracks have a small visible gap', rows.slice(0, 2).every(row =>
             row[1].left - row[0].right >= 4 && row[1].left - row[0].right <= 8
           ));
+          const actionButtons = ['pastrami-btn', 'cc-load-image', 'cc-save-image'].map(id => appDoc.getElementById(id));
+          const actionBounds = () => actionButtons.map(button => {
+            const rect = button.getBoundingClientRect();
+            return [rect.left, rect.top, rect.width, rect.height].join(',');
+          }).join(';');
+          const initialActionBounds = actionBounds();
+          actionButtons[0].click();
+          await settle();
+          check('Chroma ' + width + 'px: buttons stay in place with Technochrome off', actionButtons[0].getAttribute('aria-pressed') === 'false' && actionBounds() === initialActionBounds);
+          actionButtons[0].click();
+          await settle();
+          check('Chroma ' + width + 'px: buttons stay in place with Technochrome on', actionButtons[0].getAttribute('aria-pressed') === 'true' && actionBounds() === initialActionBounds);
           check('Chroma ' + width + 'px: sliders have transparent, non-recessed touch areas', [...appDoc.querySelectorAll('input[type="range"]')].every(slider => {
             const style = appWin.getComputedStyle(slider);
             return style.backgroundColor === 'rgba(0, 0, 0, 0)' && style.boxShadow === 'none' && slider.getBoundingClientRect().height >= 32;

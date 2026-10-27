@@ -37,8 +37,8 @@
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
   #desktop{
-    height:calc(100dvh - 32px);
-    padding:8px;
+    min-height:100vh;
+    padding:36px 16px 56px;
     display:flex;
     align-items:flex-start;
     justify-content:center;
@@ -51,8 +51,7 @@
     height:900px;
     max-width:96vw;
     min-width:320px;
-    min-height:0;
-    max-height:100%;
+    min-height:480px;
     background:var(--face);
     box-shadow: inset -1px -1px 0 var(--dark), inset 1px 1px 0 var(--white),
                 inset -2px -2px 0 var(--shadow), inset 2px 2px 0 var(--hi);
@@ -122,29 +121,14 @@
   .menu-option:hover{ background:var(--navy); color:#fff; }
   .menu-sep{ height:1px; background:var(--shadow); box-shadow:0 1px 0 var(--white); margin:3px 2px; }
   .ctrlbar{
-    display:grid;
-    grid-auto-flow:column;
-    grid-template-rows:repeat(2, 44px);
-    grid-auto-columns:clamp(220px, 38vw, 280px);
+    display:flex;
+    flex-wrap:wrap;
     align-items:center;
-    gap:4px 8px;
-    padding:6px;
-    min-width:0;
+    gap:16px;
+    padding:6px 10px;
     flex:0 0 auto;
-    order:3;
-    overflow-x:auto;
-    scroll-snap-type:x proximity;
-    scroll-padding-inline:6px;
-    scrollbar-width:thin;
-    border-top:1px solid var(--shadow);
+    border-bottom:1px solid var(--shadow);
   }
-  .ctrlbar > *{ min-width:0; scroll-snap-align:start; }
-  .ctrlbar .ctrl-btn{ min-height:32px; padding:4px 8px; }
-  .ctrlbar .field{ gap:6px; }
-  .ctrlbar input[type=range]{ width:100%; margin:4px 0; min-height:0; }
-  .ctrlbar input[type=range]::-webkit-slider-thumb{ height:16px; }
-  .ctrlbar input[type=range]::-moz-range-thumb{ height:16px; }
-  .menubar{ order:1; }
   .field{ display:flex; flex-direction:column; gap:3px; font-size:11px; }
   .ctrl-btn{
     font-family:inherit;
@@ -164,9 +148,10 @@
   .cc-style-wrap{ position:relative; }
   .style-dropdown{
     display:none;
-    position:fixed;
-    max-height:calc(100dvh - 16px);
-    overflow-y:auto;
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:2px;
     min-width:170px;
     z-index:25;
     padding:2px;
@@ -218,8 +203,6 @@
     flex:0 0 auto;
   }
   .cc-copybox{
-    font-family:inherit;
-    border:0;
     padding:5px 8px;
     font-size:11px;
     cursor:pointer;
@@ -233,9 +216,8 @@
                 inset 2px 2px 0 var(--shadow), inset -2px -2px 0 var(--hi);
   }
   .winbody{
-    padding:4px;
+    padding:8px;
     flex:1;
-    order:2;
     display:flex;
     flex-direction:column;
     min-height:0;
@@ -255,8 +237,7 @@
   .cc-wrap{
     position:relative;
     flex:1;
-    min-width:0;
-    min-height:0;
+    min-height:120px;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -458,7 +439,7 @@
   }
   #shutdown-overlay.show{ display:flex; }
   #shutdown-overlay button{ margin-top:18px; }
-  @media (max-width:480px){ .window{ min-width:0; } }
+  @media (max-width:480px){ .window{ min-width:0; min-height:400px; } }
   /* embedded mode: loaded inside an iframe in the main site */
   html.embedded,
   body.embedded{
@@ -482,7 +463,6 @@
   }
   body.embedded #taskbar{ display:none; }
   body.embedded .titlebar{ display:none; }
-  body.embedded .dialog .titlebar{ display:flex; }
   /* skew button */
   .skew-control{
     display:flex;
@@ -510,9 +490,10 @@
   .match-source-wrap{ position:relative; }
   .match-source-dropdown{
     display:none;
-    position:fixed;
-    max-height:calc(100dvh - 16px);
-    overflow-y:auto;
+    position:absolute;
+    top:100%;
+    left:0;
+    margin-top:2px;
     min-width:100px;
     z-index:25;
     padding:2px;
@@ -640,7 +621,7 @@
         <div class="menu-option" data-dot-size="large">Large</div>
       </div>
     </div>
-    <div class="ctrlbar sunken" role="region" aria-label="Color controls; scroll horizontally for more" tabindex="0">
+    <div class="ctrlbar sunken">
       <div class="field">
         <div class="cc-style-wrap">
           <button class="ctrl-btn" id="cc-style-btn" type="button">Random &#9662;</button>
@@ -674,11 +655,11 @@
       </div>
       <button class="ctrl-btn" id="cc-toggle-dots" style="display:none">Dots Off</button>
       <div class="picker-with-hex">
-        <input type="color" id="cc-target-color" value="#a8a8a8" aria-label="Target dot color">
+        <input type="color" id="cc-target-color" value="#a8a8a8">
       </div>
       <button class="ctrl-btn" id="cc-reroll-hue">&#127922; Reroll Hue</button>
       <button class="ctrl-btn" id="cc-shuffle" type="button" title="Shuffle swatch arrangement" aria-label="Shuffle swatch arrangement">Shuffle</button>
-      <label class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></label>
+      <div class="field">Hue <input type="range" id="cc-hue" min="0" max="360" value="205"></div>
       <div class="match-sat-control">
         <button class="ctrl-btn" id="cc-match-sat" type="button" title="Toggle Match Chroma: continuously lock Chroma (LCH absolute intensity) to the selected source color" aria-pressed="false">Match Chroma</button>
         <div class="match-source-wrap">
@@ -695,8 +676,8 @@
           <input type="color" id="cc-match-sat-color" value="#fbf432" aria-label="Pick custom chroma source color">
         </div>
       </div>
-      <label class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></label>
-      <label class="field">Strange <input type="range" id="cc-weird" min="0" max="180" value="20"></label>
+      <div class="field">Saturation <input type="range" id="cc-sat" min="0" max="150" value="100"></div>
+      <div class="field">Strange <input type="range" id="cc-weird" min="0" max="180" value="20"></div>
       <div class="skew-control">
         <button class="ctrl-btn" id="cc-skew-btn" type="button" title="Toggle skew on or off using the selected skew color." aria-pressed="false">Skew</button>
         <div class="picker-with-hex">
@@ -706,22 +687,24 @@
           </div>
         </div>
       </div>
-      <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
-      <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
-      <div class="cc-lastcolor" aria-label="Last color clicked" role="group">
-        <span class="cc-lastswatch" id="cc-lastswatch"></span>
-        <button class="cc-copybox" id="cc-hexbox" type="button" title="Copy last clicked color" aria-label="Copy last clicked color">#——————</button>
-      </div>
-      <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
-      <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
-      <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochrome" aria-pressed="false">Technochrome</button>
-      <label class="field" id="techno-field">Technochrome Strength <input type="range" id="cc-techno" min="0" max="100" value="15"></label>
-      <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
-      <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
-      <div class="picker-with-hex">
-        <div class="color-swatch-wrap">
-          <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
-          <input type="color" id="cc-focus-color" value="#1fff8b" aria-labelledby="cc-focus-btn cc-focus-swatch">
+      <div class="field">Last color clicked
+        <div class="cc-lastcolor">
+          <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
+          <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
+          <span class="cc-lastswatch" id="cc-lastswatch"></span>
+          <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
+          <button class="ctrl-btn" id="cc-load-image" type="button" title="Open image file" aria-label="Load Image">Load Image</button>
+          <button class="ctrl-btn" id="cc-save-image" type="button" title="Save PNG image" aria-label="Save">Save</button>
+          <button class="ctrl-btn" id="pastrami-btn" type="button" title="???" aria-label="Technochrome" aria-pressed="false">Technochrome</button>
+          <label class="field" id="techno-field">Technochrome Strength <input type="range" id="cc-techno" min="0" max="100" value="15"></label>
+          <button class="ctrl-btn" id="cc-focus-btn" type="button" title="Focus Mode: lock one diagonal band to the selected focus color" aria-label="Toggle Focus Mode" aria-pressed="false">Focus</button>
+          <button class="ctrl-btn" id="cc-focus-reset-btn" type="button" title="Reset focus squares to the fixed diagonal grid" aria-label="Reset Focus Grid">Focus Reset</button>
+          <div class="picker-with-hex">
+            <div class="color-swatch-wrap">
+              <button class="color-swatch-btn" id="cc-focus-swatch" type="button" title="Choose focus color" aria-label="Choose focus color"><span class="color-icon" id="focus-icon"></span></button>
+              <input type="color" id="cc-focus-color" value="#1fff8b" aria-labelledby="cc-focus-btn cc-focus-swatch">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1285,70 +1268,12 @@
   }
   const menuItems = document.querySelectorAll('.menu-item[data-menu]');
   const dropdowns = { file: document.getElementById('dropdown-file'), dots: document.getElementById('dropdown-dots') };
-  // Keep toolbar menus outside the scrolling area so they cannot be clipped.
-  const controlMenus = [
-    ['cc-style-btn', 'cc-style-dropdown'],
-    ['cc-palette-limit-btn', 'cc-palette-limit-dropdown'],
-    ['cc-match-source-btn', 'cc-match-source-dropdown']
-  ];
-  controlMenus.forEach(([buttonId, menuId])=>{
-    const button = document.getElementById(buttonId);
-    const menu = document.getElementById(menuId);
-    document.body.appendChild(menu);
-    button.setAttribute('aria-controls', menuId);
-    button.setAttribute('aria-haspopup', 'menu');
-    button.setAttribute('aria-expanded', 'false');
-    menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-labelledby', buttonId);
-    menu.querySelectorAll('.menu-option').forEach(option=>{
-      option.tabIndex = 0;
-      option.setAttribute('role', 'menuitem');
-      option.addEventListener('keydown', e=>{
-        const options = [...menu.querySelectorAll('.menu-option')].filter(el=>el.getClientRects().length && !el.classList.contains('pastrami-disabled'));
-        const index = options.indexOf(option);
-        if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
-          e.preventDefault();
-          options[(index + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length].focus();
-        } else if(e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          option.click();
-          button.focus();
-        } else if(e.key === 'Escape'){
-          closeAllMenus();
-          button.focus();
-        }
-      });
-    });
-    button.addEventListener('keydown', e=>{
-      if(e.key !== 'ArrowDown') return;
-      e.preventDefault();
-      closeAllMenus();
-      showControlDropdown(button, menu);
-    });
-  });
-  const controlBar = document.querySelector('.ctrlbar');
-  controlBar.addEventListener('scroll', closeAllMenus);
-  controlBar.addEventListener('focusin', e=>{
-    const cell = [...controlBar.children].find(el=>el.contains(e.target));
-    if(cell) cell.scrollIntoView({ block:'nearest', inline:'start' });
-  });
-  window.addEventListener('resize', closeAllMenus);
-  function showControlDropdown(button, menu){
-    menu.classList.add('show');
-    const anchor = button.getBoundingClientRect();
-    const rect = menu.getBoundingClientRect();
-    menu.style.left = Math.max(8, Math.min(anchor.left, window.innerWidth - rect.width - 8)) + 'px';
-    menu.style.top = Math.max(8, anchor.top - rect.height - 2) + 'px';
-    button.setAttribute('aria-expanded', 'true');
-    menu.querySelector('.menu-option:not(.pastrami-disabled)').focus();
-  }
   function closeAllMenus(){
     Object.values(dropdowns).forEach(d=>d.classList.remove('show'));
     menuItems.forEach(m=>m.classList.remove('open'));
     document.getElementById('cc-style-dropdown').classList.remove('show');
     document.getElementById('cc-palette-limit-dropdown').classList.remove('show');
     document.getElementById('cc-match-source-dropdown').classList.remove('show');
-    controlMenus.forEach(([buttonId])=>document.getElementById(buttonId).setAttribute('aria-expanded', 'false'));
   }
   menuItems.forEach(item=>{
     item.addEventListener('click', e=>{
@@ -1936,12 +1861,12 @@
     return cellMin * ratio;
   }
   function drawScene(){
-    const width = canvas.clientWidth, height = canvas.clientHeight;
-    if(width === 0 || height === 0) return;
+    const size = canvas.clientWidth;
+    if(size === 0) return;
     if(matchSatActive){ applyMatchSat(); syncMatchSatUI(); }
     syncPastramiButtonGradient();
-    ctx.clearRect(0,0,width,height);
-    const cw = width/COLS, ch = height/ROWS;
+    ctx.clearRect(0,0,size,size);
+    const cw = size/COLS, ch = size/ROWS;
     zones.forEach(z=>{
       ctx.fillStyle = zoneHex(z);
       const x = z.col*cw, y = z.row*ch;
@@ -1960,8 +1885,8 @@
       }
     });
   }
-  function closeStyleDropdown(){ closeAllMenus(); }
-  function closePaletteLimitDropdown(){ closeAllMenus(); }
+  function closeStyleDropdown(){ styleDropdown.classList.remove('show'); }
+  function closePaletteLimitDropdown(){ paletteLimitDropdown.classList.remove('show'); }
   function syncPaletteLimitUI(){
     const label = paletteLimit <= 0 ? 'Off' : String(paletteLimit);
     paletteLimitBtn.innerHTML = 'Limit: ' + label + ' &#9662;';
@@ -1973,13 +1898,17 @@
     e.stopPropagation();
     const isOpen = styleDropdown.classList.contains('show');
     closeAllMenus();
-    if(!isOpen) showControlDropdown(styleBtn, styleDropdown);
+    closeStyleDropdown();
+    closePaletteLimitDropdown();
+    if(!isOpen) styleDropdown.classList.add('show');
   });
   paletteLimitBtn.addEventListener('click', e=>{
     e.stopPropagation();
     const isOpen = paletteLimitDropdown.classList.contains('show');
     closeAllMenus();
-    if(!isOpen) showControlDropdown(paletteLimitBtn, paletteLimitDropdown);
+    closeStyleDropdown();
+    closePaletteLimitDropdown();
+    if(!isOpen) paletteLimitDropdown.classList.add('show');
   });
   paletteLimitOptions.forEach(option=>{
     option.addEventListener('click', e=>{
@@ -2011,10 +1940,11 @@
     styleOptions.forEach(opt=>{
       if(opt.dataset.idx === 'random') return;
       const idx = +opt.dataset.idx;
-      const disabled = pastramiMode && disabledIdxs.has(idx);
-      opt.classList.toggle('pastrami-disabled', disabled);
-      opt.setAttribute('aria-disabled', String(disabled));
-      opt.tabIndex = disabled ? -1 : 0;
+      if(pastramiMode && disabledIdxs.has(idx)){
+        opt.classList.add('pastrami-disabled');
+      } else {
+        opt.classList.remove('pastrami-disabled');
+      }
     });
   }
   const pastramiBtn = document.getElementById('pastrami-btn');
@@ -2156,7 +2086,7 @@
     e.stopPropagation();
     const isOpen = matchSourceDropdown.classList.contains('show');
     closeAllMenus();
-    if(!isOpen) showControlDropdown(matchSourceBtn, matchSourceDropdown);
+    if(!isOpen) matchSourceDropdown.classList.add('show');
   });
   matchSourceOptions.forEach(opt=>{
     opt.addEventListener('click', e=>{
@@ -2164,7 +2094,7 @@
       const src = opt.dataset.source;
       if(!src) return;
       setMatchSatSource(src);
-      closeAllMenus();
+      matchSourceDropdown.classList.remove('show');
     });
   });
   matchSatSwatchBtn.addEventListener('click', ()=>{
@@ -2279,13 +2209,12 @@
   });
   function resizeCanvas(){
     const rect = ccWrap.getBoundingClientRect();
-    const width = Math.max(1, Math.floor(rect.width) - 2);
-    const height = Math.max(1, Math.floor(rect.height) - 2);
+    const size = Math.max(60, Math.floor(Math.min(rect.width, rect.height)) - 2);
     dpr = window.devicePixelRatio || 1;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    canvas.width = Math.max(1, Math.round(width*dpr));
-    canvas.height = Math.max(1, Math.round(height*dpr));
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    canvas.width = Math.max(1, Math.round(size*dpr));
+    canvas.height = Math.max(1, Math.round(size*dpr));
     ctx.setTransform(dpr,0,0,dpr,0,0);
     drawScene();
   }

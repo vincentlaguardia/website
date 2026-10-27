@@ -599,7 +599,6 @@
         <div class="tbtn" id="btn-close" title="Close">X</div>
       </div>
     </div>
-    <div class="mobile-controls" role="region" aria-label="Color controls" tabindex="0">
     <div class="menubar">
       <div class="menu-item" data-menu="file" tabindex="0" aria-haspopup="menu">File</div>
       <div class="menu-item" data-menu="dots" tabindex="0" aria-haspopup="menu">Dots</div>
@@ -623,6 +622,7 @@
         <div class="menu-option" data-dot-size="large">Large</div>
       </div>
     </div>
+    <div class="mobile-controls" role="region" aria-label="Color controls" tabindex="0">
     <div class="ctrlbar sunken">
       <div class="field">
         <div class="cc-style-wrap">
@@ -691,7 +691,6 @@
       </div>
       <div class="field lastcolor-field"><span class="lastcolor-label">Last color clicked</span>
         <div class="cc-lastcolor">
-          <button class="ctrl-btn" id="cc-diary-open" title="Open the diary">Diary</button>
           <button class="ctrl-btn" id="cc-diary-add" title="Add last clicked color to the diary">Diary +</button>
           <span class="cc-lastswatch" id="cc-lastswatch"></span>
           <span class="cc-copybox" id="cc-hexbox" title="Click to copy">#——————</span>
@@ -1302,7 +1301,7 @@
     [document.getElementById('cc-match-source-dropdown'), document.getElementById('cc-match-source-btn')]
   ];
   // Fixed menus escape the horizontal scroller without hiding their options.
-  mobileControls.addEventListener('click', ()=>{
+  document.addEventListener('click', ()=>{
     if(!mobileLayout.matches) return;
     requestAnimationFrame(()=>{
       controlMenus.forEach(([menu, button])=>{
@@ -1315,6 +1314,7 @@
     });
   }, true);
   mobileControls.addEventListener('scroll', closeAllMenus);
+  document.querySelector('.menubar').addEventListener('scroll', closeAllMenus);
   mobileLayout.addEventListener('change', ()=>{
     closeAllMenus();
     controlMenus.forEach(([menu])=>{
@@ -2636,7 +2636,6 @@
     }
     hideDiaryCtxMenu();
   });
-  document.getElementById('cc-diary-open').addEventListener('click', ()=>{ openDiary(); });
   document.getElementById('cc-diary-add').addEventListener('click', ()=>{
     if(!lastColor) return;
     addToDiary(lastColor);

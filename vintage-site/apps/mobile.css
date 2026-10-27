@@ -61,7 +61,7 @@
     grid-auto-flow: column;
     grid-auto-columns: min(280px, calc(100vw - 32px));
     align-items: center;
-    gap: 8px 12px;
+    gap: 8px 0;
     padding: 8px;
     flex: 0 0 auto;
     overflow-x: auto;

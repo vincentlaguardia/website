@@ -183,7 +183,7 @@
           check('Echo Trail ' + width + 'px: preview precedes Randomize-first toolbar',
             canvas.bottom <= random.top && random.left < appDoc.getElementById('btn-load').getBoundingClientRect().left);
           check('Echo Trail ' + width + 'px: effect buttons match slider widths and have legible touch targets',
-            [...controls.querySelectorAll('.item-toggle[data-target]')].every(button => {
+            [...controls.querySelectorAll('.item-toggle[data-target]')].filter(button => button.getClientRects().length > 0).every(button => {
               const slider = appDoc.getElementById(button.dataset.target);
               if (!slider || slider.type !== 'range') return true;
               const rect = button.getBoundingClientRect();
@@ -191,6 +191,8 @@
                 rect.height >= 44 && parseFloat(appWin.getComputedStyle(button).fontSize) >= 14 &&
                 button.scrollWidth <= button.clientWidth;
             }));
+          check('Echo Trail ' + width + 'px: text settings are hidden on mobile',
+            appDoc.querySelector('.text-settings-col').getClientRects().length === 0);
           const exposure = appDoc.getElementById('image-exposure');
           const exposureToggle = controls.querySelector('[data-target="image-exposure"]');
           exposure.value = '75';
@@ -207,8 +209,10 @@
             exposureToggle.classList.contains('active') && exposure.value === '50');
           controls.scrollLeft = controls.scrollWidth;
           await settle();
-          check('Echo Trail ' + width + 'px: last slider is reachable by swiping', controls.scrollLeft > 0 &&
-            appDoc.getElementById('fx-txtgrain').getBoundingClientRect().right <= controls.getBoundingClientRect().right);
+          const topoStrength = appDoc.getElementById('topo-strength').getBoundingClientRect();
+          const controlsBounds = controls.getBoundingClientRect();
+          check('Echo Trail ' + width + 'px: topo settings are at the end and reachable by swiping',
+            controls.scrollLeft > 0 && topoStrength.left >= controlsBounds.left && topoStrength.right <= controlsBounds.right);
         }
         if (path === 'apps/echo-trail/index.html') {
           appFrame.style.width = '1280px';
@@ -217,7 +221,8 @@
           const appWin = appFrame.contentWindow;
           check('Desktop Echo Trail keeps its original controls and toolbar order',
             appWin.getComputedStyle(appDoc.querySelector('.controls-panel')).display === 'flex' &&
-            appDoc.getElementById('btn-load').getBoundingClientRect().left < appDoc.getElementById('btn-randomize').getBoundingClientRect().left);
+            appDoc.getElementById('btn-load').getBoundingClientRect().left < appDoc.getElementById('btn-randomize').getBoundingClientRect().left &&
+            appDoc.querySelector('.text-settings-col').getClientRects().length > 0);
         }
         if (path === 'apps/chroma/index.html') {
           const appWin = appFrame.contentWindow;

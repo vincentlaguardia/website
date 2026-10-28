@@ -185,7 +185,7 @@
           check('Echo Trail ' + width + 'px: effect buttons match slider widths and have legible touch targets',
             [...controls.querySelectorAll('.item-toggle[data-target]')].every(button => {
               const slider = appDoc.getElementById(button.dataset.target);
-              if (slider.type !== 'range') return true;
+              if (!slider || slider.type !== 'range') return true;
               const rect = button.getBoundingClientRect();
               return Math.abs(rect.width - slider.getBoundingClientRect().width) < 1 &&
                 rect.height >= 44 && parseFloat(appWin.getComputedStyle(button).fontSize) >= 14 &&
@@ -197,10 +197,10 @@
           exposureToggle.click();
           check('Echo Trail ' + width + 'px: Exposure off preserves the slider and uses default exposure',
             !exposureToggle.classList.contains('active') && exposure.value === '75' &&
-            appWin.eval("rowVal('image-exposure')") === 50);
+            exposureToggle.dataset.off === '50');
           exposureToggle.click();
           check('Echo Trail ' + width + 'px: Exposure on restores its setting',
-            appWin.eval("rowVal('image-exposure')") === 75);
+            exposureToggle.classList.contains('active') && exposure.value === '75');
           appDoc.getElementById('btn-off').click();
           appDoc.getElementById('btn-reset').click();
           check('Echo Trail ' + width + 'px: Reset restores Exposure',

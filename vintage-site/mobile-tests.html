@@ -182,6 +182,29 @@
             appWin.getComputedStyle(controls).overflowX === 'auto');
           check('Echo Trail ' + width + 'px: preview precedes Randomize-first toolbar',
             canvas.bottom <= random.top && random.left < appDoc.getElementById('btn-load').getBoundingClientRect().left);
+          check('Echo Trail ' + width + 'px: effect buttons match slider widths and have legible touch targets',
+            [...controls.querySelectorAll('.item-toggle[data-target]')].every(button => {
+              const slider = appDoc.getElementById(button.dataset.target);
+              if (slider.type !== 'range') return true;
+              const rect = button.getBoundingClientRect();
+              return Math.abs(rect.width - slider.getBoundingClientRect().width) < 1 &&
+                rect.height >= 44 && parseFloat(appWin.getComputedStyle(button).fontSize) >= 14 &&
+                button.scrollWidth <= button.clientWidth;
+            }));
+          const exposure = appDoc.getElementById('image-exposure');
+          const exposureToggle = controls.querySelector('[data-target="image-exposure"]');
+          exposure.value = '75';
+          exposureToggle.click();
+          check('Echo Trail ' + width + 'px: Exposure off preserves the slider and uses default exposure',
+            !exposureToggle.classList.contains('active') && exposure.value === '75' &&
+            appWin.eval("rowVal('image-exposure')") === 50);
+          exposureToggle.click();
+          check('Echo Trail ' + width + 'px: Exposure on restores its setting',
+            appWin.eval("rowVal('image-exposure')") === 75);
+          appDoc.getElementById('btn-off').click();
+          appDoc.getElementById('btn-reset').click();
+          check('Echo Trail ' + width + 'px: Reset restores Exposure',
+            exposureToggle.classList.contains('active') && exposure.value === '50');
           controls.scrollLeft = controls.scrollWidth;
           await settle();
           check('Echo Trail ' + width + 'px: last slider is reachable by swiping', controls.scrollLeft > 0 &&

@@ -120,7 +120,7 @@
     order: 3;
     flex: 0 0 auto;
     display: grid;
-    grid-template-rows: repeat(3, 64px);
+    grid-template-rows: repeat(3, 82px);
     grid-auto-flow: column;
     grid-auto-columns: calc((100% - 6px) / 2);
     gap: 8px 6px;
@@ -138,7 +138,8 @@
     justify-content: center; scroll-snap-align: start;
   }
   html[data-mobile-app="echo-trail"] .controls-panel .item-toggle {
-    min-height: 28px; max-width: 100%;
+    width: 100%; min-height: 44px; max-width: 100%;
+    font-size: 14px; line-height: 1.2; text-align: center;
   }
   html[data-mobile-app="echo-trail"] .controls-panel .control-row > label { width: auto !important; }
   html[data-mobile-app="echo-trail"] .controls-panel .control-row > input[type="range"] {

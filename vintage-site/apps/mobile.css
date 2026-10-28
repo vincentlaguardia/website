@@ -105,9 +105,48 @@
   html[data-mobile-app^="spectrum"] .lane-label { width: 90px; font-size: 10px; }
 
   html[data-mobile-app="echo-trail"] body { height: 100dvh; }
-  html[data-mobile-app="echo-trail"] .main-area { flex-direction: column; }
-  html[data-mobile-app="echo-trail"] .canvas-panel { flex: 0 0 220px; }
-  html[data-mobile-app="echo-trail"] .controls-panel { flex: 0 0 auto; overflow: visible; }
+  html[data-mobile-app="echo-trail"] .main-area { display: contents; }
+  html[data-mobile-app="echo-trail"] .menu-bar { display: none; }
+  html[data-mobile-app="echo-trail"] .window { overflow-y: auto; }
+  html[data-mobile-app="echo-trail"] .canvas-panel {
+    order: 1; flex: 0 0 auto; width: 100%; aspect-ratio: 1; min-height: 0;
+  }
+  html[data-mobile-app="echo-trail"] .toolbar {
+    order: 2; flex: 0 0 auto; flex-wrap: nowrap; overflow-x: auto;
+  }
+  html[data-mobile-app="echo-trail"] .toolbar > :not([hidden]) { flex-shrink: 0; }
+  html[data-mobile-app="echo-trail"] #btn-randomize { order: -1; }
+  html[data-mobile-app="echo-trail"] .controls-panel {
+    order: 3;
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-rows: repeat(3, 64px);
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 6px) / 2);
+    gap: 8px 6px;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+  }
+  html[data-mobile-app="echo-trail"] .controls-col,
+  html[data-mobile-app="echo-trail"] .sub-group { display: contents; }
+  html[data-mobile-app="echo-trail"] .ctrl-section-label { display: none; }
+  html[data-mobile-app="echo-trail"] .controls-col > .control-row,
+  html[data-mobile-app="echo-trail"] .sub-group > .control-row {
+    margin: 0; min-width: 0; flex-direction: column; gap: 2px;
+    justify-content: center; scroll-snap-align: start;
+  }
+  html[data-mobile-app="echo-trail"] .controls-panel .item-toggle {
+    min-height: 28px; max-width: 100%;
+  }
+  html[data-mobile-app="echo-trail"] .controls-panel .control-row > label { width: auto !important; }
+  html[data-mobile-app="echo-trail"] .controls-panel .control-row > input[type="range"] {
+    flex: 0 0 32px; width: 100%; margin: 0;
+  }
+  html[data-mobile-app="echo-trail"] .control-row:has(> #text-layer-list) {
+    grid-row: span 3; overflow-y: auto; justify-content: start;
+  }
   html[data-mobile-app="echo-trail"] .control-row input[type="range"] { width: 0; min-width: 44px; }
   html[data-mobile-app="echo-trail"] .text-layer-row { flex-wrap: wrap; }
   html[data-mobile-app="echo-trail"] .text-layer-text { flex: 1 0 100%; order: 1; }

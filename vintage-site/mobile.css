@@ -20,7 +20,7 @@
     height: var(--mobile-icons-height, 100%);
   }
   #desktop-icons::before {
-    content: "Tap to open · Hold an item for actions";
+    content: "Tap to open · Hold to drag · Double-tap for actions";
     display: block;
     color: white;
     text-shadow: 1px 1px #000;
@@ -31,11 +31,13 @@
     top: var(--mobile-icon-top, 44px) !important;
     width: 92px !important;
     min-width: 0;
-    touch-action: pan-y;
+    touch-action: none;
     -webkit-touch-callout: none;
+    user-select: none;
   }
+  #desktop-icons .mobile-dragging { z-index: 10; opacity: 0.8; }
   .desktop-icon-item .label, .grid-item .label { font-size: 13px; overflow-wrap: anywhere; }
-  #desktop .win98-window, #desktop .face-window {
+  #desktop .win98-window {
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
@@ -102,24 +104,11 @@
   .paint-tool-btn, .pv-audio-btn { min-width: 44px; min-height: 44px; }
   .paint-swatch { width: 28px; height: 28px; }
   .paint-canvas, .sol-card, .wmp-knob-wrap { touch-action: none; }
-  .face-window { border-radius: 0; padding: 8px; gap: 8px; align-content: start; flex-wrap: wrap; overflow-y: auto !important; }
-  .face-head-img, .face-viz-wrap, .face-play-pause-mark { display: none; }
-  .face-nowplaying { position: static; width: 100%; height: 44px; flex: 0 0 100%; }
-  .face-hit {
-    position: static;
-    width: auto;
-    height: 44px;
-    min-width: 44px;
-    padding: 12px;
-    background: var(--acc-mid);
-    color: white;
-    border-radius: 4px;
+  #desktop .face-window {
+    left: calc((100% - 380px) / 2) !important;
+    top: 0 !important;
+    transform: scale(var(--mobile-player-scale, 1));
+    transform-origin: top center;
   }
-  .face-hit::after { content: attr(title); }
-  .face-mouth-panel { position: static; transform: none; width: 100%; height: auto; min-height: 160px; flex: 1 0 100%; }
-  .face-mouth-playlist { max-height: 40dvh; }
-  .wmp-playlist-row { min-height: 44px; }
-  .face-eq-popup { left: 8px; top: 100px; width: calc(100% - 16px); max-height: 60dvh; overflow: auto; }
-  #face-eq-popover.wmp-eq-bands { flex-wrap: wrap; }
-  .face-eq-close { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .solitaire-window .win98-content { background: #076324; }
 }

@@ -406,8 +406,8 @@
       <div class="controls-panel">
         <div class="controls-col">
           <div class="control-row row-active" style="--row-color:#F5C842;">
-            <label for="image-exposure">Exposure</label>
-            <input type="range" id="image-exposure" min="0" max="100" value="50">
+            <button type="button" class="item-toggle active" data-target="image-exposure" data-off="50">Exposure</button>
+            <input type="range" id="image-exposure" aria-label="Exposure" min="0" max="100" value="50">
             <span id="image-exposure-val">50</span>
           </div>
           <div class="control-row palette-system" style="--row-color:#E8834E;">
@@ -2988,6 +2988,7 @@
 
   function resetAll(){
     $('image-exposure').value=50;
+    setRowActive('image-exposure', true);
     $('topo-palette').value='survey';        setRowActive('topo-palette', true);
     $('topo-levels').value=4;                setRowActive('topo-levels', true);
     $('topo-spacing').value=14;               setRowActive('topo-spacing', true);

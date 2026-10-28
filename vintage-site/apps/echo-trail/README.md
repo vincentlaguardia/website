@@ -15,8 +15,9 @@ Then visit `http://localhost:8000`.
 It also works great hosted on GitHub Pages — just point Pages at the repo root.
 
 On mobile, the preview appears above the toolbar, with Randomize first. The
-controls use three rows; swipe horizontally to reach additional effects and text
-settings. Desktop controls keep their original layout.
+controls use three rows; swipe horizontally to reach additional effects, with
+survey/topographic palette settings at the end. Text settings are hidden on
+mobile. Desktop controls keep their original layout.
 
 ## Effects
 

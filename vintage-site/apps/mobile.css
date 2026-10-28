@@ -131,6 +131,8 @@
   }
   html[data-mobile-app="echo-trail"] .controls-col,
   html[data-mobile-app="echo-trail"] .sub-group { display: contents; }
+  html[data-mobile-app="echo-trail"] .text-settings-col { display: none; }
+  html[data-mobile-app="echo-trail"] .topo-setting { order: 1; }
   html[data-mobile-app="echo-trail"] .ctrl-section-label { display: none; }
   html[data-mobile-app="echo-trail"] .controls-col > .control-row,
   html[data-mobile-app="echo-trail"] .sub-group > .control-row {

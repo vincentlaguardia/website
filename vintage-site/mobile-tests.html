@@ -25,7 +25,7 @@
     results.appendChild(row);
     if (condition) passed++; else failed++;
   }
-  function settle() { return new Promise(resolve => setTimeout(resolve, 150)); }
+  function settle() { return new Promise(resolve => setTimeout(resolve, 350)); }
   async function load(path, width, height = 740) {
     const frame = document.createElement('iframe');
     frame.style.width = width + 'px';
@@ -60,6 +60,14 @@
       !!doc.querySelector('.taskbar-item[data-id="mediaplayer"]'));
     doc.querySelector('.taskbar-item[data-id="mediaplayer"]').click();
     check('Music player can be restored', doc.querySelector('.face-window').style.display !== 'none');
+    const player = doc.querySelector('.face-window');
+    const playerRect = player.getBoundingClientRect();
+    check('Mobile player retains the original skin and proportions',
+      win.getComputedStyle(player.querySelector('.face-head-img')).display !== 'none' &&
+      Math.abs(playerRect.width / playerRect.height - 380 / 630) < 0.001 &&
+      win.getComputedStyle(player.querySelector('.face-hit')).position === 'absolute');
+    check('Mobile player fits above the taskbar', playerRect.left >= 0 && playerRect.right <= 390 &&
+      playerRect.bottom <= doc.getElementById('taskbar').getBoundingClientRect().top + 1);
     win.eval("closeWindow('mediaplayer'); closeWindow('browser')");
     const icon = doc.querySelector('.desktop-icon-item');
     check('Mobile icons use scattered positions', win.getComputedStyle(icon).position === 'absolute' && !!icon.style.getPropertyValue('--mobile-icon-left'));
@@ -96,14 +104,28 @@
     doc.getElementById('start-button').click();
     frame.style.width = '390px';
     const launcherItem = [...doc.querySelectorAll('.desktop-icon-item')].find(el => el.dataset.itemId);
+    launcherItem.setPointerCapture = () => {};
+    const initialTop = launcherItem.style.getPropertyValue('--mobile-icon-top');
     launcherItem.dispatchEvent(new win.PointerEvent('pointerdown', {
       bubbles: true, pointerType: 'touch', button: 0, clientX: 40, clientY: 40
     }));
     await new Promise(resolve => setTimeout(resolve, 600));
-    check('Long press opens item actions', !!doc.getElementById('ctx-menu'));
+    check('Long press enables dragging without opening actions',
+      launcherItem.classList.contains('mobile-dragging') && !doc.getElementById('ctx-menu'));
+    launcherItem.dispatchEvent(new win.PointerEvent('pointermove', {
+      bubbles: true, clientX: 40, clientY: 100
+    }));
     launcherItem.dispatchEvent(new win.PointerEvent('pointerup', { bubbles: true }));
+    check('Held icon can be rearranged', parseFloat(launcherItem.style.getPropertyValue('--mobile-icon-top')) === parseFloat(initialTop) + 60);
+    check('Mobile icon arrangement is saved separately from desktop positions',
+      JSON.parse(localStorage.getItem('mobile-desktop-icon-pos-' + launcherItem.dataset.itemId)).top === parseFloat(initialTop) + 60);
     launcherItem.click();
+    launcherItem.click();
+    launcherItem.click();
+    check('Double tap opens item actions', !!doc.getElementById('ctx-menu'));
     win.eval('closeContextMenu()');
+    localStorage.removeItem('mobile-desktop-icon-pos-' + launcherItem.dataset.itemId);
+    delete launcherItem.setPointerCapture;
     launcherItem.dispatchEvent(new win.PointerEvent('pointerdown', {
       bubbles: true, pointerType: 'touch', button: 0, clientX: 40, clientY: 40
     }));
@@ -111,6 +133,10 @@
     await new Promise(resolve => setTimeout(resolve, 600));
     check('Scrolling cancels long press', !doc.getElementById('ctx-menu'));
     doc.dispatchEvent(new win.PointerEvent('pointercancel', { bubbles: true }));
+    win.eval('openSolitaireWindow()');
+    check('Entire mobile Solitaire table is green',
+      win.getComputedStyle(doc.querySelector('.solitaire-window .win98-content')).backgroundColor === 'rgb(7, 99, 36)');
+    win.eval("closeWindow('solitaire')");
     check('Programs available without hover', win.getComputedStyle(doc.getElementById('programs-submenu')).display !== 'none');
     doc.getElementById('start-button').click();
     frame.style.width = '667px'; frame.style.height = '375px';
@@ -145,6 +171,31 @@
         appFrame.style.height = height + 'px';
         await settle();
         check(path + ' at ' + width + 'px: no page overflow', appDoc.documentElement.scrollWidth <= width);
+        if (path === 'apps/echo-trail/index.html') {
+          const appWin = appFrame.contentWindow;
+          const controls = appDoc.querySelector('.controls-panel');
+          const canvas = appDoc.querySelector('.canvas-panel').getBoundingClientRect();
+          const random = appDoc.getElementById('btn-randomize').getBoundingClientRect();
+          check('Echo Trail ' + width + 'px: three swipeable control rows',
+            appWin.getComputedStyle(controls).gridTemplateRows.split(' ').length === 3 &&
+            controls.scrollWidth > controls.clientWidth &&
+            appWin.getComputedStyle(controls).overflowX === 'auto');
+          check('Echo Trail ' + width + 'px: preview precedes Randomize-first toolbar',
+            canvas.bottom <= random.top && random.left < appDoc.getElementById('btn-load').getBoundingClientRect().left);
+          controls.scrollLeft = controls.scrollWidth;
+          await settle();
+          check('Echo Trail ' + width + 'px: last slider is reachable by swiping', controls.scrollLeft > 0 &&
+            appDoc.getElementById('fx-txtgrain').getBoundingClientRect().right <= controls.getBoundingClientRect().right);
+        }
+        if (path === 'apps/echo-trail/index.html') {
+          appFrame.style.width = '1280px';
+          appFrame.style.height = '900px';
+          await settle();
+          const appWin = appFrame.contentWindow;
+          check('Desktop Echo Trail keeps its original controls and toolbar order',
+            appWin.getComputedStyle(appDoc.querySelector('.controls-panel')).display === 'flex' &&
+            appDoc.getElementById('btn-load').getBoundingClientRect().left < appDoc.getElementById('btn-randomize').getBoundingClientRect().left);
+        }
         if (path === 'apps/chroma/index.html') {
           const appWin = appFrame.contentWindow;
           const main = appDoc.querySelector('#desktop > .window');

@@ -195,4 +195,22 @@
       open();
     }, 300) };
   }, true);
+  /* Swipe left/right in the picture viewer to step through the folder. */
+  let swipe = null;
+  document.addEventListener('touchstart', event => {
+    swipe = null;
+    if (!mobile.matches || event.touches.length !== 1 || typeof pvState === 'undefined' || !pvState) return;
+    if (!event.target.closest('.picture-window .win98-content') ||
+        event.target.closest('video, audio, input, select, button, canvas')) return;
+    if (pvState.pictureViewMode !== 'fit' || pvState.pictureZoom !== 1) return;
+    swipe = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+  }, { passive: true });
+  document.addEventListener('touchend', event => {
+    if (!swipe) return;
+    const dx = event.changedTouches[0].clientX - swipe.x;
+    const dy = event.changedTouches[0].clientY - swipe.y;
+    swipe = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) pvStep(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  document.addEventListener('touchcancel', () => { swipe = null; }, { passive: true });
 })();

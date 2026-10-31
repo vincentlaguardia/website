@@ -74,7 +74,7 @@
   #login-body p { margin: 0 0 8px 0; line-height: 1.4; }
   #login-fields { flex: 1; }
   #password-input {
-    width: 100%; padding: 3px 4px; font-family: inherit; font-size: 12px;
+    width: 100%; padding: 3px 4px; background: #fff; font-family: inherit; font-size: 12px;
     border: none; box-shadow: inset 1px 1px 0 #0a0a0a, inset -1px -1px 0 #fff, inset 2px 2px 0 #808080, inset -2px -2px 0 #dfdfdf;
   }
   #login-error {
@@ -1015,7 +1015,7 @@
       </svg>
       <div id="login-fields">
         <p>This site is private. Enter the password to continue.</p>
-        <input type="password" id="password-input" autofocus placeholder="Password">
+        <select id="password-input" autofocus><option value="">Select a password...</option><option value="Meryl Streep">Meryl Streep</option><option value="Denzel Washington">Denzel Washington</option><option value="Daniel Day-Lewis">Daniel Day-Lewis</option><option value="Marlon Brando">Marlon Brando</option><option value="Cate Blanchett">Cate Blanchett</option><option value="Robert De Niro">Robert De Niro</option><option value="Al Pacino">Al Pacino</option><option value="Viola Davis">Viola Davis</option><option value="trinity">Trinity</option><option value="Anthony Hopkins">Anthony Hopkins</option></select>
         <div id="login-error"></div>
         <div id="login-hint-text"></div>
       </div>
@@ -9281,7 +9281,7 @@ async function tryLogin() {
     }
   } else {
     err.textContent = 'Incorrect password. Please try again.';
-    input.value = '';
+    input.selectedIndex = 0;
     input.focus();
   }
 }
@@ -9291,6 +9291,9 @@ document.getElementById('login-hint').addEventListener('click', () => {
 });
 document.getElementById('password-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') tryLogin();
+});
+document.getElementById('password-input').addEventListener('change', () => {
+  document.getElementById('login-error').textContent = '';
 });
 
 /* ---------- system volume ---------- */

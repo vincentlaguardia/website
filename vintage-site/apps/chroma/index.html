@@ -2183,6 +2183,15 @@
     styleBtn.innerHTML = 'Photo Palette &#9662;';
     styleOptions.forEach(o=>o.classList.remove('active'));
     seed = randomSeed();
+    if(mobileLayout.matches){
+      technoSlider.value = 0;
+      technoStrength = 0;
+      weirdSlider.value = 0;
+      strange = 0;
+      pastramiMode = false;
+      syncPastramiButtonState();
+      applyPastramiDropdown();
+    }
     drawScene();
   }
   function handleImportError(err){
